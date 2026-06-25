@@ -51,15 +51,21 @@
             android:excludeFromRecents="true"
             android:theme="@style/NoBackgroundTheme" />
 
+        <!-- Экран «Маяк» — точка входа приложения (бета MVP) -->
+        <activity
+            android:name="org.amnezia.awg.mayak.MayakActivity"
+            android:exported="true"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Стоковый экран amnezia оставлен (импорт/диагностика), но не лаунчер -->
         <activity
             android:name=".activity.MainActivity"
             android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-
             <intent-filter>
                 <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
             </intent-filter>

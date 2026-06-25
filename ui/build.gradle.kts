@@ -64,6 +64,7 @@ android {
 
 dependencies {
     implementation(project(":tunnel"))
+    implementation(project(":core"))
     implementation(libs.androidx.activity.ktx)
     implementation(libs.androidx.annotation)
     implementation(libs.androidx.appcompat)
@@ -73,6 +74,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.fragment.ktx)
     implementation(libs.androidx.preference.ktx)
+    implementation(libs.androidx.security.crypto)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.google.material)
