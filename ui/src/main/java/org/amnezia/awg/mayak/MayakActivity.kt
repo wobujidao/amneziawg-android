@@ -86,7 +86,7 @@ class MayakActivity : AppCompatActivity() {
         }
 
         val logo = ImageView(this).apply {
-            setImageResource(R.drawable.ic_mayak_logo)
+            setImageResource(R.drawable.mayak_logo)
             layoutParams = LinearLayout.LayoutParams(dp(120), dp(120))
         }
         val title = TextView(this).apply {
@@ -166,7 +166,7 @@ class MayakActivity : AppCompatActivity() {
             setPadding(dp(24), dp(40), dp(24), dp(24))
         }
         val logo = ImageView(this).apply {
-            setImageResource(R.drawable.ic_mayak_logo)
+            setImageResource(R.drawable.mayak_logo)
             layoutParams = LinearLayout.LayoutParams(dp(72), dp(72)).apply { gravity = Gravity.CENTER_HORIZONTAL }
         }
         val title = TextView(this).apply {
@@ -219,18 +219,25 @@ class MayakActivity : AppCompatActivity() {
             try {
                 val paths = session.connect(b, d)
                 val direct = paths.directConf
-                if (direct == null) { setStatus(getString(R.string.mayak_status_no_egress)); return@launch }
-
-                tunnel.up(direct)
-                setStatus(getString(R.string.mayak_status_probing))
-                var ip = probe.externalIp()
-                if (ip != null) { setStatus(getString(R.string.mayak_status_connected_direct, ip)); return@launch }
-
                 val relay = paths.relayConf
+                // Прямой путь приоритетен, но если его нет — резерв становится основной попыткой.
+                // no_egress показываем только когда оба отсутствуют или оба не прошли пробу.
+                if (direct == null && relay == null) {
+                    setStatus(getString(R.string.mayak_status_no_egress)); return@launch
+                }
+
+                if (direct != null) {
+                    tunnel.up(direct)
+                    setStatus(getString(R.string.mayak_status_probing))
+                    val ip = probe.externalIp()
+                    if (ip != null) { setStatus(getString(R.string.mayak_status_connected_direct, ip)); return@launch }
+                }
+
                 if (relay == null) { setStatus(getString(R.string.mayak_status_no_egress)); return@launch }
-                setStatus(getString(R.string.mayak_status_relay_switch))
+                // Резерв: либо прямого не было вовсе, либо он не прошёл пробу.
+                if (direct != null) setStatus(getString(R.string.mayak_status_relay_switch))
                 tunnel.up(relay)
-                ip = probe.externalIp()
+                val ip = probe.externalIp()
                 setStatus(
                     if (ip != null) getString(R.string.mayak_status_connected_relay, ip)
                     else getString(R.string.mayak_status_no_egress)

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Логотип Маяк с отступом ~26%, чтобы вписаться в безопасную зону adaptive-icon. -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/ic_launcher_foreground"
+    android:insetLeft="26%"
+    android:insetTop="26%"
+    android:insetRight="26%"
+    android:insetBottom="26%" />

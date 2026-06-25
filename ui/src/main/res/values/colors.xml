@@ -63,4 +63,5 @@
     <color name="tunnel_status_connected">#4CAF50</color>
     <color name="tunnel_status_connecting">#FF9800</color>
     <color name="tunnel_status_disconnected">#F44336</color>
+    <color name="ic_launcher_bg">#FFFFFF</color>
 </resources>
