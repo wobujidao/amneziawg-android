@@ -27,4 +27,5 @@
     <string name="mayak_err_empty_dirs">Ядро не вярнула ніводнай краіны</string>
     <string name="mayak_cancel">Адмена</string>
     <string name="mayak_ok">ОК</string>
+    <string name="mayak_language">Мова</string>
 </resources>

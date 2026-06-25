@@ -1,28 +1,27 @@
-// Экран «Маяк VPN» (бета MVP). Вход: логотип + название по центру, поля логин/пароль, кнопки
-// «Сканировать QR» и «Вставить регистрационную ссылку» (в ссылке зашиты адрес ядра + логин/пароль —
-// юзеру ничего вводить не надо). Дальше: список стран → подключение со сквозной пробой и авто-резервом.
-// UI программный, без action bar (тема MayakTheme). Тексты — из ресурсов (ru/be/kk/uz/en/de/fr).
+// Экран «Маяк VPN» (бета MVP). Брендовый дизайн на XML-разметке (Material 3):
+// вход — логотип-маяк + название + карточка с полями логин/пароль, кнопки «Войти», «Сканировать QR»,
+// «Вставить рег-ссылку» (в ссылке зашиты адрес ядра + логин/пароль — юзеру ничего вводить не надо).
+// Главный экран — список стран → подключение со сквозной пробой и авто-резервом (прямой → резерв).
+// Есть переключатель языка (ru/be/kk/uz/en/de/fr) — меняет локаль рантайм через AppCompatDelegate.
 package org.amnezia.awg.mayak
 
 import android.content.ClipboardManager
 import android.content.Context
 import android.net.Uri
 import android.os.Bundle
-import android.text.InputType
-import android.view.Gravity
-import android.view.View
-import android.view.ViewGroup
-import android.widget.Button
-import android.widget.EditText
-import android.widget.ImageView
+import android.view.LayoutInflater
 import android.widget.LinearLayout
-import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.lifecycleScope
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.textfield.TextInputEditText
+import com.google.android.material.textfield.TextInputLayout
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
 import kotlinx.coroutines.launch
@@ -45,7 +44,7 @@ class MayakActivity : AppCompatActivity() {
     private var pendingConnect: Direction? = null
 
     private lateinit var status: TextView
-    private lateinit var dirsContainer: LinearLayout
+    private var dirsContainer: LinearLayout? = null
 
     // согласие на VPN → продолжаем отложенное подключение
     private val vpnPermission =
@@ -76,49 +75,31 @@ class MayakActivity : AppCompatActivity() {
         }
     }
 
-    // --- экран входа: логотип + название + логин/пароль + QR + рег-ссылка ---
+    // --- экран входа: логотип + название + карточка логин/пароль + QR + рег-ссылка ---
 
     private fun showLogin() {
-        val root = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER_HORIZONTAL
-            setPadding(dp(32), dp(56), dp(32), dp(32))
-        }
+        setContentView(R.layout.activity_mayak_login)
+        dirsContainer = null
+        status = findViewById(R.id.mayak_status)
 
-        val logo = ImageView(this).apply {
-            setImageResource(R.drawable.mayak_logo)
-            layoutParams = LinearLayout.LayoutParams(dp(120), dp(120))
-        }
-        val title = TextView(this).apply {
-            text = getString(R.string.app_name)
-            textSize = 28f; gravity = Gravity.CENTER; setPadding(0, dp(16), 0, 0)
-        }
-        val tagline = TextView(this).apply {
-            text = getString(R.string.mayak_tagline)
-            textSize = 14f; alpha = 0.7f; gravity = Gravity.CENTER; setPadding(0, dp(4), 0, dp(32))
-        }
+        val loginField = findViewById<TextInputEditText>(R.id.mayak_login)
+        val passField = findViewById<TextInputEditText>(R.id.mayak_password)
 
-        val login = field(getString(R.string.mayak_login_hint), "")
-        val pass = field(getString(R.string.mayak_password_hint), "", password = true)
-        status = TextView(this).apply { gravity = Gravity.CENTER; setPadding(0, dp(16), 0, 0) }
+        findViewById<MaterialButton>(R.id.mayak_language_button).setOnClickListener { showLanguageDialog() }
 
-        val signIn = primaryButton(getString(R.string.mayak_sign_in)) {
-            if (login.text.isBlank() || pass.text.isBlank()) {
-                setStatus(getString(R.string.mayak_err_fill_login)); return@primaryButton
+        findViewById<MaterialButton>(R.id.mayak_sign_in).setOnClickListener {
+            val login = loginField.text?.toString().orEmpty()
+            val pass = passField.text?.toString().orEmpty()
+            if (login.isBlank() || pass.isBlank()) {
+                setStatus(getString(R.string.mayak_err_fill_login)); return@setOnClickListener
             }
             val server = store.get(KEY_SERVER) ?: DEFAULT_SERVER
-            doSignIn(server, login.text.toString(), pass.text.toString())
+            doSignIn(server, login, pass)
         }
-        val scan = secondaryButton(getString(R.string.mayak_scan_qr)) {
+        findViewById<MaterialButton>(R.id.mayak_scan_qr).setOnClickListener {
             scanQr.launch(ScanOptions().setOrientationLocked(false).setBeepEnabled(false))
         }
-        val paste = secondaryButton(getString(R.string.mayak_paste_link)) { showPasteLinkDialog() }
-
-        root.addView(logo); root.addView(title); root.addView(tagline)
-        root.addView(login); root.addView(pass); root.addView(signIn)
-        root.addView(spacer(dp(8)))
-        root.addView(scan); root.addView(paste); root.addView(status)
-        setContentView(wrap(root))
+        findViewById<MaterialButton>(R.id.mayak_paste_link).setOnClickListener { showPasteLinkDialog() }
     }
 
     /** Разбор регистрационной ссылки mayak://reg?server=..&login=..&password=.. → автологин. */
@@ -134,13 +115,30 @@ class MayakActivity : AppCompatActivity() {
     }
 
     private fun showPasteLinkDialog() {
-        val input = EditText(this).apply { hint = getString(R.string.mayak_paste_link_hint) }
+        val input = TextInputEditText(this).apply { hint = getString(R.string.mayak_paste_link_hint) }
+        val wrapper = TextInputLayout(this).apply {
+            setPadding(dp(24), dp(8), dp(24), 0)
+            addView(input)
+        }
         // предзаполним из буфера обмена, если там ссылка
         clipboardText()?.let { if (it.startsWith("mayak://")) input.setText(it) }
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.mayak_paste_link_title))
-            .setView(input)
+            .setView(wrapper)
             .setPositiveButton(getString(R.string.mayak_ok)) { _, _ -> handleRegLink(input.text.toString()) }
+            .setNegativeButton(getString(R.string.mayak_cancel), null)
+            .show()
+    }
+
+    /** Выбор языка интерфейса: меняем локаль рантайм, appcompat сам её сохраняет (autoStoreLocales). */
+    private fun showLanguageDialog() {
+        val names = LANGS.map { it.second }.toTypedArray()
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.mayak_language))
+            .setItems(names) { _, which ->
+                val tag = LANGS[which].first
+                AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(tag))
+            }
             .setNegativeButton(getString(R.string.mayak_cancel), null)
             .show()
     }
@@ -161,35 +159,20 @@ class MayakActivity : AppCompatActivity() {
     // --- главный экран: страны + статус ---
 
     private fun showHome() {
-        val root = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(24), dp(40), dp(24), dp(24))
-        }
-        val logo = ImageView(this).apply {
-            setImageResource(R.drawable.mayak_logo)
-            layoutParams = LinearLayout.LayoutParams(dp(72), dp(72)).apply { gravity = Gravity.CENTER_HORIZONTAL }
-        }
-        val title = TextView(this).apply {
-            text = getString(R.string.app_name); textSize = 22f; gravity = Gravity.CENTER; setPadding(0, dp(8), 0, dp(16))
-        }
-        status = TextView(this).apply { setPadding(0, dp(16), 0, dp(8)) }
-        dirsContainer = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        setContentView(R.layout.activity_mayak_home)
+        status = findViewById(R.id.mayak_status)
+        dirsContainer = findViewById(R.id.mayak_dirs_container)
 
-        root.addView(logo); root.addView(title)
-        root.addView(TextView(this).apply { text = getString(R.string.mayak_pick_country); setPadding(0, dp(8), 0, dp(4)) })
-        root.addView(dirsContainer)
-        root.addView(status)
-        root.addView(secondaryButton(getString(R.string.mayak_disconnect)) {
+        findViewById<MaterialButton>(R.id.mayak_disconnect).setOnClickListener {
             lifecycleScope.launch {
                 try { tunnel.down(); setStatus(getString(R.string.mayak_status_disconnected)) }
                 catch (e: Exception) { setStatus(humanError(e)) }
             }
-        })
-        root.addView(secondaryButton(getString(R.string.mayak_logout)) {
+        }
+        findViewById<MaterialButton>(R.id.mayak_logout).setOnClickListener {
             lifecycleScope.launch { runCatching { tunnel.down() } }
             session.logout(); showLogin()
-        })
-        setContentView(wrap(root))
+        }
     }
 
     private fun loadDirections() {
@@ -198,10 +181,11 @@ class MayakActivity : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 val dirs = session.directions(b)
-                dirsContainer.removeAllViews()
+                val container = dirsContainer ?: return@launch
+                container.removeAllViews()
                 setStatus(if (dirs.isEmpty()) getString(R.string.mayak_err_empty_dirs) else getString(R.string.mayak_status_ready))
-                for (d in dirs) dirsContainer.addView(
-                    primaryButton(if (d.code.isNotBlank()) "${d.name} (${d.code})" else d.name) { connectTo(d) }
+                for (d in dirs) container.addView(
+                    countryButton(if (d.code.isNotBlank()) "${d.name} (${d.code})" else d.name) { connectTo(d) }
                 )
             } catch (e: Exception) { setStatus(humanError(e)) }
         }
@@ -260,33 +244,19 @@ class MayakActivity : AppCompatActivity() {
     }
 
     private fun setStatus(text: String) = runOnUiThread {
-        status.text = text
+        if (::status.isInitialized) status.text = text
         Toast.makeText(this, text, Toast.LENGTH_SHORT).show()
     }
 
-    private fun wrap(v: View) = ScrollView(this).apply {
-        layoutParams = ViewGroup.LayoutParams(MATCH, MATCH); addView(v)
+    /** Кнопка-страна в списке: инфлейтим брендовый стиль Mayak.Button.Country из ресурса. */
+    private fun countryButton(label: String, onClick: () -> Unit): MaterialButton {
+        val container = dirsContainer
+        val btn = LayoutInflater.from(this)
+            .inflate(R.layout.mayak_country_button, container, false) as MaterialButton
+        btn.text = label
+        btn.setOnClickListener { onClick() }
+        return btn
     }
-
-    private fun field(hint: String, value: String, password: Boolean = false) = EditText(this).apply {
-        this.hint = hint; setText(value)
-        layoutParams = LinearLayout.LayoutParams(MATCH, WRAP)
-        if (password) inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
-    }
-
-    private fun primaryButton(label: String, onClick: () -> Unit) = Button(this).apply {
-        text = label
-        layoutParams = LinearLayout.LayoutParams(MATCH, WRAP).apply { topMargin = dp(8) }
-        setOnClickListener { onClick() }
-    }
-
-    private fun secondaryButton(label: String, onClick: () -> Unit) = Button(this).apply {
-        text = label
-        layoutParams = LinearLayout.LayoutParams(MATCH, WRAP).apply { topMargin = dp(8) }
-        setOnClickListener { onClick() }
-    }
-
-    private fun spacer(h: Int) = View(this).apply { layoutParams = LinearLayout.LayoutParams(MATCH, h) }
 
     private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
 
@@ -294,7 +264,16 @@ class MayakActivity : AppCompatActivity() {
         private const val KEY_SERVER = "server_url"
         // адрес ядра по умолчанию для ручного входа; рег-ссылка/QR переопределяют. Заполним при живом ядре.
         private const val DEFAULT_SERVER = ""
-        private const val MATCH = ViewGroup.LayoutParams.MATCH_PARENT
-        private const val WRAP = ViewGroup.LayoutParams.WRAP_CONTENT
+
+        // Языки интерфейса: BCP-47 тег → отображаемое имя (на своём языке).
+        private val LANGS = listOf(
+            "ru" to "Русский",
+            "be" to "Беларуская",
+            "kk" to "Қазақша",
+            "uz" to "Oʻzbekcha",
+            "en" to "English",
+            "de" to "Deutsch",
+            "fr" to "Français",
+        )
     }
 }

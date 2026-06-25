@@ -270,4 +270,5 @@
     <string name="mayak_err_empty_dirs">Kern lieferte keine Länder</string>
     <string name="mayak_cancel">Abbrechen</string>
     <string name="mayak_ok">OK</string>
+    <string name="mayak_language">Sprache</string>
 </resources>

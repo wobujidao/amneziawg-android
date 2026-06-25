@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Фон экрана: мягкий вертикальный градиент от глубокого тёмно-синего к более светлому. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:angle="270"
+        android:startColor="@color/mayak_navy_dark"
+        android:centerColor="@color/mayak_navy"
+        android:endColor="@color/mayak_navy_light"
+        android:type="linear" />
+</shape>

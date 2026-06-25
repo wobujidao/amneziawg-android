@@ -270,4 +270,5 @@
     <string name="mayak_err_empty_dirs">Le cœur n\'a renvoyé aucun pays</string>
     <string name="mayak_cancel">Annuler</string>
     <string name="mayak_ok">OK</string>
+    <string name="mayak_language">Langue</string>
 </resources>

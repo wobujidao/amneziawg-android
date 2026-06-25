@@ -91,6 +91,7 @@
     <string name="mayak_err_empty_dirs">Core returned no countries</string>
     <string name="mayak_cancel">Cancel</string>
     <string name="mayak_ok">OK</string>
+    <string name="mayak_language">Language</string>
     <string name="bad_config_context">%1$s\'s %2$s</string>
     <string name="bad_config_context_top_level">%s</string>
     <string name="bad_config_error">%1$s in %2$s</string>

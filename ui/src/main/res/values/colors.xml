@@ -64,4 +64,18 @@
     <color name="tunnel_status_connecting">#FF9800</color>
     <color name="tunnel_status_disconnected">#F44336</color>
     <color name="ic_launcher_bg">#FFFFFF</color>
+
+    <!-- Бренд «Маяк»: палитра выведена из логотипа-маяка -->
+    <color name="mayak_navy">#14213D</color>
+    <color name="mayak_navy_light">#1A2E5A</color>
+    <color name="mayak_navy_dark">#0C1426</color>
+    <color name="mayak_accent">#4FC3F7</color>
+    <color name="mayak_red">#E63946</color>
+    <color name="mayak_cream">#FFFDF7</color>
+    <color name="mayak_card">#FFFFFF</color>
+    <color name="mayak_text">#14213D</color>
+    <color name="mayak_text_muted">#5B6B86</color>
+    <color name="mayak_on_navy">#FFFFFF</color>
+    <color name="mayak_on_navy_muted">#B9C6DE</color>
+    <color name="mayak_field_bg">#F2F5FB</color>
 </resources>

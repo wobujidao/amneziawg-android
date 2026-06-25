@@ -27,4 +27,5 @@
     <string name="mayak_err_empty_dirs">Ядро ешбір ел қайтармады</string>
     <string name="mayak_cancel">Бас тарту</string>
     <string name="mayak_ok">OK</string>
+    <string name="mayak_language">Тіл</string>
 </resources>

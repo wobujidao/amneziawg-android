@@ -27,4 +27,5 @@
     <string name="mayak_err_empty_dirs">Yadro hech qanday mamlakat qaytarmadi</string>
     <string name="mayak_cancel">Bekor qilish</string>
     <string name="mayak_ok">OK</string>
+    <string name="mayak_language">Til</string>
 </resources>
