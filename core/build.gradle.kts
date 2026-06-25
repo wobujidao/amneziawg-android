@@ -13,7 +13,8 @@ kotlin {
 }
 
 dependencies {
-    implementation(libs.kotlinx.serialization.json)
+    // api: тип Json фигурирует в публичном API MayakBackend → должен быть виден потребителям (:ui)
+    api(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.core)
 
     testImplementation(libs.junit)
