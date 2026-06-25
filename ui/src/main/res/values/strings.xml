@@ -63,7 +63,34 @@
     <string name="allow_remote_control_intents_summary_on">External apps may toggle tunnels (advanced)</string>
     <string name="allow_remote_control_intents_title">Allow remote control apps</string>
     <string name="allowed_ips">Allowed IPs</string>
-    <string name="app_name" translatable="false">Маяк</string>
+    <string name="app_name" translatable="false">Маяк VPN</string>
+    <string name="mayak_tagline">Connect freely</string>
+    <string name="mayak_login_hint">Login</string>
+    <string name="mayak_password_hint">Password</string>
+    <string name="mayak_sign_in">Sign in</string>
+    <string name="mayak_scan_qr">Scan QR code</string>
+    <string name="mayak_paste_link">Paste registration link</string>
+    <string name="mayak_paste_link_title">Registration link</string>
+    <string name="mayak_paste_link_hint">mayak://reg?…</string>
+    <string name="mayak_pick_country">Pick a country:</string>
+    <string name="mayak_disconnect">Disconnect</string>
+    <string name="mayak_logout">Log out</string>
+    <string name="mayak_status_ready">Ready</string>
+    <string name="mayak_status_signing_in">Signing in…</string>
+    <string name="mayak_status_loading">Loading countries…</string>
+    <string name="mayak_status_connecting">Connecting to %1$s…</string>
+    <string name="mayak_status_probing">Tunnel up, checking access…</string>
+    <string name="mayak_status_connected_direct">Connected (direct). IP: %1$s</string>
+    <string name="mayak_status_connected_relay">Connected (reserve). IP: %1$s</string>
+    <string name="mayak_status_relay_switch">Direct path blocked — switching to reserve…</string>
+    <string name="mayak_status_no_egress">Both paths failed to reach the internet</string>
+    <string name="mayak_status_disconnected">Disconnected</string>
+    <string name="mayak_err_fill_login">Enter login and password</string>
+    <string name="mayak_err_bad_link">Link not recognized</string>
+    <string name="mayak_err_no_vpn_perm">VPN permission denied</string>
+    <string name="mayak_err_empty_dirs">Core returned no countries</string>
+    <string name="mayak_cancel">Cancel</string>
+    <string name="mayak_ok">OK</string>
     <string name="bad_config_context">%1$s\'s %2$s</string>
     <string name="bad_config_context_top_level">%s</string>
     <string name="bad_config_error">%1$s in %2$s</string>

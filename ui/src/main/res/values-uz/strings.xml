@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="mayak_tagline">Erkin ulanish</string>
+    <string name="mayak_login_hint">Login</string>
+    <string name="mayak_password_hint">Parol</string>
+    <string name="mayak_sign_in">Kirish</string>
+    <string name="mayak_scan_qr">QR-kodni skanerlash</string>
+    <string name="mayak_paste_link">Roʻyxatdan oʻtish havolasini joylash</string>
+    <string name="mayak_paste_link_title">Roʻyxatdan oʻtish havolasi</string>
+    <string name="mayak_paste_link_hint">mayak://reg?…</string>
+    <string name="mayak_pick_country">Mamlakatni tanlang:</string>
+    <string name="mayak_disconnect">Uzish</string>
+    <string name="mayak_logout">Chiqish</string>
+    <string name="mayak_status_ready">Tayyor</string>
+    <string name="mayak_status_signing_in">Kirish…</string>
+    <string name="mayak_status_loading">Mamlakatlar yuklanmoqda…</string>
+    <string name="mayak_status_connecting">%1$s ga ulanmoqda…</string>
+    <string name="mayak_status_probing">Tunnel koʻtarildi, chiqish tekshirilmoqda…</string>
+    <string name="mayak_status_connected_direct">Ulandi (toʻgʻridan-toʻgʻri). IP: %1$s</string>
+    <string name="mayak_status_connected_relay">Ulandi (zaxira). IP: %1$s</string>
+    <string name="mayak_status_relay_switch">Toʻgʻridan-toʻgʻri yoʻl bloklangan — zaxiraga oʻtilmoqda…</string>
+    <string name="mayak_status_no_egress">Ikkala yoʻl ham internetga chiqa olmadi</string>
+    <string name="mayak_status_disconnected">Uzildi</string>
+    <string name="mayak_err_fill_login">Login va parolni kiriting</string>
+    <string name="mayak_err_bad_link">Havola tanilmadi</string>
+    <string name="mayak_err_no_vpn_perm">VPN ruxsati berilmadi</string>
+    <string name="mayak_err_empty_dirs">Yadro hech qanday mamlakat qaytarmadi</string>
+    <string name="mayak_cancel">Bekor qilish</string>
+    <string name="mayak_ok">OK</string>
+</resources>

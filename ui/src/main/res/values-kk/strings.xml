@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="mayak_tagline">Еркін қосылу</string>
+    <string name="mayak_login_hint">Логин</string>
+    <string name="mayak_password_hint">Құпиясөз</string>
+    <string name="mayak_sign_in">Кіру</string>
+    <string name="mayak_scan_qr">QR-кодты сканерлеу</string>
+    <string name="mayak_paste_link">Тіркеу сілтемесін қою</string>
+    <string name="mayak_paste_link_title">Тіркеу сілтемесі</string>
+    <string name="mayak_paste_link_hint">mayak://reg?…</string>
+    <string name="mayak_pick_country">Елді таңдаңыз:</string>
+    <string name="mayak_disconnect">Ажырату</string>
+    <string name="mayak_logout">Шығу</string>
+    <string name="mayak_status_ready">Дайын</string>
+    <string name="mayak_status_signing_in">Кіру…</string>
+    <string name="mayak_status_loading">Елдер жүктелуде…</string>
+    <string name="mayak_status_connecting">%1$s-ке қосылу…</string>
+    <string name="mayak_status_probing">Туннель іске қосылды, шығуды тексеру…</string>
+    <string name="mayak_status_connected_direct">Қосылды (тікелей). IP: %1$s</string>
+    <string name="mayak_status_connected_relay">Қосылды (резерв). IP: %1$s</string>
+    <string name="mayak_status_relay_switch">Тікелей жол бөгелген — резервке ауысу…</string>
+    <string name="mayak_status_no_egress">Екі жол да интернетке шыға алмады</string>
+    <string name="mayak_status_disconnected">Ажыратылды</string>
+    <string name="mayak_err_fill_login">Логин мен құпиясөзді енгізіңіз</string>
+    <string name="mayak_err_bad_link">Сілтеме танылмады</string>
+    <string name="mayak_err_no_vpn_perm">VPN рұқсаты берілмеді</string>
+    <string name="mayak_err_empty_dirs">Ядро ешбір ел қайтармады</string>
+    <string name="mayak_cancel">Бас тарту</string>
+    <string name="mayak_ok">OK</string>
+</resources>

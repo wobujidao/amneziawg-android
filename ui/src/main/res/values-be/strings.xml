@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="mayak_tagline">Вольны доступ</string>
+    <string name="mayak_login_hint">Лагін</string>
+    <string name="mayak_password_hint">Пароль</string>
+    <string name="mayak_sign_in">Увайсці</string>
+    <string name="mayak_scan_qr">Сканаваць QR-код</string>
+    <string name="mayak_paste_link">Уставіць рэгістрацыйную спасылку</string>
+    <string name="mayak_paste_link_title">Рэгістрацыйная спасылка</string>
+    <string name="mayak_paste_link_hint">mayak://reg?…</string>
+    <string name="mayak_pick_country">Выберыце краіну:</string>
+    <string name="mayak_disconnect">Адключыць</string>
+    <string name="mayak_logout">Выйсці</string>
+    <string name="mayak_status_ready">Гатова</string>
+    <string name="mayak_status_signing_in">Уваход…</string>
+    <string name="mayak_status_loading">Загрузка краін…</string>
+    <string name="mayak_status_connecting">Падключэнне да %1$s…</string>
+    <string name="mayak_status_probing">Тунэль узняты, правяраю выхад…</string>
+    <string name="mayak_status_connected_direct">Падключана (прамы). IP: %1$s</string>
+    <string name="mayak_status_connected_relay">Падключана (рэзерв). IP: %1$s</string>
+    <string name="mayak_status_relay_switch">Прамы шлях заблакаваны — пераключаюся на рэзерв…</string>
+    <string name="mayak_status_no_egress">Абодва шляхі не выйшлі ў інтэрнэт</string>
+    <string name="mayak_status_disconnected">Адключана</string>
+    <string name="mayak_err_fill_login">Увядзіце лагін і пароль</string>
+    <string name="mayak_err_bad_link">Спасылка не распазнана</string>
+    <string name="mayak_err_no_vpn_perm">Няма дазволу на VPN</string>
+    <string name="mayak_err_empty_dirs">Ядро не вярнула ніводнай краіны</string>
+    <string name="mayak_cancel">Адмена</string>
+    <string name="mayak_ok">ОК</string>
+</resources>

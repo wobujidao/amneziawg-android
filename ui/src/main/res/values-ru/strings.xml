@@ -272,4 +272,31 @@
     <string name="import_disclaimer">Убедитесь, что вы получили файл конфигурации в надёжном источнике.\n\nОфициальные сервисы Amnezia доступны только на сайте <a href="https://storage.googleapis.com/amnezia/amnezia.org">amnezia.org</a>\n</string>
     <string name="tunnel_status_connected">Подключено</string>
     <string name="tunnel_status_connecting">Подключение…</string>
+    <string name="mayak_tagline">Свободный доступ</string>
+    <string name="mayak_login_hint">Логин</string>
+    <string name="mayak_password_hint">Пароль</string>
+    <string name="mayak_sign_in">Войти</string>
+    <string name="mayak_scan_qr">Сканировать QR-код</string>
+    <string name="mayak_paste_link">Вставить регистрационную ссылку</string>
+    <string name="mayak_paste_link_title">Регистрационная ссылка</string>
+    <string name="mayak_paste_link_hint">mayak://reg?…</string>
+    <string name="mayak_pick_country">Выберите страну:</string>
+    <string name="mayak_disconnect">Отключить</string>
+    <string name="mayak_logout">Выйти</string>
+    <string name="mayak_status_ready">Готов</string>
+    <string name="mayak_status_signing_in">Вход…</string>
+    <string name="mayak_status_loading">Загрузка стран…</string>
+    <string name="mayak_status_connecting">Подключение к %1$s…</string>
+    <string name="mayak_status_probing">Туннель поднят, проверяю выход…</string>
+    <string name="mayak_status_connected_direct">Подключено (прямой). IP: %1$s</string>
+    <string name="mayak_status_connected_relay">Подключено (резерв). IP: %1$s</string>
+    <string name="mayak_status_relay_switch">Прямой путь заблокирован — переключаюсь на резерв…</string>
+    <string name="mayak_status_no_egress">Оба пути не вышли в интернет</string>
+    <string name="mayak_status_disconnected">Отключено</string>
+    <string name="mayak_err_fill_login">Введите логин и пароль</string>
+    <string name="mayak_err_bad_link">Ссылка не распознана</string>
+    <string name="mayak_err_no_vpn_perm">Нет разрешения на VPN</string>
+    <string name="mayak_err_empty_dirs">Ядро не вернуло ни одной страны</string>
+    <string name="mayak_cancel">Отмена</string>
+    <string name="mayak_ok">ОК</string>
 </resources>
