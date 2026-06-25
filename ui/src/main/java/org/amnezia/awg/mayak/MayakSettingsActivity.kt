@@ -2,6 +2,7 @@
 // (AppCompatDelegate + персист), язык — через общий MayakLanguages-диалог.
 package org.amnezia.awg.mayak
 
+import android.content.Intent
 import android.os.Bundle
 import android.widget.RadioGroup
 import androidx.appcompat.app.AppCompatActivity
@@ -18,6 +19,9 @@ class MayakSettingsActivity : AppCompatActivity() {
         findViewById<MaterialButton>(R.id.mayak_settings_back).setOnClickListener { finish() }
         findViewById<MaterialButton>(R.id.mayak_settings_language).setOnClickListener {
             MayakLanguages.showDialog(this)
+        }
+        findViewById<MaterialButton>(R.id.mayak_settings_about).setOnClickListener {
+            startActivity(Intent(this, MayakAboutActivity::class.java))
         }
 
         val group = findViewById<RadioGroup>(R.id.mayak_theme_group)
