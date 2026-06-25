@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Солнце — режим «Светлая». Тинтуется (fillColor=white по умолчанию). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24"
+    android:tint="?attr/colorControlNormal">
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M12,7a5,5 0,1 0,0 10a5,5 0,0 0,0 -10zM12,9a3,3 0,1 1,0 6a3,3 0,0 1,0 -6z" />
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M11,1h2v3h-2zM11,20h2v3h-2zM1,11h3v2h-3zM20,11h3v2h-3zM3.5,4.93l1.41,-1.41 2.12,2.12 -1.41,1.41zM16.97,18.38l1.41,-1.41 2.12,2.12 -1.41,1.41zM19.07,3.52l1.41,1.41 -2.12,2.12 -1.41,-1.41zM5.62,16.97l1.41,1.41 -2.12,2.12 -1.41,-1.41z" />
+</vector>

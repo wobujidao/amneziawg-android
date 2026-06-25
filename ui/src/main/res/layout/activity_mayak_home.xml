@@ -22,12 +22,12 @@
             android:paddingTop="16dp"
             android:paddingBottom="32dp">
 
-            <!-- Шапка: переключатель темы (свет/тёмная/системная) + настройки справа -->
+            <!-- Шапка: слева — переключатель темы (солнце/луна/авто), справа — настройки -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:gravity="end|center_vertical">
+                android:gravity="center_vertical">
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/mayak_theme_button"
@@ -39,18 +39,22 @@
                     android:paddingStart="10dp"
                     android:paddingEnd="10dp"
                     android:contentDescription="@string/mayak_theme"
-                    app:icon="@drawable/ic_action_generate"
+                    app:icon="@drawable/ic_theme_system"
                     app:iconTint="@color/mayak_on_bg"
-                    app:iconSize="22dp"
+                    app:iconSize="24dp"
                     app:iconPadding="0dp"
                     android:text="" />
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="1dp"
+                    android:layout_weight="1" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/mayak_settings_button"
                     style="@style/Mayak.Button.Text"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="4dp"
                     android:minWidth="0dp"
                     android:minHeight="0dp"
                     android:paddingStart="10dp"

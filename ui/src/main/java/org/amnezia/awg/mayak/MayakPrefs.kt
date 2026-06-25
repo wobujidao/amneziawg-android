@@ -4,7 +4,10 @@
 package org.amnezia.awg.mayak
 
 import android.content.Context
+import androidx.annotation.DrawableRes
+import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatDelegate
+import org.amnezia.awg.R
 
 object MayakPrefs {
     private const val PREFS = "mayak_ui_prefs"
@@ -14,6 +17,29 @@ object MayakPrefs {
     const val THEME_SYSTEM = 0
     const val THEME_LIGHT = 1
     const val THEME_DARK = 2
+
+    /** Следующий режим в цикле Системная → Светлая → Тёмная → … */
+    fun nextMode(mode: Int): Int = when (mode) {
+        THEME_SYSTEM -> THEME_LIGHT
+        THEME_LIGHT -> THEME_DARK
+        else -> THEME_SYSTEM
+    }
+
+    /** Иконка, отражающая режим: солнце/луна/авто. */
+    @DrawableRes
+    fun iconFor(mode: Int): Int = when (mode) {
+        THEME_LIGHT -> R.drawable.ic_theme_light
+        THEME_DARK -> R.drawable.ic_theme_dark
+        else -> R.drawable.ic_theme_system
+    }
+
+    /** Подпись режима для тоста. */
+    @StringRes
+    fun labelFor(mode: Int): Int = when (mode) {
+        THEME_LIGHT -> R.string.mayak_theme_light
+        THEME_DARK -> R.string.mayak_theme_dark
+        else -> R.string.mayak_theme_system
+    }
 
     private fun prefs(context: Context) =
         context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)

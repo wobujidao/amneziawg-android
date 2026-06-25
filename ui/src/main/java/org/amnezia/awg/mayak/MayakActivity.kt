@@ -85,6 +85,7 @@ class MayakActivity : AppCompatActivity() {
         val loginField = findViewById<TextInputEditText>(R.id.mayak_login)
         val passField = findViewById<TextInputEditText>(R.id.mayak_password)
 
+        setupThemeButton()
         findViewById<MaterialButton>(R.id.mayak_language_button).setOnClickListener { MayakLanguages.showDialog(this) }
 
         findViewById<MaterialButton>(R.id.mayak_sign_in).setOnClickListener {
@@ -130,20 +131,24 @@ class MayakActivity : AppCompatActivity() {
             .show()
     }
 
-    /** Быстрый цикл темы из шапки главного экрана: Системная → Светлая → Тёмная → … */
-    private fun cycleTheme() {
-        val next = when (MayakPrefs.themeMode(this)) {
-            MayakPrefs.THEME_SYSTEM -> MayakPrefs.THEME_LIGHT
-            MayakPrefs.THEME_LIGHT -> MayakPrefs.THEME_DARK
-            else -> MayakPrefs.THEME_SYSTEM
+    /**
+     * Кнопка-переключатель темы в шапке (есть и на входе, и на главном).
+     * Иконка отражает текущий режим (солнце/луна/авто); тап — цикл
+     * Системная → Светлая → Тёмная → … с пересозданием активити.
+     */
+    private fun setupThemeButton() {
+        val btn = findViewById<MaterialButton>(R.id.mayak_theme_button) ?: return
+        btn.setIconResource(MayakPrefs.iconFor(MayakPrefs.themeMode(this)))
+        btn.setOnClickListener {
+            val next = MayakPrefs.nextMode(MayakPrefs.themeMode(this))
+            Toast.makeText(
+                this,
+                "${getString(R.string.mayak_theme)}: ${getString(MayakPrefs.labelFor(next))}",
+                Toast.LENGTH_SHORT
+            ).show()
+            MayakPrefs.setThemeMode(this, next) // пересоздаст активити → иконка обновится при пересборке
+            recreate()
         }
-        val label = when (next) {
-            MayakPrefs.THEME_LIGHT -> getString(R.string.mayak_theme_light)
-            MayakPrefs.THEME_DARK -> getString(R.string.mayak_theme_dark)
-            else -> getString(R.string.mayak_theme_system)
-        }
-        Toast.makeText(this, "${getString(R.string.mayak_theme)}: $label", Toast.LENGTH_SHORT).show()
-        MayakPrefs.setThemeMode(this, next) // пересоздаст активити с новой темой
     }
 
     private fun doSignIn(server: String, login: String, password: String) {
@@ -166,7 +171,7 @@ class MayakActivity : AppCompatActivity() {
         status = findViewById(R.id.mayak_status)
         dirsContainer = findViewById(R.id.mayak_dirs_container)
 
-        findViewById<MaterialButton>(R.id.mayak_theme_button).setOnClickListener { cycleTheme() }
+        setupThemeButton()
         findViewById<MaterialButton>(R.id.mayak_settings_button).setOnClickListener {
             startActivity(Intent(this, MayakSettingsActivity::class.java))
         }
