@@ -1,0 +1,37 @@
+name: core (build + test)
+run-name: "core • ${{ github.ref_name }}"
+
+# Сборка и юнит-тесты переносимого модуля :core (чистый Kotlin/JVM, без Android-эмулятора).
+on:
+  push:
+    branches: [ "mayak-core", "main", "master" ]
+    paths:
+      - "core/**"
+      - "gradle/libs.versions.toml"
+      - "settings.gradle.kts"
+      - "build.gradle.kts"
+      - ".github/workflows/core.yml"
+  workflow_dispatch: {}
+
+jobs:
+  core:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build + test :core
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x ./gradlew
+          ./gradlew --no-daemon --stacktrace :core:build

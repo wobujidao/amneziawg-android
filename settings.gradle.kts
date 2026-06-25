@@ -25,6 +25,7 @@ rootProject.name = "amneziawg-android"
 
 include(":tunnel")
 include(":ui")
+include(":core")
 
 configure<SettingsExtension> {
     buildToolsVersion = "35.0.0"
