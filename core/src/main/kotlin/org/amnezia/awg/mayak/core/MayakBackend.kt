@@ -53,9 +53,14 @@ class MayakBackend(
         }
     }
 
-    suspend fun login(login: String, password: String): LoginResponse {
-        val body = json.encodeToString(LoginRequest.serializer(), LoginRequest(login, password))
-        val resp = call("POST", "/v1/client/login", token = null, body = body)
+    /**
+     * Вход по email (новая email-авторизация ядра). POST /v1/auth/login {email,password} → {token}.
+     * 403 email_not_verified / 401 неверные данные приходят как MayakApiException (фейловера нет —
+     * это ответ ядра). Регистрация и подтверждение email — в веб-кабинете.
+     */
+    suspend fun login(email: String, password: String): LoginResponse {
+        val body = json.encodeToString(LoginRequest.serializer(), LoginRequest(email, password))
+        val resp = call("POST", "/v1/auth/login", token = null, body = body)
         return json.decodeFromString(LoginResponse.serializer(), resp)
     }
 

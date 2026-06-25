@@ -36,9 +36,9 @@ class MayakSession(
         // ключи устройства оставляем — это идентичность устройства; токен/девайс перезаведём при логине
     }
 
-    /** Логин: получаем токен и кладём в защищённое хранилище. */
-    suspend fun login(backend: MayakBackend, login: String, password: String) {
-        val resp = backend.login(login, password)
+    /** Логин по email: получаем токен и кладём в защищённое хранилище. */
+    suspend fun login(backend: MayakBackend, email: String, password: String) {
+        val resp = backend.login(email, password)
         store.put(K_TOKEN, resp.token)
     }
 

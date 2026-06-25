@@ -274,6 +274,12 @@
     <string name="tunnel_status_connecting">Подключение…</string>
     <string name="mayak_tagline">Свободный доступ</string>
     <string name="mayak_login_hint">Логин</string>
+    <string name="mayak_email_hint">Email</string>
+    <string name="mayak_register_cabinet">Регистрация / Личный кабинет</string>
+    <string name="mayak_consent_note">Входя, вы принимаете Политику конфиденциальности и Условия использования.</string>
+    <string name="mayak_err_email_not_verified">Подтвердите email на сайте.</string>
+    <string name="mayak_err_bad_creds">Неверный email или пароль.</string>
+    <string name="mayak_open_cabinet">Открыть кабинет</string>
     <string name="mayak_password_hint">Пароль</string>
     <string name="mayak_sign_in">Войти</string>
     <string name="mayak_scan_qr">Сканировать QR-код</string>

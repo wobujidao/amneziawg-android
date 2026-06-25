@@ -6,7 +6,15 @@
   Приватный ключ CA остаётся на сервере и в приложение/репо НЕ попадает.
 -->
 <network-security-config>
-    <!-- Тестовое ядро на RuVDS (выпущено нашим CA) -->
+    <!-- По умолчанию: только TLS (без cleartext), системные корни. Под это попадает публичный
+         домен api.mayakvpn.ru с обычным сертификатом Let's Encrypt — спец-настройки не нужны. -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+
+    <!-- Тестовое ядро на RuVDS по IP (выпущено НАШИМ CA) — доверяем нашему CA только для этого адреса -->
     <domain-config cleartextTrafficPermitted="false">
         <domain includeSubdomains="false">45.132.18.167</domain>
         <trust-anchors>

@@ -2,9 +2,10 @@
 // лицензия, открытый код и стабы правовых разделов. Брендовый, DayNight.
 package org.amnezia.awg.mayak
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.widget.TextView
-import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.button.MaterialButton
@@ -36,10 +37,17 @@ class MayakAboutActivity : AppCompatActivity() {
                 .show()
         }
 
-        // Правовые разделы — пока стабы; полный текст добавим позже из комплаенс-доков.
-        val stub = { Toast.makeText(this, getString(R.string.mayak_soon), Toast.LENGTH_SHORT).show() }
-        findViewById<MaterialButton>(R.id.mayak_about_privacy).setOnClickListener { stub() }
-        findViewById<MaterialButton>(R.id.mayak_about_terms).setOnClickListener { stub() }
+        // Правовые разделы открываем в вебе (единый источник истины — кабинет mayakvpn.ru).
+        findViewById<MaterialButton>(R.id.mayak_about_privacy).setOnClickListener {
+            openUrl(MayakActivity.PRIVACY_URL)
+        }
+        findViewById<MaterialButton>(R.id.mayak_about_terms).setOnClickListener {
+            openUrl(MayakActivity.TERMS_URL)
+        }
+    }
+
+    private fun openUrl(url: String) {
+        runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
     }
 
     companion object {

@@ -66,6 +66,12 @@
     <string name="app_name" translatable="false">Маяк VPN</string>
     <string name="mayak_tagline">Connect freely</string>
     <string name="mayak_login_hint">Login</string>
+    <string name="mayak_email_hint">Email</string>
+    <string name="mayak_register_cabinet">Sign up / Account cabinet</string>
+    <string name="mayak_consent_note">By signing in you accept the Privacy Policy and Terms of Use.</string>
+    <string name="mayak_err_email_not_verified">Please verify your email on the website.</string>
+    <string name="mayak_err_bad_creds">Wrong email or password.</string>
+    <string name="mayak_open_cabinet">Open cabinet</string>
     <string name="mayak_password_hint">Password</string>
     <string name="mayak_sign_in">Sign in</string>
     <string name="mayak_scan_qr">Scan QR code</string>

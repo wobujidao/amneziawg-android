@@ -93,13 +93,24 @@ class MayakActivity : AppCompatActivity() {
         session = MayakSession(store, AwgKeyProvider())
         tunnel = GoTunnel(this)
 
-        val savedServer = store.get(KEY_SERVER)
-        if (session.hasToken() && savedServer != null) {
-            backend = MayakBackend(HostProvider(listOf(savedServer)))
+        if (session.hasToken()) {
+            backend = MayakBackend(hostProvider())
             showHome(); loadDirections()
         } else {
             showLogin()
         }
+    }
+
+    /**
+     * Список адресов ядра. По умолчанию — публичный домен + IP-фолбэк (домен первым, при
+     * недоступности :core сам переключится на IP). Рег-ссылка/QR могут сохранить свой адрес
+     * (KEY_SERVER) — тогда используем его (а IP-фолбэк добавляем как страховку).
+     */
+    private fun hostProvider(): HostProvider {
+        val saved = store.get(KEY_SERVER)?.trimEnd('/')
+        val hosts = if (saved != null && saved !in DEFAULT_HOSTS) listOf(saved) + DEFAULT_HOSTS
+        else DEFAULT_HOSTS
+        return HostProvider(hosts)
     }
 
     // --- экран входа: логотип + название + карточка логин/пароль + QR + рег-ссылка ---
@@ -109,37 +120,42 @@ class MayakActivity : AppCompatActivity() {
         dirsContainer = null
         status = findViewById(R.id.mayak_status)
 
-        val loginField = findViewById<TextInputEditText>(R.id.mayak_login)
+        val emailField = findViewById<TextInputEditText>(R.id.mayak_login)
         val passField = findViewById<TextInputEditText>(R.id.mayak_password)
 
         setupThemeButton()
         findViewById<MaterialButton>(R.id.mayak_language_button).setOnClickListener { MayakLanguages.showDialog(this) }
 
         findViewById<MaterialButton>(R.id.mayak_sign_in).setOnClickListener {
-            val login = loginField.text?.toString().orEmpty()
+            val email = emailField.text?.toString()?.trim().orEmpty()
             val pass = passField.text?.toString().orEmpty()
-            if (login.isBlank() || pass.isBlank()) {
+            if (email.isBlank() || pass.isBlank()) {
                 setStatus(getString(R.string.mayak_err_fill_login)); return@setOnClickListener
             }
-            val server = store.get(KEY_SERVER) ?: DEFAULT_SERVER
-            doSignIn(server, login, pass)
+            doSignIn(email, pass)
         }
+        // Регистрация и личный кабинет — в вебе (там же подтверждение email).
+        findViewById<MaterialButton>(R.id.mayak_register).setOnClickListener { openUrl(CABINET_URL) }
         findViewById<MaterialButton>(R.id.mayak_scan_qr).setOnClickListener {
             scanQr.launch(ScanOptions().setOrientationLocked(false).setBeepEnabled(false))
         }
         findViewById<MaterialButton>(R.id.mayak_paste_link).setOnClickListener { showPasteLinkDialog() }
     }
 
-    /** Разбор регистрационной ссылки mayak://reg?server=..&login=..&password=.. → автологин. */
+    /**
+     * Разбор регистрационной ссылки mayak://reg?email=..&password=..[&server=..] → автологин.
+     * email — новый параметр (login оставлен как алиас для совместимости). server необязателен:
+     * без него используем дефолтные адреса (домен + IP).
+     */
     private fun handleRegLink(raw: String) {
         val uri = runCatching { Uri.parse(raw.trim()) }.getOrNull()
-        val server = uri?.getQueryParameter("server")
-        val login = uri?.getQueryParameter("login")
+        val server = uri?.getQueryParameter("server")?.trimEnd('/')
+        val email = uri?.getQueryParameter("email") ?: uri?.getQueryParameter("login")
         val password = uri?.getQueryParameter("password")
-        if (uri?.scheme != "mayak" || server.isNullOrBlank() || login.isNullOrBlank() || password.isNullOrBlank()) {
+        if (uri?.scheme != "mayak" || email.isNullOrBlank() || password.isNullOrBlank()) {
             setStatus(getString(R.string.mayak_err_bad_link)); return
         }
-        doSignIn(server.trimEnd('/'), login, password)
+        doSignIn(email, password, serverOverride = server?.takeIf { it.isNotBlank() })
     }
 
     private fun showPasteLinkDialog() {
@@ -178,17 +194,40 @@ class MayakActivity : AppCompatActivity() {
         }
     }
 
-    private fun doSignIn(server: String, login: String, password: String) {
-        if (server.isBlank()) { setStatus(getString(R.string.mayak_err_bad_link)); return }
-        store.put(KEY_SERVER, server)
-        backend = MayakBackend(HostProvider(listOf(server)))
+    /** Вход по email. serverOverride (из рег-ссылки) сохраняем как приоритетный адрес ядра. */
+    private fun doSignIn(email: String, password: String, serverOverride: String? = null) {
+        if (serverOverride != null) store.put(KEY_SERVER, serverOverride)
+        backend = MayakBackend(hostProvider())
         setStatus(getString(R.string.mayak_status_signing_in))
         lifecycleScope.launch {
             try {
-                session.login(backend!!, login, password)
+                session.login(backend!!, email, password)
                 showHome(); loadDirections()
+            } catch (e: MayakApiException) {
+                when (e.status) {
+                    403 -> showEmailNotVerified()
+                    401 -> setStatus(getString(R.string.mayak_err_bad_creds))
+                    else -> setStatus(humanError(e))
+                }
             } catch (e: Exception) { setStatus(humanError(e)) }
         }
+    }
+
+    /** 403 email_not_verified: понятное сообщение + предложение открыть кабинет для подтверждения. */
+    private fun showEmailNotVerified() = runOnUiThread {
+        setStatus(getString(R.string.mayak_err_email_not_verified))
+        AlertDialog.Builder(this)
+            .setMessage(getString(R.string.mayak_err_email_not_verified))
+            .setPositiveButton(getString(R.string.mayak_open_cabinet)) { _, _ -> openUrl(CABINET_URL) }
+            .setNegativeButton(getString(R.string.mayak_cancel), null)
+            .show()
+    }
+
+    /** Открыть URL во внешнем браузере (кабинет/политика/условия). */
+    private fun openUrl(url: String) {
+        runCatching {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+        }.onFailure { setStatus(getString(R.string.mayak_err_bad_link)) }
     }
 
     // --- главный экран (Happ-стиль): круг-подключение + список стран с флагами ---
@@ -438,9 +477,20 @@ class MayakActivity : AppCompatActivity() {
 
     companion object {
         private const val KEY_SERVER = "server_url"
-        // адрес ядра по умолчанию для ручного входа; рег-ссылка/QR переопределяют.
-        // Тестовое ядро на RuVDS (TLS — наш CA, см. network_security_config + res/raw/mayak_ca.pem).
-        private const val DEFAULT_SERVER = "https://45.132.18.167:8443"
+
+        // Адреса ядра по умолчанию: публичный домен (LE-серт, система доверия) ПЕРВЫМ,
+        // затем IP-фолбэк (наш CA, см. network_security_config + res/raw/mayak_ca.pem).
+        // :core делает фейловер по сетевым ошибкам и «залипает» на рабочем — поэтому пока
+        // DNS домена не разъехался, всё едет через IP, а как только домен поднимется — через домен.
+        private val DEFAULT_HOSTS = listOf(
+            "https://api.mayakvpn.ru",
+            "https://45.132.18.167:8443",
+        )
+
+        // Веб-кабинет: регистрация, подтверждение email, политика/условия.
+        private const val CABINET_URL = "https://cabinet.mayakvpn.ru"
+        const val PRIVACY_URL = "https://cabinet.mayakvpn.ru/#/privacy"
+        const val TERMS_URL = "https://cabinet.mayakvpn.ru/#/terms"
 
         // Сервер добавляет пира sync-таймером (~15с) → повторяем egress-пробу до ~24с.
         private const val PROBE_ATTEMPTS = 6

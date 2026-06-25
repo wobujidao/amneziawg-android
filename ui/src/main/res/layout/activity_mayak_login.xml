@@ -103,13 +103,13 @@
                         style="@style/Mayak.TextInput"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="@string/mayak_login_hint">
+                        android:hint="@string/mayak_email_hint">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/mayak_login"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:inputType="text"
+                            android:inputType="textEmailAddress"
                             android:maxLines="1" />
                     </com.google.android.material.textfield.TextInputLayout>
 
@@ -165,6 +165,15 @@
                         app:iconGravity="textStart"
                         app:iconTint="@color/mayak_outline"
                         android:text="@string/mayak_paste_link" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/mayak_register"
+                        style="@style/Mayak.Button.Text"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:textColor="@color/mayak_outline"
+                        android:text="@string/mayak_register_cabinet" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -176,6 +185,17 @@
                 android:gravity="center"
                 android:textColor="@color/mayak_on_bg_muted"
                 android:textSize="14sp" />
+
+            <!-- Лёгкая ссылка на политику (согласие при использовании; биндинг — на сайте) -->
+            <TextView
+                android:id="@+id/mayak_consent"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:gravity="center"
+                android:textColor="@color/mayak_on_bg_muted"
+                android:textSize="12sp"
+                android:text="@string/mayak_consent_note" />
         </LinearLayout>
     </ScrollView>
 </FrameLayout>
