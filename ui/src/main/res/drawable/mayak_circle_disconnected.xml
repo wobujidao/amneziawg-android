@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Круглая кнопка подключения — состояние «Отключено»: приглушённое кольцо + тёмная заливка. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="@color/mayak_circle_fill_off" />
+            <stroke
+                android:width="2dp"
+                android:color="@color/mayak_circle_ring_off" />
+        </shape>
+    </item>
+</layer-list>

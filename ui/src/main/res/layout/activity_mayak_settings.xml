@@ -155,6 +155,15 @@
                     app:iconTint="@color/mayak_outline"
                     android:text="@string/mayak_about" />
             </com.google.android.material.card.MaterialCardView>
+
+            <!-- Выход из аккаунта -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/mayak_settings_logout"
+                style="@style/Mayak.Button.Danger"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:text="@string/mayak_logout" />
         </LinearLayout>
     </ScrollView>
 </FrameLayout>

@@ -12,6 +12,15 @@ import org.amnezia.awg.R
 object MayakPrefs {
     private const val PREFS = "mayak_ui_prefs"
     private const val KEY_THEME = "theme_mode"
+    private const val KEY_LAST_DIR = "last_direction_id"
+
+    /** ID последней выбранной страны (или -1, если не выбирали). */
+    fun lastDirectionId(context: Context): Long =
+        prefs(context).getLong(KEY_LAST_DIR, -1L)
+
+    fun setLastDirectionId(context: Context, id: Long) {
+        prefs(context).edit().putLong(KEY_LAST_DIR, id).apply()
+    }
 
     // Значения совпадают по смыслу с AppCompatDelegate.MODE_NIGHT_*
     const val THEME_SYSTEM = 0

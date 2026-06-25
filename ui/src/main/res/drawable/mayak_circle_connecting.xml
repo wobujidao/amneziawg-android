@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Круглая кнопка — состояние «Подключение…»: тёплое кольцо (accent), полупрозрачная заливка. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="@color/mayak_circle_fill_pending" />
+            <stroke
+                android:width="3dp"
+                android:color="@color/mayak_accent" />
+        </shape>
+    </item>
+</layer-list>

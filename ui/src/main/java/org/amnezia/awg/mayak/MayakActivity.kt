@@ -10,19 +10,27 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.os.SystemClock
 import android.view.LayoutInflater
+import android.view.View
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.widget.ImageViewCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import org.amnezia.awg.R
 import org.amnezia.awg.backend.GoBackend
@@ -45,13 +53,32 @@ class MayakActivity : AppCompatActivity() {
     private lateinit var status: TextView
     private var dirsContainer: LinearLayout? = null
 
+    // --- состояние главного экрана (Happ-стиль) ---
+    private enum class ConnState { DISCONNECTED, CONNECTING, CONNECTED }
+    private var connState = ConnState.DISCONNECTED
+    private var directions: List<Direction> = emptyList()
+    private var selectedDir: Direction? = null
+    private val rowViews = mutableListOf<View>()
+    private var timerJob: Job? = null
+    private var sessionStartElapsed = 0L
+
+    // вьюхи круга/таймера (на главном экране)
+    private var connectCircle: View? = null
+    private var connectIcon: ImageView? = null
+    private var timerView: TextView? = null
+    private var ipView: TextView? = null
+
     // согласие на VPN → продолжаем отложенное подключение
     private val vpnPermission =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             val dir = pendingConnect
             pendingConnect = null
-            if (result.resultCode == RESULT_OK && dir != null) doConnect(dir)
-            else setStatus(getString(R.string.mayak_err_no_vpn_perm))
+            if (result.resultCode == RESULT_OK && dir != null) {
+                doConnect(dir)
+            } else {
+                renderState(ConnState.DISCONNECTED)
+                setStatus(getString(R.string.mayak_err_no_vpn_perm))
+            }
         }
 
     // сканер QR (zxing) → разбираем как регистрационную ссылку
@@ -164,28 +191,28 @@ class MayakActivity : AppCompatActivity() {
         }
     }
 
-    // --- главный экран: страны + статус ---
+    // --- главный экран (Happ-стиль): круг-подключение + список стран с флагами ---
 
     private fun showHome() {
         setContentView(R.layout.activity_mayak_home)
         status = findViewById(R.id.mayak_status)
         dirsContainer = findViewById(R.id.mayak_dirs_container)
+        connectCircle = findViewById(R.id.mayak_connect_circle)
+        connectIcon = findViewById(R.id.mayak_connect_icon)
+        timerView = findViewById(R.id.mayak_timer)
+        ipView = findViewById(R.id.mayak_ip)
 
         setupThemeButton()
         findViewById<MaterialButton>(R.id.mayak_settings_button).setOnClickListener {
             startActivity(Intent(this, MayakSettingsActivity::class.java))
         }
 
-        findViewById<MaterialButton>(R.id.mayak_disconnect).setOnClickListener {
-            lifecycleScope.launch {
-                try { tunnel.down(); setStatus(getString(R.string.mayak_status_disconnected)) }
-                catch (e: Exception) { setStatus(humanError(e)) }
-            }
-        }
-        findViewById<MaterialButton>(R.id.mayak_logout).setOnClickListener {
-            lifecycleScope.launch { runCatching { tunnel.down() } }
-            session.logout(); showLogin()
-        }
+        connectCircle?.setOnClickListener { toggleConnect() }
+
+        // Восстанавливаем состояние круга после пересоздания (смена темы/языка).
+        connState = if (tunnel.isUp()) ConnState.CONNECTED else ConnState.DISCONNECTED
+        if (connState == ConnState.CONNECTED) startTimer() // таймер заново (без точного старта — с момента возврата)
+        renderState(connState)
     }
 
     private fun loadDirections() {
@@ -194,53 +221,199 @@ class MayakActivity : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 val dirs = session.directions(b)
+                directions = dirs
                 val container = dirsContainer ?: return@launch
                 container.removeAllViews()
-                setStatus(if (dirs.isEmpty()) getString(R.string.mayak_err_empty_dirs) else getString(R.string.mayak_status_ready))
-                for (d in dirs) container.addView(
-                    countryButton(if (d.code.isNotBlank()) "${d.name} (${d.code})" else d.name) { connectTo(d) }
-                )
+                rowViews.clear()
+                if (dirs.isEmpty()) {
+                    setStatus(getString(R.string.mayak_err_empty_dirs)); return@launch
+                }
+                for (d in dirs) {
+                    val row = countryRow(d)
+                    container.addView(row)
+                    rowViews.add(row)
+                }
+                // Выбор по умолчанию: последняя выбранная страна, иначе первая.
+                val lastId = MayakPrefs.lastDirectionId(this@MayakActivity)
+                val initial = dirs.firstOrNull { it.id == lastId } ?: dirs.first()
+                selectDir(initial)
+                if (connState == ConnState.DISCONNECTED) {
+                    setStatus(getString(R.string.mayak_status_disconnected))
+                }
             } catch (e: Exception) { setStatus(humanError(e)) }
+        }
+    }
+
+    /** Строка-страна: флаг + название + шеврон; тап = выбор (без подключения). */
+    private fun countryRow(d: Direction): View {
+        val container = dirsContainer
+        val row = LayoutInflater.from(this).inflate(R.layout.mayak_country_row, container, false)
+        row.findViewById<TextView>(R.id.mayak_row_flag).text = MayakFlags.forCode(d.code)
+        row.findViewById<TextView>(R.id.mayak_row_name).text =
+            if (d.code.isNotBlank()) "${d.name} (${d.code})" else d.name
+        row.tag = d.id
+        row.setOnClickListener { selectDir(d) }
+        return row
+    }
+
+    /** Выбрать страну: подсветить строку, запомнить выбор. Не подключает. */
+    private fun selectDir(d: Direction) {
+        selectedDir = d
+        MayakPrefs.setLastDirectionId(this, d.id)
+        for (row in rowViews) {
+            val isSel = (row.tag as? Long) == d.id
+            row.setBackgroundResource(if (isSel) R.drawable.mayak_row_selected else android.R.color.transparent)
+        }
+    }
+
+    /** Тап по кругу: подключиться к выбранной стране или отключиться. */
+    private fun toggleConnect() {
+        when (connState) {
+            ConnState.CONNECTED -> disconnect()
+            ConnState.CONNECTING -> { /* идёт подключение — игнорируем повторный тап */ }
+            ConnState.DISCONNECTED -> {
+                val d = selectedDir
+                if (d == null) { setStatus(getString(R.string.mayak_select_country_first)); return }
+                connectTo(d)
+            }
         }
     }
 
     private fun connectTo(d: Direction) {
         val prepare = GoBackend.VpnService.prepare(this)
-        if (prepare != null) { pendingConnect = d; vpnPermission.launch(prepare) } else doConnect(d)
+        if (prepare != null) {
+            pendingConnect = d
+            renderState(ConnState.CONNECTING)
+            vpnPermission.launch(prepare)
+        } else doConnect(d)
     }
 
     private fun doConnect(d: Direction) {
         val b = backend ?: return
+        renderState(ConnState.CONNECTING)
         setStatus(getString(R.string.mayak_status_connecting, d.name))
         lifecycleScope.launch {
             try {
                 val paths = session.connect(b, d)
                 val direct = paths.directConf
                 val relay = paths.relayConf
-                // Прямой путь приоритетен, но если его нет — резерв становится основной попыткой.
-                // no_egress показываем только когда оба отсутствуют или оба не прошли пробу.
                 if (direct == null && relay == null) {
-                    setStatus(getString(R.string.mayak_status_no_egress)); return@launch
+                    fail(getString(R.string.mayak_status_no_egress)); return@launch
                 }
 
+                // Прямой путь приоритетен. Сервер добавляет пира в течение ~15с (sync-таймер),
+                // поэтому пробу egress повторяем несколько раз, прежде чем сдаться.
                 if (direct != null) {
                     tunnel.up(direct)
                     setStatus(getString(R.string.mayak_status_probing))
-                    val ip = probe.externalIp()
-                    if (ip != null) { setStatus(getString(R.string.mayak_status_connected_direct, ip)); return@launch }
+                    val ip = probeWithRetry()
+                    if (ip != null) { onConnected(ip); return@launch }
                 }
 
-                if (relay == null) { setStatus(getString(R.string.mayak_status_no_egress)); return@launch }
-                // Резерв: либо прямого не было вовсе, либо он не прошёл пробу.
+                if (relay == null) { fail(getString(R.string.mayak_status_no_egress)); return@launch }
+                // Резерв: прямого не было вовсе или он не прошёл пробу.
                 if (direct != null) setStatus(getString(R.string.mayak_status_relay_switch))
                 tunnel.up(relay)
-                val ip = probe.externalIp()
-                setStatus(
-                    if (ip != null) getString(R.string.mayak_status_connected_relay, ip)
-                    else getString(R.string.mayak_status_no_egress)
-                )
-            } catch (e: Exception) { setStatus(humanError(e)) }
+                val ip = probeWithRetry()
+                if (ip != null) onConnected(ip) else fail(getString(R.string.mayak_status_no_egress))
+            } catch (e: Exception) {
+                runCatching { tunnel.down() }
+                fail(humanError(e))
+            }
         }
+    }
+
+    /** Несколько попыток egress-пробы (пир появляется на сервере не сразу). */
+    private suspend fun probeWithRetry(): String? {
+        repeat(PROBE_ATTEMPTS) { attempt ->
+            val ip = probe.externalIp()
+            if (ip != null) return ip
+            if (attempt < PROBE_ATTEMPTS - 1) delay(PROBE_DELAY_MS)
+        }
+        return null
+    }
+
+    private fun onConnected(ip: String) = runOnUiThread {
+        connState = ConnState.CONNECTED
+        renderState(ConnState.CONNECTED)
+        ipView?.let { it.text = getString(R.string.mayak_ip_label, ip); it.visibility = View.VISIBLE }
+        startTimer()
+        Toast.makeText(this, getString(R.string.mayak_connected), Toast.LENGTH_SHORT).show()
+    }
+
+    private fun fail(message: String) = runOnUiThread {
+        connState = ConnState.DISCONNECTED
+        renderState(ConnState.DISCONNECTED)
+        setStatus(message)
+    }
+
+    private fun disconnect() {
+        renderState(ConnState.CONNECTING)
+        lifecycleScope.launch {
+            runCatching { tunnel.down() }
+            stopTimer()
+            connState = ConnState.DISCONNECTED
+            renderState(ConnState.DISCONNECTED)
+            setStatus(getString(R.string.mayak_status_disconnected))
+        }
+    }
+
+    /** Применяет визуальное состояние круга/иконки/статуса/таймера. */
+    private fun renderState(state: ConnState) = runOnUiThread {
+        val circleBg = when (state) {
+            ConnState.DISCONNECTED -> R.drawable.mayak_circle_disconnected
+            ConnState.CONNECTING -> R.drawable.mayak_circle_connecting
+            ConnState.CONNECTED -> R.drawable.mayak_circle_connected
+        }
+        connectCircle?.setBackgroundResource(circleBg)
+        val iconTint = when (state) {
+            ConnState.CONNECTED -> R.color.mayak_circle_icon_on
+            else -> R.color.mayak_circle_icon_off
+        }
+        connectIcon?.let {
+            ImageViewCompat.setImageTintList(it, ContextCompat.getColorStateList(this, iconTint))
+        }
+        when (state) {
+            ConnState.DISCONNECTED -> {
+                timerView?.visibility = View.GONE
+                ipView?.visibility = View.GONE
+                if (::status.isInitialized) status.text = getString(R.string.mayak_status_disconnected)
+            }
+            ConnState.CONNECTING -> {
+                if (::status.isInitialized) status.text = getString(R.string.mayak_connecting)
+            }
+            ConnState.CONNECTED -> {
+                timerView?.visibility = View.VISIBLE
+                if (::status.isInitialized) status.text = getString(R.string.mayak_connected)
+            }
+        }
+    }
+
+    // --- таймер сессии ---
+
+    private fun startTimer() {
+        sessionStartElapsed = SystemClock.elapsedRealtime()
+        timerJob?.cancel()
+        timerJob = lifecycleScope.launch {
+            while (isActive) {
+                val sec = (SystemClock.elapsedRealtime() - sessionStartElapsed) / 1000
+                timerView?.text = formatDuration(sec)
+                delay(1000)
+            }
+        }
+    }
+
+    private fun stopTimer() {
+        timerJob?.cancel()
+        timerJob = null
+        runOnUiThread { timerView?.text = formatDuration(0) }
+    }
+
+    private fun formatDuration(totalSec: Long): String {
+        val h = totalSec / 3600
+        val m = (totalSec % 3600) / 60
+        val s = totalSec % 60
+        return String.format("%02d:%02d:%02d", h, m, s)
     }
 
     // --- helpers ---
@@ -261,16 +434,6 @@ class MayakActivity : AppCompatActivity() {
         Toast.makeText(this, text, Toast.LENGTH_SHORT).show()
     }
 
-    /** Кнопка-страна в списке: инфлейтим брендовый стиль Mayak.Button.Country из ресурса. */
-    private fun countryButton(label: String, onClick: () -> Unit): MaterialButton {
-        val container = dirsContainer
-        val btn = LayoutInflater.from(this)
-            .inflate(R.layout.mayak_country_button, container, false) as MaterialButton
-        btn.text = label
-        btn.setOnClickListener { onClick() }
-        return btn
-    }
-
     private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
 
     companion object {
@@ -278,5 +441,9 @@ class MayakActivity : AppCompatActivity() {
         // адрес ядра по умолчанию для ручного входа; рег-ссылка/QR переопределяют.
         // Тестовое ядро на RuVDS (TLS — наш CA, см. network_security_config + res/raw/mayak_ca.pem).
         private const val DEFAULT_SERVER = "https://45.132.18.167:8443"
+
+        // Сервер добавляет пира sync-таймером (~15с) → повторяем egress-пробу до ~24с.
+        private const val PROBE_ATTEMPTS = 6
+        private const val PROBE_DELAY_MS = 4_000L
     }
 }

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Круглая кнопка — состояние «Подключено»: яркое свечение (радиальный градиент accent) + кольцо. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="oval">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="90%"
+                android:startColor="@color/mayak_circle_glow_in"
+                android:endColor="@color/mayak_circle_glow_out" />
+            <stroke
+                android:width="3dp"
+                android:color="@color/mayak_accent" />
+        </shape>
+    </item>
+</layer-list>

@@ -29,5 +29,16 @@
     <color name="mayak_field_on">#F4F1E9</color>
     <color name="mayak_divider">#2E4068</color>
     <color name="mayak_outline">#4FC3F7</color>
+
+    <!-- Круглая кнопка подключения (Happ-стиль), ТЁМНАЯ -->
+    <color name="mayak_circle_fill_off">#1C2B4A</color>
+    <color name="mayak_circle_ring_off">#3A4D74</color>
+    <color name="mayak_circle_icon_off">#7E8EB0</color>
+    <color name="mayak_circle_fill_pending">#1E3A55</color>
+    <color name="mayak_circle_glow_in">#5BC8FF</color>
+    <color name="mayak_circle_glow_out">#1E6C99</color>
+    <color name="mayak_circle_icon_on">#FFFFFF</color>
+    <!-- Подсветка выбранной строки-страны -->
+    <color name="mayak_row_selected_bg">#22354F</color>
 </resources>
 
