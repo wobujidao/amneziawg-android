@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Доверие к нашему серверному сертификату ядра «Маяк». Ядро держит TLS-серт, выпущенный НАШИМ CA
+  (cmd/mayak-ca), а не публичным — поэтому телефон должен доверять нашему CA для адреса ядра.
+  В приложение зашит только ПУБЛИЧНЫЙ сертификат CA (res/raw/mayak_ca.pem) — это не секрет.
+  Приватный ключ CA остаётся на сервере и в приложение/репо НЕ попадает.
+-->
+<network-security-config>
+    <!-- Тестовое ядро на RuVDS (выпущено нашим CA) -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="false">45.132.18.167</domain>
+        <trust-anchors>
+            <certificates src="@raw/mayak_ca" />
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+</network-security-config>

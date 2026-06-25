@@ -30,6 +30,18 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
         isCoreLibraryDesugaringEnabled = true
     }
+    signingConfigs {
+        // Фиксированный ключ для debug-сборок «Маяк»: даёт СТАБИЛЬНУЮ подпись между CI-сборками,
+        // чтобы обновление ставилось ПОВЕРХ старого без удаления (дефолтный debug.keystore на CI
+        // генерится заново каждый раз → разная подпись → Android блокирует апдейт). Это не секрет.
+        create("mayakdebug") {
+            storeFile = file("mayak-debug.p12")
+            storePassword = "mayakdebug"
+            keyAlias = "mayak"
+            keyPassword = "mayakdebug"
+            storeType = "PKCS12"
+        }
+    }
     buildTypes {
         release {
             isMinifyEnabled = true
@@ -46,6 +58,7 @@ android {
         debug {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
+            signingConfig = signingConfigs.getByName("mayakdebug")
         }
         create("googleplay") {
             initWith(getByName("release"))

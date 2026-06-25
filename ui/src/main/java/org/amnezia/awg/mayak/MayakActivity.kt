@@ -262,8 +262,9 @@ class MayakActivity : AppCompatActivity() {
 
     companion object {
         private const val KEY_SERVER = "server_url"
-        // адрес ядра по умолчанию для ручного входа; рег-ссылка/QR переопределяют. Заполним при живом ядре.
-        private const val DEFAULT_SERVER = ""
+        // адрес ядра по умолчанию для ручного входа; рег-ссылка/QR переопределяют.
+        // Тестовое ядро на RuVDS (TLS — наш CA, см. network_security_config + res/raw/mayak_ca.pem).
+        private const val DEFAULT_SERVER = "https://45.132.18.167:8443"
 
         // Языки интерфейса: BCP-47 тег → отображаемое имя (на своём языке).
         private val LANGS = listOf(

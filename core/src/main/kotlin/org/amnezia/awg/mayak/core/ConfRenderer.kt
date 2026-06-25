@@ -30,8 +30,11 @@ object ConfRenderer {
             sb.appendLine("Jmax = ${o.jmax}")
             sb.appendLine("S1 = ${o.s1}")
             sb.appendLine("S2 = ${o.s2}")
-            sb.appendLine("S3 = ${o.s3}")
-            sb.appendLine("S4 = ${o.s4}")
+            // S3/S4 пишем только если ненулевые: userspace amneziawg-go (v1.x) ОТВЕРГАЕТ ключи
+            // s3/s4 в UAPI даже со значением 0 (errno -22). На мобиле MVP S3=S4=0 → просто не шлём
+            // их (паддинга нет — поведение эквивалентно). Когда S3/S4 заработают в форке (T9) — пишем.
+            if (o.s3 != 0) sb.appendLine("S3 = ${o.s3}")
+            if (o.s4 != 0) sb.appendLine("S4 = ${o.s4}")
             appendIfPresent(sb, "H1", o.h1)
             appendIfPresent(sb, "H2", o.h2)
             appendIfPresent(sb, "H3", o.h3)
