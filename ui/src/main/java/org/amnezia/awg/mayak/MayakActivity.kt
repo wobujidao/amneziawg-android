@@ -2,11 +2,12 @@
 // вход — логотип-маяк + название + карточка с полями логин/пароль, кнопки «Войти», «Сканировать QR»,
 // «Вставить рег-ссылку» (в ссылке зашиты адрес ядра + логин/пароль — юзеру ничего вводить не надо).
 // Главный экран — список стран → подключение со сквозной пробой и авто-резервом (прямой → резерв).
-// Есть переключатель языка (ru/be/kk/uz/en/de/fr) — меняет локаль рантайм через AppCompatDelegate.
+// Тема следует системе (DayNight) или ручному выбору (MayakPrefs); язык — ru/be/kk/uz/en/de/fr.
 package org.amnezia.awg.mayak
 
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -16,8 +17,6 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.app.AppCompatDelegate
-import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
@@ -61,6 +60,7 @@ class MayakActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        MayakPrefs.applyTheme(this)
         super.onCreate(savedInstanceState)
         store = KeystoreSecureStore(this)
         session = MayakSession(store, AwgKeyProvider())
@@ -85,7 +85,7 @@ class MayakActivity : AppCompatActivity() {
         val loginField = findViewById<TextInputEditText>(R.id.mayak_login)
         val passField = findViewById<TextInputEditText>(R.id.mayak_password)
 
-        findViewById<MaterialButton>(R.id.mayak_language_button).setOnClickListener { showLanguageDialog() }
+        findViewById<MaterialButton>(R.id.mayak_language_button).setOnClickListener { MayakLanguages.showDialog(this) }
 
         findViewById<MaterialButton>(R.id.mayak_sign_in).setOnClickListener {
             val login = loginField.text?.toString().orEmpty()
@@ -130,17 +130,20 @@ class MayakActivity : AppCompatActivity() {
             .show()
     }
 
-    /** Выбор языка интерфейса: меняем локаль рантайм, appcompat сам её сохраняет (autoStoreLocales). */
-    private fun showLanguageDialog() {
-        val names = LANGS.map { it.second }.toTypedArray()
-        AlertDialog.Builder(this)
-            .setTitle(getString(R.string.mayak_language))
-            .setItems(names) { _, which ->
-                val tag = LANGS[which].first
-                AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(tag))
-            }
-            .setNegativeButton(getString(R.string.mayak_cancel), null)
-            .show()
+    /** Быстрый цикл темы из шапки главного экрана: Системная → Светлая → Тёмная → … */
+    private fun cycleTheme() {
+        val next = when (MayakPrefs.themeMode(this)) {
+            MayakPrefs.THEME_SYSTEM -> MayakPrefs.THEME_LIGHT
+            MayakPrefs.THEME_LIGHT -> MayakPrefs.THEME_DARK
+            else -> MayakPrefs.THEME_SYSTEM
+        }
+        val label = when (next) {
+            MayakPrefs.THEME_LIGHT -> getString(R.string.mayak_theme_light)
+            MayakPrefs.THEME_DARK -> getString(R.string.mayak_theme_dark)
+            else -> getString(R.string.mayak_theme_system)
+        }
+        Toast.makeText(this, "${getString(R.string.mayak_theme)}: $label", Toast.LENGTH_SHORT).show()
+        MayakPrefs.setThemeMode(this, next) // пересоздаст активити с новой темой
     }
 
     private fun doSignIn(server: String, login: String, password: String) {
@@ -162,6 +165,11 @@ class MayakActivity : AppCompatActivity() {
         setContentView(R.layout.activity_mayak_home)
         status = findViewById(R.id.mayak_status)
         dirsContainer = findViewById(R.id.mayak_dirs_container)
+
+        findViewById<MaterialButton>(R.id.mayak_theme_button).setOnClickListener { cycleTheme() }
+        findViewById<MaterialButton>(R.id.mayak_settings_button).setOnClickListener {
+            startActivity(Intent(this, MayakSettingsActivity::class.java))
+        }
 
         findViewById<MaterialButton>(R.id.mayak_disconnect).setOnClickListener {
             lifecycleScope.launch {
@@ -265,16 +273,5 @@ class MayakActivity : AppCompatActivity() {
         // адрес ядра по умолчанию для ручного входа; рег-ссылка/QR переопределяют.
         // Тестовое ядро на RuVDS (TLS — наш CA, см. network_security_config + res/raw/mayak_ca.pem).
         private const val DEFAULT_SERVER = "https://45.132.18.167:8443"
-
-        // Языки интерфейса: BCP-47 тег → отображаемое имя (на своём языке).
-        private val LANGS = listOf(
-            "ru" to "Русский",
-            "be" to "Беларуская",
-            "kk" to "Қазақша",
-            "uz" to "Oʻzbekcha",
-            "en" to "English",
-            "de" to "Deutsch",
-            "fr" to "Français",
-        )
     }
 }

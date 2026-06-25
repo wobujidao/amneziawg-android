@@ -65,17 +65,44 @@
     <color name="tunnel_status_disconnected">#F44336</color>
     <color name="ic_launcher_bg">#FFFFFF</color>
 
-    <!-- Бренд «Маяк»: палитра выведена из логотипа-маяка -->
+    <!-- ============================================================
+         Бренд «Маяк» — СВЕТЛАЯ тема (values/). Тёмная — в values-night/.
+         Семантические имена флипаются по режиму, поэтому в разметке
+         НЕЛЬЗЯ хардкодить белый/чёрный — только эти имена или ?attr.
+         Контраст: на светлом фоне — тёмно-синий текст; на навигационных
+         кнопках — белый текст на синем. Никакого бел.-на-белом.
+         ============================================================ -->
+
+    <!-- Константы бренда (не зависят от режима) -->
     <color name="mayak_navy">#14213D</color>
     <color name="mayak_navy_light">#1A2E5A</color>
     <color name="mayak_navy_dark">#0C1426</color>
     <color name="mayak_accent">#4FC3F7</color>
     <color name="mayak_red">#E63946</color>
     <color name="mayak_cream">#FFFDF7</color>
-    <color name="mayak_card">#FFFFFF</color>
-    <color name="mayak_text">#14213D</color>
-    <color name="mayak_text_muted">#5B6B86</color>
-    <color name="mayak_on_navy">#FFFFFF</color>
-    <color name="mayak_on_navy_muted">#B9C6DE</color>
+
+    <!-- Семантические (СВЕТЛАЯ): тёплый кремовый фон, тёмно-синий текст -->
+    <color name="mayak_bg">#FFFDF7</color>
+    <color name="mayak_bg_grad_top">#FFFFFF</color>
+    <color name="mayak_bg_grad_center">#FFFDF7</color>
+    <color name="mayak_bg_grad_bottom">#F3F1E9</color>
+    <color name="mayak_statusbar">#FFFDF7</color>
+    <color name="mayak_surface">#FFFFFF</color>
+    <color name="mayak_on_bg">#14213D</color>
+    <color name="mayak_on_bg_muted">#5B6B86</color>
+    <color name="mayak_on_surface">#14213D</color>
+    <color name="mayak_on_surface_muted">#5B6B86</color>
+    <color name="mayak_primary">#14213D</color>
+    <color name="mayak_on_primary">#FFFFFF</color>
     <color name="mayak_field_bg">#F2F5FB</color>
+    <color name="mayak_field_on">#14213D</color>
+    <color name="mayak_divider">#E3E8F0</color>
+    <color name="mayak_outline">#14213D</color>
+
+    <!-- Совместимость со старыми именами (использовались в стилях/разметке) -->
+    <color name="mayak_card">@color/mayak_surface</color>
+    <color name="mayak_text">@color/mayak_on_surface</color>
+    <color name="mayak_text_muted">@color/mayak_on_surface_muted</color>
+    <color name="mayak_on_navy">@color/mayak_on_bg</color>
+    <color name="mayak_on_navy_muted">@color/mayak_on_bg_muted</color>
 </resources>

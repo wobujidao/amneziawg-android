@@ -19,12 +19,54 @@
             android:gravity="center_horizontal"
             android:paddingStart="24dp"
             android:paddingEnd="24dp"
-            android:paddingTop="32dp"
+            android:paddingTop="16dp"
             android:paddingBottom="32dp">
+
+            <!-- Шапка: переключатель темы (свет/тёмная/системная) + настройки справа -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="end|center_vertical">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/mayak_theme_button"
+                    style="@style/Mayak.Button.Text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:minWidth="0dp"
+                    android:minHeight="0dp"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp"
+                    android:contentDescription="@string/mayak_theme"
+                    app:icon="@drawable/ic_action_generate"
+                    app:iconTint="@color/mayak_on_bg"
+                    app:iconSize="22dp"
+                    app:iconPadding="0dp"
+                    android:text="" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/mayak_settings_button"
+                    style="@style/Mayak.Button.Text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:minWidth="0dp"
+                    android:minHeight="0dp"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp"
+                    android:contentDescription="@string/mayak_settings"
+                    app:icon="@drawable/ic_settings"
+                    app:iconTint="@color/mayak_on_bg"
+                    app:iconSize="22dp"
+                    app:iconPadding="0dp"
+                    android:text="" />
+            </LinearLayout>
 
             <ImageView
                 android:layout_width="80dp"
                 android:layout_height="80dp"
+                android:layout_marginTop="4dp"
                 android:importantForAccessibility="no"
                 android:src="@drawable/mayak_logo" />
 

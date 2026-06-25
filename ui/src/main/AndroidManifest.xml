@@ -64,6 +64,13 @@
             </intent-filter>
         </activity>
 
+        <!-- Экран настроек «Маяк»: тема + язык -->
+        <activity
+            android:name="org.amnezia.awg.mayak.MayakSettingsActivity"
+            android:exported="false"
+            android:label="@string/mayak_settings"
+            android:theme="@style/MayakTheme" />
+
         <!-- Стоковый экран amnezia оставлен (импорт/диагностика), но не лаунчер -->
         <activity
             android:name=".activity.MainActivity"

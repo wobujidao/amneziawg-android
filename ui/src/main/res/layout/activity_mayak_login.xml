@@ -34,7 +34,7 @@
                 android:paddingStart="12dp"
                 android:paddingEnd="12dp"
                 app:icon="@drawable/ic_settings"
-                app:iconTint="@color/mayak_on_navy"
+                app:iconTint="@color/mayak_on_bg"
                 app:iconSize="18dp"
                 android:text="@string/mayak_language" />
 
@@ -116,7 +116,7 @@
                         android:layout_height="1dp"
                         android:layout_marginTop="20dp"
                         android:layout_marginBottom="16dp"
-                        android:background="#E3E8F0" />
+                        android:background="@color/mayak_divider" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/mayak_scan_qr"
@@ -125,7 +125,7 @@
                         android:layout_height="wrap_content"
                         app:icon="@drawable/ic_action_scan_qr_code"
                         app:iconGravity="textStart"
-                        app:iconTint="@color/mayak_navy"
+                        app:iconTint="@color/mayak_outline"
                         android:text="@string/mayak_scan_qr" />
 
                     <com.google.android.material.button.MaterialButton
@@ -136,7 +136,7 @@
                         android:layout_marginTop="10dp"
                         app:icon="@drawable/ic_action_open"
                         app:iconGravity="textStart"
-                        app:iconTint="@color/mayak_navy"
+                        app:iconTint="@color/mayak_outline"
                         android:text="@string/mayak_paste_link" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -147,7 +147,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="18dp"
                 android:gravity="center"
-                android:textColor="@color/mayak_on_navy_muted"
+                android:textColor="@color/mayak_on_bg_muted"
                 android:textSize="14sp" />
         </LinearLayout>
     </ScrollView>

@@ -300,4 +300,10 @@
     <string name="mayak_cancel">Отмена</string>
     <string name="mayak_ok">ОК</string>
     <string name="mayak_language">Язык</string>
+    <string name="mayak_settings">Настройки</string>
+    <string name="mayak_theme">Тема</string>
+    <string name="mayak_theme_light">Светлая</string>
+    <string name="mayak_theme_dark">Тёмная</string>
+    <string name="mayak_theme_system">Системная</string>
+    <string name="mayak_back">Назад</string>
 </resources>

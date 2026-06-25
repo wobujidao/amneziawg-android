@@ -4,5 +4,30 @@
     <color name="tunnel_status_connected">#66BB6A</color>
     <color name="tunnel_status_connecting">#FFB74D</color>
     <color name="tunnel_status_disconnected">#EF5350</color>
+
+    <!-- ============================================================
+         Бренд «Маяк» — ТЁМНАЯ тема. Те же имена, что в values/colors.xml,
+         но навигационный тёмно-синий фон и светлый/кремовый текст.
+         Контраст: на навигационном фоне — кремовый текст; кнопки —
+         тёмно-синий текст на светло-голубой заливке. Без тёмного-на-навигационном.
+         ============================================================ -->
+
+    <!-- Семантические (ТЁМНАЯ): навигационный градиент, кремовый текст -->
+    <color name="mayak_bg">#14213D</color>
+    <color name="mayak_bg_grad_top">#0C1426</color>
+    <color name="mayak_bg_grad_center">#14213D</color>
+    <color name="mayak_bg_grad_bottom">#1A2E5A</color>
+    <color name="mayak_statusbar">#0C1426</color>
+    <color name="mayak_surface">#1C2B4A</color>
+    <color name="mayak_on_bg">#F4F1E9</color>
+    <color name="mayak_on_bg_muted">#B9C6DE</color>
+    <color name="mayak_on_surface">#F4F1E9</color>
+    <color name="mayak_on_surface_muted">#AEBBD4</color>
+    <color name="mayak_primary">#4FC3F7</color>
+    <color name="mayak_on_primary">#0C1426</color>
+    <color name="mayak_field_bg">#28395C</color>
+    <color name="mayak_field_on">#F4F1E9</color>
+    <color name="mayak_divider">#2E4068</color>
+    <color name="mayak_outline">#4FC3F7</color>
 </resources>
 
