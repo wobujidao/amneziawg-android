@@ -19,7 +19,9 @@ class MayakAboutActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_mayak_about)
 
-        findViewById<MaterialButton>(R.id.mayak_about_back).setOnClickListener { finish() }
+        findViewById<MaterialButton>(R.id.mayak_about_back).setOnClickListener {
+            finish(); MayakTransitions.applyAxisReverse(this)
+        }
 
         // Версия приложения из BuildConfig (заполняется gradle из amneziawgVersionName/Code).
         findViewById<TextView>(R.id.mayak_about_version).text =

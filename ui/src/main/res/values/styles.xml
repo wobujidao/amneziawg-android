@@ -16,8 +16,9 @@
     <style name="AppTheme" parent="AppThemeBase" />
 
     <style name="AmneziaWgTheme.MaterialCardView" parent="Widget.Material3.CardView.Elevated">
-        <item name="cornerRadius">4dp</item>
-        <item name="contentPadding">8dp</item>
+        <!-- Унифицировано на шкалу «Маяк» (radius.xs): убирает legacy 4dp (см. дизайн-ревью §3.1) -->
+        <item name="cornerRadius">@dimen/mayak_radius_xs</item>
+        <item name="contentPadding">@dimen/mayak_space_2</item>
     </style>
 
     <style name="AmneziaWgTheme.BottomSheetDialog" parent="ThemeOverlay.Material3.BottomSheetDialog">
@@ -82,20 +83,23 @@
     </style>
 
     <style name="Mayak.Card" parent="Widget.Material3.CardView.Elevated">
-        <item name="cornerRadius">20dp</item>
+        <item name="cornerRadius">@dimen/mayak_radius_md</item>
         <item name="cardBackgroundColor">@color/mayak_surface</item>
-        <item name="cardElevation">8dp</item>
-        <item name="contentPadding">20dp</item>
+        <item name="cardElevation">@dimen/mayak_space_2</item>
+        <item name="contentPadding">@dimen/mayak_space_5</item>
+        <!-- Тонкая обводка: в светлой теме прозрачна, в тёмной — контур (карточка не сливается с navy) -->
+        <item name="strokeColor">@color/mayak_card_stroke</item>
+        <item name="strokeWidth">1dp</item>
     </style>
 
     <style name="Mayak.TextInput" parent="Widget.Material3.TextInputLayout.OutlinedBox">
         <item name="boxStrokeColor">@color/mayak_outline</item>
         <item name="hintTextColor">@color/mayak_outline</item>
         <item name="android:textColorHint">@color/mayak_on_surface_muted</item>
-        <item name="boxCornerRadiusTopStart">14dp</item>
-        <item name="boxCornerRadiusTopEnd">14dp</item>
-        <item name="boxCornerRadiusBottomStart">14dp</item>
-        <item name="boxCornerRadiusBottomEnd">14dp</item>
+        <item name="boxCornerRadiusTopStart">@dimen/mayak_radius_sm</item>
+        <item name="boxCornerRadiusTopEnd">@dimen/mayak_radius_sm</item>
+        <item name="boxCornerRadiusBottomStart">@dimen/mayak_radius_sm</item>
+        <item name="boxCornerRadiusBottomEnd">@dimen/mayak_radius_sm</item>
         <item name="boxBackgroundColor">@color/mayak_field_bg</item>
         <item name="materialThemeOverlay">@style/Mayak.TextInput.Overlay</item>
     </style>
@@ -113,7 +117,7 @@
         <item name="android:textAllCaps">false</item>
         <item name="android:textSize">16sp</item>
         <item name="android:textStyle">bold</item>
-        <item name="cornerRadius">14dp</item>
+        <item name="cornerRadius">@dimen/mayak_radius_sm</item>
         <item name="android:minHeight">54dp</item>
         <item name="android:insetTop">0dp</item>
         <item name="android:insetBottom">0dp</item>
@@ -124,7 +128,7 @@
         <item name="android:textColor">@color/mayak_on_surface</item>
         <item name="android:textAllCaps">false</item>
         <item name="android:textSize">15sp</item>
-        <item name="cornerRadius">14dp</item>
+        <item name="cornerRadius">@dimen/mayak_radius_sm</item>
         <item name="android:minHeight">50dp</item>
         <item name="android:insetTop">0dp</item>
         <item name="android:insetBottom">0dp</item>
@@ -136,7 +140,7 @@
         <item name="android:textAllCaps">false</item>
         <item name="android:textSize">16sp</item>
         <item name="android:gravity">start|center_vertical</item>
-        <item name="cornerRadius">14dp</item>
+        <item name="cornerRadius">@dimen/mayak_radius_sm</item>
         <item name="android:minHeight">56dp</item>
         <item name="icon">@drawable/ic_arrow_back</item>
         <item name="iconGravity">end</item>
@@ -150,7 +154,7 @@
         <item name="android:textColor">@color/mayak_red</item>
         <item name="android:textAllCaps">false</item>
         <item name="android:textSize">15sp</item>
-        <item name="cornerRadius">14dp</item>
+        <item name="cornerRadius">@dimen/mayak_radius_sm</item>
         <item name="android:minHeight">50dp</item>
         <item name="android:insetTop">0dp</item>
         <item name="android:insetBottom">0dp</item>

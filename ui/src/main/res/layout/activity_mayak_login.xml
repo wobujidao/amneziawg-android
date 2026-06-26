@@ -17,12 +17,13 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:gravity="center_horizontal"
-            android:paddingStart="24dp"
-            android:paddingEnd="24dp"
-            android:paddingTop="20dp"
-            android:paddingBottom="32dp">
+            android:paddingStart="@dimen/mayak_space_6"
+            android:paddingEnd="@dimen/mayak_space_6"
+            android:paddingTop="@dimen/mayak_space_5"
+            android:paddingBottom="@dimen/mayak_space_7">
 
-            <!-- Шапка: слева — переключатель темы (солнце/луна/авто), справа — язык -->
+            <!-- Шапка: слева — переключатель темы (солнце/луна/авто), справа — язык.
+                 Тап-таргеты 48dp (доступность, см. дизайн-ревью §3.6). -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -32,14 +33,17 @@
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/mayak_theme_button"
                     style="@style/Mayak.Button.Text"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:minWidth="0dp"
-                    android:minHeight="0dp"
-                    android:paddingStart="8dp"
-                    android:paddingEnd="8dp"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:minWidth="48dp"
+                    android:minHeight="48dp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:paddingStart="0dp"
+                    android:paddingEnd="0dp"
                     android:contentDescription="@string/mayak_theme"
                     app:icon="@drawable/ic_theme_system"
+                    app:iconGravity="textStart"
                     app:iconTint="@color/mayak_on_bg"
                     app:iconSize="24dp"
                     app:iconPadding="0dp"
@@ -54,11 +58,12 @@
                     android:id="@+id/mayak_language_button"
                     style="@style/Mayak.Button.Text"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:minWidth="0dp"
-                    android:minHeight="0dp"
-                    android:paddingStart="12dp"
-                    android:paddingEnd="12dp"
+                    android:layout_height="48dp"
+                    android:minHeight="48dp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:paddingStart="@dimen/mayak_space_3"
+                    android:paddingEnd="@dimen/mayak_space_3"
                     app:icon="@drawable/ic_settings"
                     app:iconTint="@color/mayak_on_bg"
                     app:iconSize="18dp"
@@ -69,21 +74,21 @@
                 android:id="@+id/mayak_logo"
                 android:layout_width="132dp"
                 android:layout_height="132dp"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="@dimen/mayak_space_3"
                 android:importantForAccessibility="no"
                 android:src="@drawable/mayak_logo" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="@dimen/mayak_space_4"
                 android:text="@string/app_name"
                 android:textAppearance="@style/Mayak.Title" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
+                android:layout_marginTop="@dimen/mayak_space_2"
                 android:text="@string/mayak_tagline"
                 android:textAppearance="@style/Mayak.Tagline" />
 
@@ -91,7 +96,7 @@
                 style="@style/Mayak.Card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="28dp">
+                android:layout_marginTop="@dimen/mayak_space_6">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -118,7 +123,7 @@
                         style="@style/Mayak.TextInput"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="14dp"
+                        android:layout_marginTop="@dimen/mayak_space_4"
                         app:endIconMode="password_toggle"
                         android:hint="@string/mayak_password_hint">
 
@@ -135,14 +140,14 @@
                         style="@style/Mayak.Button.Primary"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="20dp"
+                        android:layout_marginTop="@dimen/mayak_space_5"
                         android:text="@string/mayak_sign_in" />
 
                     <View
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
-                        android:layout_marginTop="20dp"
-                        android:layout_marginBottom="16dp"
+                        android:layout_marginTop="@dimen/mayak_space_5"
+                        android:layout_marginBottom="@dimen/mayak_space_4"
                         android:background="@color/mayak_divider" />
 
                     <com.google.android.material.button.MaterialButton
@@ -160,7 +165,7 @@
                         style="@style/Mayak.Button.Outlined"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
+                        android:layout_marginTop="@dimen/mayak_space_2"
                         app:icon="@drawable/ic_action_open"
                         app:iconGravity="textStart"
                         app:iconTint="@color/mayak_outline"
@@ -171,7 +176,7 @@
                         style="@style/Mayak.Button.Text"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
+                        android:layout_marginTop="@dimen/mayak_space_2"
                         android:textColor="@color/mayak_outline"
                         android:text="@string/mayak_register_cabinet" />
                 </LinearLayout>
@@ -181,7 +186,7 @@
                 android:id="@+id/mayak_status"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="18dp"
+                android:layout_marginTop="@dimen/mayak_space_4"
                 android:gravity="center"
                 android:textColor="@color/mayak_on_bg_muted"
                 android:textSize="14sp" />
@@ -191,7 +196,7 @@
                 android:id="@+id/mayak_consent"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="14dp"
+                android:layout_marginTop="@dimen/mayak_space_4"
                 android:gravity="center"
                 android:textColor="@color/mayak_on_bg_muted"
                 android:textSize="12sp"

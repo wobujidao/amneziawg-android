@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Единые токены «Маяк»: шкала радиусов (8/14/20/28) и 8-pt сетка отступов.
+     Цель — убрать «почти, но не совсем одинаковые» углы/марджины (см. дизайн-ревью §3.1). -->
+<resources>
+    <!-- Радиусы (continuous-логика, концентричность: внутренний = внешний − паддинг) -->
+    <dimen name="mayak_radius_xs">8dp</dimen>
+    <dimen name="mayak_radius_sm">14dp</dimen>
+    <dimen name="mayak_radius_md">20dp</dimen>
+    <dimen name="mayak_radius_lg">28dp</dimen>
+
+    <!-- 8-pt сетка отступов -->
+    <dimen name="mayak_space_1">4dp</dimen>
+    <dimen name="mayak_space_2">8dp</dimen>
+    <dimen name="mayak_space_3">12dp</dimen>
+    <dimen name="mayak_space_4">16dp</dimen>
+    <dimen name="mayak_space_5">20dp</dimen>
+    <dimen name="mayak_space_6">24dp</dimen>
+    <dimen name="mayak_space_7">32dp</dimen>
+</resources>

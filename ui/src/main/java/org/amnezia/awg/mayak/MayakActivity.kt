@@ -5,14 +5,18 @@
 // Тема следует системе (DayNight) или ручному выбору (MayakPrefs); язык — ru/be/kk/uz/en/de/fr.
 package org.amnezia.awg.mayak
 
+import android.animation.ObjectAnimator
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.os.SystemClock
+import android.provider.Settings
+import android.view.HapticFeedbackConstants
 import android.view.LayoutInflater
 import android.view.View
+import android.view.animation.AccelerateDecelerateInterpolator
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -65,8 +69,10 @@ class MayakActivity : AppCompatActivity() {
     // вьюхи круга/таймера (на главном экране)
     private var connectCircle: View? = null
     private var connectIcon: ImageView? = null
+    private var connectGlow: View? = null
     private var timerView: TextView? = null
     private var ipView: TextView? = null
+    private var pulseAnimator: ObjectAnimator? = null
 
     // согласие на VPN → продолжаем отложенное подключение
     private val vpnPermission =
@@ -238,21 +244,52 @@ class MayakActivity : AppCompatActivity() {
         dirsContainer = findViewById(R.id.mayak_dirs_container)
         connectCircle = findViewById(R.id.mayak_connect_circle)
         connectIcon = findViewById(R.id.mayak_connect_icon)
+        connectGlow = findViewById(R.id.mayak_connect_glow)
         timerView = findViewById(R.id.mayak_timer)
         ipView = findViewById(R.id.mayak_ip)
 
         setupThemeButton()
         findViewById<MaterialButton>(R.id.mayak_settings_button).setOnClickListener {
             startActivity(Intent(this, MayakSettingsActivity::class.java))
+            MayakTransitions.applyAxis(this) // плавный переход к настройкам
         }
 
-        connectCircle?.setOnClickListener { toggleConnect() }
+        // Тап с press-feedback: лёгкое сжатие 0.96 + haptic-tick, затем toggle.
+        connectCircle?.setOnClickListener { v ->
+            v.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+            pressSqueeze(v)
+            toggleConnect()
+        }
 
         // Восстанавливаем состояние круга после пересоздания (смена темы/языка).
         connState = if (tunnel.isUp()) ConnState.CONNECTED else ConnState.DISCONNECTED
         if (connState == ConnState.CONNECTED) startTimer() // таймер заново (без точного старта — с момента возврата)
         renderState(connState)
+        fadeInContent() // тонкий fade-through при заходе на главный (login→home)
     }
+
+    /** Лёгкий fade-through контента экрана (вместо мгновенной подмены setContentView). */
+    private fun fadeInContent() {
+        if (reducedMotion()) return
+        val root = findViewById<View>(android.R.id.content)
+        root?.let {
+            it.alpha = 0f
+            it.animate().alpha(1f).setDuration(280).start()
+        }
+    }
+
+    /** Лёгкое сжатие круга при нажатии (даёт тактильную «кнопочность»). Уважает reduced-motion. */
+    private fun pressSqueeze(v: View) {
+        if (reducedMotion()) return
+        v.animate().cancel()
+        v.scaleX = 0.96f; v.scaleY = 0.96f
+        v.animate().scaleX(1f).scaleY(1f).setDuration(160)
+            .setInterpolator(AccelerateDecelerateInterpolator()).start()
+    }
+
+    /** Системный «убрать анимацию» (Settings.Global.ANIMATOR_DURATION_SCALE == 0). */
+    private fun reducedMotion(): Boolean =
+        Settings.Global.getFloat(contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
 
     private fun loadDirections() {
         val b = backend ?: return
@@ -283,15 +320,18 @@ class MayakActivity : AppCompatActivity() {
         }
     }
 
-    /** Строка-страна: флаг + название + шеврон; тап = выбор (без подключения). */
+    /** Строка-страна: ВЕКТОРНЫЙ флаг + название + шеврон; тап = выбор (без подключения). */
     private fun countryRow(d: Direction): View {
         val container = dirsContainer
         val row = LayoutInflater.from(this).inflate(R.layout.mayak_country_row, container, false)
-        row.findViewById<TextView>(R.id.mayak_row_flag).text = MayakFlags.forCode(d.code)
+        row.findViewById<ImageView>(R.id.mayak_row_flag).setImageResource(MayakFlags.drawableForCode(d.code))
         row.findViewById<TextView>(R.id.mayak_row_name).text =
             if (d.code.isNotBlank()) "${d.name} (${d.code})" else d.name
         row.tag = d.id
-        row.setOnClickListener { selectDir(d) }
+        row.setOnClickListener {
+            it.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+            selectDir(d)
+        }
         return row
     }
 
@@ -302,6 +342,10 @@ class MayakActivity : AppCompatActivity() {
         for (row in rowViews) {
             val isSel = (row.tag as? Long) == d.id
             row.setBackgroundResource(if (isSel) R.drawable.mayak_row_selected else android.R.color.transparent)
+            if (isSel && !reducedMotion()) {
+                row.alpha = 0.6f
+                row.animate().alpha(1f).setDuration(150).start()
+            }
         }
     }
 
@@ -375,9 +419,30 @@ class MayakActivity : AppCompatActivity() {
     private fun onConnected(ip: String) = runOnUiThread {
         connState = ConnState.CONNECTED
         renderState(ConnState.CONNECTED)
-        ipView?.let { it.text = getString(R.string.mayak_ip_label, ip); it.visibility = View.VISIBLE }
+        // таймер/IP появляются с лёгким fade (не резким visibility).
+        ipView?.let {
+            it.text = getString(R.string.mayak_ip_label, ip)
+            it.visibility = View.VISIBLE
+            fadeIn(it)
+        }
+        timerView?.let { fadeIn(it) }
+        successHaptic()
         startTimer()
         Toast.makeText(this, getString(R.string.mayak_connected), Toast.LENGTH_SHORT).show()
+    }
+
+    /** Success-haptic при подтверждении подключения (CONFIRM с API30, иначе обычный тик). */
+    private fun successHaptic() {
+        val v = connectCircle ?: return
+        val feedback = if (android.os.Build.VERSION.SDK_INT >= 30) HapticFeedbackConstants.CONFIRM
+        else HapticFeedbackConstants.VIRTUAL_KEY
+        v.performHapticFeedback(feedback)
+    }
+
+    private fun fadeIn(v: View) {
+        if (reducedMotion()) { v.alpha = 1f; return }
+        v.alpha = 0f
+        v.animate().alpha(1f).setDuration(220).start()
     }
 
     private fun fail(message: String) = runOnUiThread {
@@ -397,7 +462,7 @@ class MayakActivity : AppCompatActivity() {
         }
     }
 
-    /** Применяет визуальное состояние круга/иконки/статуса/таймера. */
+    /** Применяет визуальное состояние круга/иконки/статуса/таймера + анимацию (пульс/glow). */
     private fun renderState(state: ConnState) = runOnUiThread {
         val circleBg = when (state) {
             ConnState.DISCONNECTED -> R.drawable.mayak_circle_disconnected
@@ -412,20 +477,75 @@ class MayakActivity : AppCompatActivity() {
         connectIcon?.let {
             ImageViewCompat.setImageTintList(it, ContextCompat.getColorStateList(this, iconTint))
         }
+        // contentDescription круга меняется по состоянию (доступность, см. дизайн-ревью §3.6).
+        connectCircle?.contentDescription = getString(
+            when (state) {
+                ConnState.DISCONNECTED -> R.string.mayak_a11y_connect
+                ConnState.CONNECTING -> R.string.mayak_a11y_connecting
+                ConnState.CONNECTED -> R.string.mayak_a11y_disconnect
+            }
+        )
         when (state) {
             ConnState.DISCONNECTED -> {
+                stopPulse()
+                setGlow(0f)
                 timerView?.visibility = View.GONE
                 ipView?.visibility = View.GONE
                 if (::status.isInitialized) status.text = getString(R.string.mayak_status_disconnected)
             }
             ConnState.CONNECTING -> {
+                startPulse()
+                setGlow(0.35f)
                 if (::status.isInitialized) status.text = getString(R.string.mayak_connecting)
             }
             ConnState.CONNECTED -> {
+                stopPulse()
+                rampGlow(1f) // яркая вспышка-ореол при подключении
                 timerView?.visibility = View.VISIBLE
                 if (::status.isInitialized) status.text = getString(R.string.mayak_connected)
             }
         }
+    }
+
+    /**
+     * Пульс кольца на «Подключение…»: scale 1.0↔1.08 + alpha, цикл ~1.2с, ease-in-out.
+     * Reduced-motion: пульса нет — оставляем статичный круг (статус всё равно меняется текстом).
+     */
+    private fun startPulse() {
+        stopPulse()
+        val circle = connectCircle ?: return
+        if (reducedMotion()) { circle.scaleX = 1f; circle.scaleY = 1f; circle.alpha = 1f; return }
+        pulseAnimator = ObjectAnimator.ofPropertyValuesHolder(
+            circle,
+            android.animation.PropertyValuesHolder.ofFloat(View.SCALE_X, 1f, 1.08f),
+            android.animation.PropertyValuesHolder.ofFloat(View.SCALE_Y, 1f, 1.08f),
+            android.animation.PropertyValuesHolder.ofFloat(View.ALPHA, 1f, 0.55f),
+        ).apply {
+            duration = 1200
+            repeatMode = ObjectAnimator.REVERSE
+            repeatCount = ObjectAnimator.INFINITE
+            interpolator = AccelerateDecelerateInterpolator()
+            start()
+        }
+    }
+
+    private fun stopPulse() {
+        pulseAnimator?.cancel()
+        pulseAnimator = null
+        connectCircle?.let { it.scaleX = 1f; it.scaleY = 1f; it.alpha = 1f }
+    }
+
+    /** Мгновенно задать прозрачность ореола. */
+    private fun setGlow(alpha: Float) {
+        connectGlow?.alpha = alpha
+    }
+
+    /** Плавно «разгореть» ореол до target (вспышка при connected). Reduced-motion → мгновенно. */
+    private fun rampGlow(target: Float) {
+        val glow = connectGlow ?: return
+        if (reducedMotion()) { glow.alpha = target; return }
+        glow.animate().alpha(target).setDuration(400)
+            .setInterpolator(AccelerateDecelerateInterpolator()).start()
     }
 
     // --- таймер сессии ---

@@ -304,6 +304,9 @@
     <string name="mayak_tap_to_connect">Нажмите для подключения</string>
     <string name="mayak_select_country_first">Сначала выберите страну</string>
     <string name="mayak_ip_label">IP: %1$s</string>
+    <string name="mayak_a11y_connect">Подключиться</string>
+    <string name="mayak_a11y_connecting">Подключение</string>
+    <string name="mayak_a11y_disconnect">Отключиться</string>
     <string name="mayak_err_fill_login">Введите логин и пароль</string>
     <string name="mayak_err_bad_link">Ссылка не распознана</string>
     <string name="mayak_err_no_vpn_perm">Нет разрешения на VPN</string>

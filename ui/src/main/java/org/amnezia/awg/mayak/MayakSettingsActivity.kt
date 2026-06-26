@@ -19,12 +19,15 @@ class MayakSettingsActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_mayak_settings)
 
-        findViewById<MaterialButton>(R.id.mayak_settings_back).setOnClickListener { finish() }
+        findViewById<MaterialButton>(R.id.mayak_settings_back).setOnClickListener {
+            finish(); MayakTransitions.applyAxisReverse(this)
+        }
         findViewById<MaterialButton>(R.id.mayak_settings_language).setOnClickListener {
             MayakLanguages.showDialog(this)
         }
         findViewById<MaterialButton>(R.id.mayak_settings_about).setOnClickListener {
             startActivity(Intent(this, MayakAboutActivity::class.java))
+            MayakTransitions.applyAxis(this)
         }
         findViewById<MaterialButton>(R.id.mayak_settings_logout).setOnClickListener { confirmLogout() }
 

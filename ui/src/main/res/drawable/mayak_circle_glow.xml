@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Внешний ореол за кругом: мягкий радиальный градиент accent → прозрачный, выходящий
+     за границы круга. Альфа всего слоя регулируется программно (ярче при «Подключено»). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <gradient
+        android:type="radial"
+        android:gradientRadius="50%"
+        android:startColor="@color/mayak_circle_halo"
+        android:centerColor="@color/mayak_circle_halo_mid"
+        android:endColor="@android:color/transparent"
+        android:centerX="0.5"
+        android:centerY="0.5" />
+</shape>

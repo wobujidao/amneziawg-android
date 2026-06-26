@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Флаг Нидерландов: три горизонтальные полосы красный/белый/синий. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="28dp"
+    android:height="20dp"
+    android:viewportWidth="28"
+    android:viewportHeight="20">
+    <path android:fillColor="#AE1C28" android:pathData="M0,0h28v6.67h-28z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M0,6.67h28v6.66h-28z" />
+    <path android:fillColor="#21468B" android:pathData="M0,13.33h28v6.67h-28z" />
+</vector>

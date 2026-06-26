@@ -69,25 +69,41 @@
                     android:text="" />
             </LinearLayout>
 
-            <!-- Центр: круглая кнопка подключения -->
+            <!-- Центр: внешний ореол (glow) + круглая кнопка подключения поверх него -->
             <FrameLayout
-                android:id="@+id/mayak_connect_circle"
-                android:layout_width="176dp"
-                android:layout_height="176dp"
-                android:layout_marginTop="20dp"
-                android:background="@drawable/mayak_circle_disconnected"
-                android:clickable="true"
-                android:focusable="true"
-                android:contentDescription="@string/mayak_disconnect">
+                android:layout_width="256dp"
+                android:layout_height="256dp"
+                android:layout_marginTop="@dimen/mayak_space_5">
 
-                <ImageView
-                    android:id="@+id/mayak_connect_icon"
-                    android:layout_width="64dp"
-                    android:layout_height="64dp"
+                <!-- Ореол за кругом: больше круга, выходит за его границы. Альфа меняется кодом. -->
+                <View
+                    android:id="@+id/mayak_connect_glow"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
                     android:layout_gravity="center"
-                    android:importantForAccessibility="no"
-                    android:src="@drawable/ic_power"
-                    app:tint="@color/mayak_circle_icon_off" />
+                    android:background="@drawable/mayak_circle_glow"
+                    android:alpha="0"
+                    android:importantForAccessibility="no" />
+
+                <FrameLayout
+                    android:id="@+id/mayak_connect_circle"
+                    android:layout_width="176dp"
+                    android:layout_height="176dp"
+                    android:layout_gravity="center"
+                    android:background="@drawable/mayak_circle_disconnected"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:contentDescription="@string/mayak_a11y_connect">
+
+                    <ImageView
+                        android:id="@+id/mayak_connect_icon"
+                        android:layout_width="64dp"
+                        android:layout_height="64dp"
+                        android:layout_gravity="center"
+                        android:importantForAccessibility="no"
+                        android:src="@drawable/ic_power"
+                        app:tint="@color/mayak_circle_icon_off" />
+                </FrameLayout>
             </FrameLayout>
 
             <!-- Статус -->

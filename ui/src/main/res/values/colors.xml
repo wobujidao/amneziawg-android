@@ -107,6 +107,11 @@
     <color name="mayak_circle_glow_in">#9CE0FF</color>
     <color name="mayak_circle_glow_out">#4FC3F7</color>
     <color name="mayak_circle_icon_on">#0C1426</color>
+    <!-- Внешний ореол за кругом (radial). Базовая альфа задана здесь, итоговую регулируем кодом. -->
+    <color name="mayak_circle_halo">#664FC3F7</color>
+    <color name="mayak_circle_halo_mid">#264FC3F7</color>
+    <!-- Тонкая обводка карточек (в светлой — почти невидима, в тёмной — читаемый контур) -->
+    <color name="mayak_card_stroke">#00000000</color>
     <!-- Подсветка выбранной строки-страны -->
     <color name="mayak_row_selected_bg">#E3F4FE</color>
 
