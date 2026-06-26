@@ -6,6 +6,7 @@ package org.amnezia.awg.mayak
 import org.amnezia.awg.mayak.core.ConfRenderer
 import org.amnezia.awg.mayak.core.Direction
 import org.amnezia.awg.mayak.core.HostProvider
+import org.amnezia.awg.mayak.core.HwidProvider
 import org.amnezia.awg.mayak.core.KeyProvider
 import org.amnezia.awg.mayak.core.MayakBackend
 import org.amnezia.awg.mayak.core.SecureStore
@@ -20,6 +21,7 @@ data class Paths(
 class MayakSession(
     private val store: SecureStore,
     private val keys: KeyProvider,
+    private val hwids: HwidProvider,
 ) {
     companion object {
         private const val K_TOKEN = "token"
@@ -78,7 +80,9 @@ class MayakSession(
     private suspend fun ensureDevice(backend: MayakBackend, token: String): Long {
         store.get(K_DEVICE)?.toLongOrNull()?.let { return it }
         val pub = store.get(K_PUB) ?: throw IllegalStateException("нет публичного ключа")
-        val resp = backend.registerDevice(token, pub, label = "android")
+        // hwid стабилен на устройстве после переустановки → ядро апсертит устройство по (user, hwid)
+        // и переиспользует слот (не плодит новые устройства, не упирается в лимит).
+        val resp = backend.registerDevice(token, pub, label = "android", hwid = hwids.hwid())
         store.put(K_DEVICE, resp.deviceId.toString())
         return resp.deviceId
     }

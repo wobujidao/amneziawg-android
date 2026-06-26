@@ -99,7 +99,7 @@ class MayakActivity : AppCompatActivity() {
         MayakPrefs.applyTheme(this)
         super.onCreate(savedInstanceState)
         store = KeystoreSecureStore(this)
-        session = MayakSession(store, AwgKeyProvider())
+        session = MayakSession(store, AwgKeyProvider(), AndroidHwidProvider(this, store))
         tunnel = GoTunnel(this)
 
         if (session.hasToken()) {

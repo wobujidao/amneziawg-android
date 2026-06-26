@@ -57,7 +57,7 @@ class MayakSettingsActivity : AppCompatActivity() {
             .setTitle(getString(R.string.mayak_logout))
             .setPositiveButton(getString(R.string.mayak_ok)) { _, _ ->
                 val store = KeystoreSecureStore(this)
-                val session = MayakSession(store, AwgKeyProvider())
+                val session = MayakSession(store, AwgKeyProvider(), AndroidHwidProvider(this, store))
                 val tunnel = GoTunnel(this)
                 lifecycleScope.launch {
                     runCatching { tunnel.down() }

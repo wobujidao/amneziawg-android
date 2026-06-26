@@ -24,6 +24,9 @@ data class LoginResponse(
 data class DeviceRequest(
     val pubkey: String,
     val label: String,
+    // Стабильный HWID: ядро апсертит устройство по (user, hwid), чтобы переустановка не плодила
+    // новые устройства и не упиралась в лимит. Пустой допустим (старое ядро игнорирует поле).
+    val hwid: String = "",
 )
 
 @Serializable

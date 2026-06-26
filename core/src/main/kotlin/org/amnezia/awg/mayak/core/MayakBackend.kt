@@ -64,8 +64,13 @@ class MayakBackend(
         return json.decodeFromString(LoginResponse.serializer(), resp)
     }
 
-    suspend fun registerDevice(token: String, pubkey: String, label: String): DeviceResponse {
-        val body = json.encodeToString(DeviceRequest.serializer(), DeviceRequest(pubkey, label))
+    suspend fun registerDevice(
+        token: String,
+        pubkey: String,
+        label: String,
+        hwid: String = "",
+    ): DeviceResponse {
+        val body = json.encodeToString(DeviceRequest.serializer(), DeviceRequest(pubkey, label, hwid))
         val resp = call("POST", "/v1/client/devices", token = token, body = body)
         return json.decodeFromString(DeviceResponse.serializer(), resp)
     }
