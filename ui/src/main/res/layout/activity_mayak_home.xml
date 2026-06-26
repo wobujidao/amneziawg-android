@@ -8,6 +8,14 @@
     android:layout_height="match_parent"
     android:background="@drawable/mayak_bg_gradient">
 
+    <!-- Самый нижний слой: абстрактная сеть/карта (узлы + дуги + бегущие частицы), тихая,
+         рисуется на Canvas без сети/SDK. Круг и список — поверх неё. -->
+    <org.amnezia.awg.mayak.NetworkBackgroundView
+        android:id="@+id/mayak_network_bg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no" />
+
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -69,11 +77,19 @@
                     android:text="" />
             </LinearLayout>
 
-            <!-- Центр: внешний ореол (glow) + круглая кнопка подключения поверх него -->
+            <!-- Центр: волны (ripple) + внешний ореол (glow) + круглая кнопка подключения -->
             <FrameLayout
                 android:layout_width="256dp"
                 android:layout_height="256dp"
                 android:layout_marginTop="@dimen/mayak_space_5">
+
+                <!-- Концентрические волны от кнопки (sonar/активация при подключении) -->
+                <org.amnezia.awg.mayak.RippleView
+                    android:id="@+id/mayak_ripple"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_gravity="center"
+                    android:importantForAccessibility="no" />
 
                 <!-- Ореол за кругом: больше круга, выходит за его границы. Альфа меняется кодом. -->
                 <View
@@ -111,7 +127,7 @@
                 android:id="@+id/mayak_status"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="18dp"
+                android:layout_marginTop="@dimen/mayak_space_4"
                 android:gravity="center"
                 android:textColor="@color/mayak_on_bg"
                 android:textSize="18sp"
@@ -123,7 +139,7 @@
                 android:id="@+id/mayak_timer"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="@dimen/mayak_space_1"
                 android:gravity="center"
                 android:textColor="@color/mayak_on_bg_muted"
                 android:textSize="15sp"
@@ -148,7 +164,7 @@
                 style="@style/Mayak.Card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="24dp">
+                android:layout_marginTop="@dimen/mayak_space_6">
 
                 <LinearLayout
                     android:layout_width="match_parent"

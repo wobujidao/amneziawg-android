@@ -73,6 +73,9 @@ class MayakActivity : AppCompatActivity() {
     private var timerView: TextView? = null
     private var ipView: TextView? = null
     private var pulseAnimator: ObjectAnimator? = null
+    private var glowBreath: ObjectAnimator? = null
+    private var rippleView: RippleView? = null
+    private var networkBg: NetworkBackgroundView? = null
 
     // согласие на VPN → продолжаем отложенное подключение
     private val vpnPermission =
@@ -105,6 +108,19 @@ class MayakActivity : AppCompatActivity() {
         } else {
             showLogin()
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        networkBg?.startAnimation() // фон оживает, только пока экран виден
+        // при возврате на «Подключение…» возобновляем волны
+        if (connState == ConnState.CONNECTING) rippleView?.startWaves()
+    }
+
+    override fun onPause() {
+        networkBg?.stopAnimation() // экономим, когда экран не на переднем плане
+        rippleView?.stopWaves()
+        super.onPause()
     }
 
     /**
@@ -247,6 +263,10 @@ class MayakActivity : AppCompatActivity() {
         connectGlow = findViewById(R.id.mayak_connect_glow)
         timerView = findViewById(R.id.mayak_timer)
         ipView = findViewById(R.id.mayak_ip)
+        rippleView = findViewById(R.id.mayak_ripple)
+        networkBg = findViewById(R.id.mayak_network_bg)
+        // волны стартуют от края круга (176dp/2)
+        rippleView?.coreRadiusPx = 88f * resources.displayMetrics.density
 
         setupThemeButton()
         findViewById<MaterialButton>(R.id.mayak_settings_button).setOnClickListener {
@@ -488,7 +508,10 @@ class MayakActivity : AppCompatActivity() {
         when (state) {
             ConnState.DISCONNECTED -> {
                 stopPulse()
+                stopGlowBreath()
                 setGlow(0f)
+                rippleView?.stopWaves()
+                networkBg?.setConnected(false)
                 timerView?.visibility = View.GONE
                 ipView?.visibility = View.GONE
                 if (::status.isInitialized) status.text = getString(R.string.mayak_status_disconnected)
@@ -496,15 +519,39 @@ class MayakActivity : AppCompatActivity() {
             ConnState.CONNECTING -> {
                 startPulse()
                 setGlow(0.35f)
+                rippleView?.startWaves() // от кнопки расходятся волны (sonar/активация)
                 if (::status.isInitialized) status.text = getString(R.string.mayak_connecting)
             }
             ConnState.CONNECTED -> {
                 stopPulse()
-                rampGlow(1f) // яркая вспышка-ореол при подключении
+                rampGlow(1f)            // яркая вспышка-ореол
+                startGlowBreath()       // затем ровное «дыхание» свечения — круг живой
+                rippleView?.bloom()     // финальная вспышка-волна
+                networkBg?.setConnected(true) // фон-сеть оживает ярче
                 timerView?.visibility = View.VISIBLE
                 if (::status.isInitialized) status.text = getString(R.string.mayak_connected)
             }
         }
+    }
+
+    /** Ровное «дыхание» ореола в состоянии «Под защитой» (alpha 0.7↔1.0, ~2.4с). */
+    private fun startGlowBreath() {
+        stopGlowBreath()
+        val glow = connectGlow ?: return
+        if (reducedMotion()) { glow.alpha = 1f; return }
+        glowBreath = ObjectAnimator.ofFloat(glow, View.ALPHA, 1f, 0.7f).apply {
+            startDelay = 420 // после ramp-вспышки
+            duration = 2400
+            repeatMode = ObjectAnimator.REVERSE
+            repeatCount = ObjectAnimator.INFINITE
+            interpolator = AccelerateDecelerateInterpolator()
+            start()
+        }
+    }
+
+    private fun stopGlowBreath() {
+        glowBreath?.cancel()
+        glowBreath = null
     }
 
     /**
@@ -535,9 +582,9 @@ class MayakActivity : AppCompatActivity() {
         connectCircle?.let { it.scaleX = 1f; it.scaleY = 1f; it.alpha = 1f }
     }
 
-    /** Мгновенно задать прозрачность ореола. */
+    /** Мгновенно задать прозрачность ореола (отменив возможную идущую анимацию). */
     private fun setGlow(alpha: Float) {
-        connectGlow?.alpha = alpha
+        connectGlow?.let { it.animate().cancel(); it.alpha = alpha }
     }
 
     /** Плавно «разгореть» ореол до target (вспышка при connected). Reduced-motion → мгновенно. */

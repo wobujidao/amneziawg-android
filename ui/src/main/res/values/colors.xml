@@ -112,6 +112,12 @@
     <color name="mayak_circle_halo_mid">#264FC3F7</color>
     <!-- Тонкая обводка карточек (в светлой — почти невидима, в тёмной — читаемый контур) -->
     <color name="mayak_card_stroke">#00000000</color>
+    <!-- Фон-сеть (узлы/дуги/бегущие частицы) — приглушённый accent в светлой теме -->
+    <color name="mayak_net_node">#334FC3F7</color>
+    <color name="mayak_net_line">#1F4FC3F7</color>
+    <color name="mayak_net_spark">#664FC3F7</color>
+    <!-- Концентрические волны от кнопки (ripple) -->
+    <color name="mayak_ripple">#4FC3F7</color>
     <!-- Подсветка выбранной строки-страны -->
     <color name="mayak_row_selected_bg">#E3F4FE</color>
 
