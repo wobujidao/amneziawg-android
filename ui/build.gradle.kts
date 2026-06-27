@@ -21,8 +21,9 @@ android {
     defaultConfig {
         applicationId = pkg
         targetSdk = 35
-        versionCode = providers.gradleProperty("amneziawgVersionCode").get().toInt()
-        versionName = providers.gradleProperty("amneziawgVersionName").get()
+        // Версия ПРИЛОЖЕНИЯ Маяк (наша, не движка AmneziaWG). См. gradle.properties / CHANGELOG.md.
+        versionCode = providers.gradleProperty("mayakVersionCode").get().toInt()
+        versionName = providers.gradleProperty("mayakVersionName").get()
         buildConfigField("int", "MIN_SDK_VERSION", minSdk.toString())
     }
     compileOptions {
