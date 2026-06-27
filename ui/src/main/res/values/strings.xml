@@ -125,7 +125,6 @@
     <string name="mayak_privacy_policy">Privacy policy</string>
     <string name="mayak_terms">Terms of use</string>
     <string name="mayak_soon">Coming soon</string>
-    <string name="mayak_about_nologs">We do not keep logs of your activity.</string>
     <string name="bad_config_context">%1$s\'s %2$s</string>
     <string name="bad_config_context_top_level">%s</string>
     <string name="bad_config_error">%1$s in %2$s</string>

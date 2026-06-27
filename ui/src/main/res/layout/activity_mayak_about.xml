@@ -184,14 +184,6 @@
                     android:layout_height="wrap_content"
                     android:orientation="vertical">
 
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:lineSpacingMultiplier="1.2"
-                        android:textColor="@color/mayak_on_surface"
-                        android:textSize="14sp"
-                        android:text="@string/mayak_about_nologs" />
-
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/mayak_about_privacy"
                         style="@style/Mayak.Button.Outlined"
