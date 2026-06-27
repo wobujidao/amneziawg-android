@@ -8,6 +8,10 @@ import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import org.amnezia.awg.mayak.core.SecureStore
 
+// TODO(tech-debt): androidx.security.crypto (EncryptedSharedPreferences/MasterKey) депрекейтнут
+//   Google (апр-2025). Мигрировать на Android Keystore напрямую (AES-256-GCM) или datastore-tink.
+//   Отдельная задача — НЕ в рамках D1 (кэш конфига). См. docs/research/2026-06-27-android-encrypted-config-cache.md.
+
 class KeystoreSecureStore(context: Context) : SecureStore {
     private val prefs = run {
         val masterKey = MasterKey.Builder(context.applicationContext)

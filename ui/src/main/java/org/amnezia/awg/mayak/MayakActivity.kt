@@ -224,7 +224,7 @@ class MayakActivity : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 session.login(backend!!, email, password)
-                showHome(); loadDirections()
+                showHome(); loadDirections(forceRefresh = true)
             } catch (e: MayakApiException) {
                 when (e.status) {
                     403 -> showEmailNotVerified()
@@ -311,12 +311,19 @@ class MayakActivity : AppCompatActivity() {
     private fun reducedMotion(): Boolean =
         Settings.Global.getFloat(contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
 
-    private fun loadDirections() {
+    /**
+     * Загрузка направлений. По умолчанию берёт кэш (in-memory переживает пересоздание Activity при
+     * смене темы → сеть не дёргается). forceRefresh=true — принудительный рефетч (после логина или
+     * фейловера). «Загрузку…» показываем только когда реально идём в сеть, без мигания при кэше.
+     */
+    private fun loadDirections(forceRefresh: Boolean = false) {
         val b = backend ?: return
-        setStatus(getString(R.string.mayak_status_loading))
+        if (forceRefresh || !session.hasCachedDirections()) {
+            setStatus(getString(R.string.mayak_status_loading))
+        }
         lifecycleScope.launch {
             try {
-                val dirs = session.directions(b)
+                val dirs = session.directions(b, forceRefresh)
                 directions = dirs
                 val container = dirsContainer ?: return@launch
                 container.removeAllViews()
@@ -421,6 +428,9 @@ class MayakActivity : AppCompatActivity() {
                 if (ip != null) onConnected(ip) else fail(getString(R.string.mayak_status_no_egress))
             } catch (e: Exception) {
                 runCatching { tunnel.down() }
+                // Коннект упал — топология/направление могли измениться: сбрасываем кэш направлений,
+                // чтобы следующая загрузка пошла в ядро за свежим списком (фейловер).
+                session.invalidateDirections()
                 fail(humanError(e))
             }
         }

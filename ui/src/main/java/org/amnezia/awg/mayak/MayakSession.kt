@@ -3,6 +3,7 @@
 // устройстве и НИКОГДА не уходит в ядро (ADR-0004) — в connect/devices летит только pubkey.
 package org.amnezia.awg.mayak
 
+import kotlinx.serialization.builtins.ListSerializer
 import org.amnezia.awg.mayak.core.ConfRenderer
 import org.amnezia.awg.mayak.core.Direction
 import org.amnezia.awg.mayak.core.HostProvider
@@ -28,13 +29,25 @@ class MayakSession(
         private const val K_PRIV = "priv_key"
         private const val K_PUB = "pub_key"
         private const val K_DEVICE = "device_id"
+        private const val K_DIRS_CACHE = "dirs_cache"
+
+        // Процесс-скоупный кэш направлений: живёт, пока жив процесс, и ПЕРЕЖИВАЕТ пересоздание
+        // Activity (смена темы/языка) — поэтому смена темы больше не дёргает сеть. MayakSession
+        // создаётся заново на каждом onCreate, так что in-memory-слой держим в companion (static).
+        @Volatile private var memDirections: List<Direction>? = null
+
+        private val dirsSerializer = ListSerializer(Direction.serializer())
     }
+
+    // Сериализатор кэша направлений: переиспользуем Json из :core (он же в MayakBackend).
+    private val json = MayakBackend.defaultJson
 
     fun hasToken(): Boolean = store.get(K_TOKEN) != null
 
     fun logout() {
         store.remove(K_TOKEN)
         store.remove(K_DEVICE)
+        invalidateDirections() // чужой кэш не должен пережить выход
         // ключи устройства оставляем — это идентичность устройства; токен/девайс перезаведём при логине
     }
 
@@ -42,11 +55,48 @@ class MayakSession(
     suspend fun login(backend: MayakBackend, email: String, password: String) {
         val resp = backend.login(email, password)
         store.put(K_TOKEN, resp.token)
+        invalidateDirections() // смена логина → кэш направлений прошлого пользователя неактуален
     }
 
-    suspend fun directions(backend: MayakBackend): List<Direction> {
+    /**
+     * Направления с кэшем. По умолчанию отдаём кэш (in-memory → зашифрованное хранилище), чтобы
+     * пересоздание Activity (смена темы) НЕ ходило в сеть. forceRefresh=true (явный рефреш/
+     * фейловер) принудительно идёт в ядро и обновляет кэш. Кэш одноразовый: на пустоту/порчу — рефетч.
+     */
+    suspend fun directions(backend: MayakBackend, forceRefresh: Boolean = false): List<Direction> {
+        if (!forceRefresh) {
+            cachedDirections()?.let { return it }
+        }
         val token = requireToken()
-        return backend.directions(token)
+        val dirs = backend.directions(token)
+        cacheDirections(dirs)
+        return dirs
+    }
+
+    /** Есть ли готовый кэш направлений (UI решает, показывать ли «загрузка…» или отдать мгновенно). */
+    fun hasCachedDirections(): Boolean = cachedDirections() != null
+
+    /** Сбросить кэш направлений (смена логина/выход/неуспешный коннект — топология могла измениться). */
+    fun invalidateDirections() {
+        memDirections = null
+        store.remove(K_DIRS_CACHE)
+    }
+
+    /** Кэш направлений: in-memory → зашифрованное хранилище. null — кэша нет или он битый. */
+    private fun cachedDirections(): List<Direction>? {
+        memDirections?.let { return it }
+        val raw = store.get(K_DIRS_CACHE) ?: return null
+        return runCatching { json.decodeFromString(dirsSerializer, raw) }
+            .getOrNull()?.takeIf { it.isNotEmpty() }?.also { memDirections = it }
+    }
+
+    /** Положить направления в кэш (in-memory + зашифрованное хранилище через SecureStore). */
+    private fun cacheDirections(dirs: List<Direction>) {
+        memDirections = dirs
+        // SecureStore (KeystoreSecureStore) уже шифрует at-rest → кэш зашифрован переиспользованием.
+        // TODO(tech-debt): KeystoreSecureStore на депрекейтнутом androidx.security.crypto — мигрировать
+        //   на Android Keystore напрямую / datastore-tink (отдельная задача, см. docs/research 2026-06-27).
+        runCatching { store.put(K_DIRS_CACHE, json.encodeToString(dirsSerializer, dirs)) }
     }
 
     /**
