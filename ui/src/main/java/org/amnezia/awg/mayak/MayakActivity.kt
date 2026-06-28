@@ -60,6 +60,7 @@ class MayakActivity : AppCompatActivity() {
     // --- состояние главного экрана (Happ-стиль) ---
     private enum class ConnState { DISCONNECTED, CONNECTING, CONNECTED }
     private var connState = ConnState.DISCONNECTED
+    private var connectJob: Job? = null // корутина текущего подключения — чтобы можно было ОТМЕНИТЬ тапом
     private var directions: List<Direction> = emptyList()
     private var selectedDir: Direction? = null
     private val rowViews = mutableListOf<View>()
@@ -380,13 +381,24 @@ class MayakActivity : AppCompatActivity() {
     private fun toggleConnect() {
         when (connState) {
             ConnState.CONNECTED -> disconnect()
-            ConnState.CONNECTING -> { /* идёт подключение — игнорируем повторный тап */ }
+            ConnState.CONNECTING -> cancelConnect() // тап во время подключения = ОТМЕНА (а не «игнор»/повторный коннект)
             ConnState.DISCONNECTED -> {
                 val d = selectedDir
                 if (d == null) { setStatus(getString(R.string.mayak_select_country_first)); return }
                 connectTo(d)
             }
         }
+    }
+
+    /** Отмена идущего подключения: гасим корутину коннекта + туннель, возвращаем экран в DISCONNECTED. */
+    private fun cancelConnect() {
+        connectJob?.cancel()
+        connectJob = null
+        pendingConnect = null
+        lifecycleScope.launch { runCatching { tunnel.down() } }
+        stopTimer()
+        renderState(ConnState.DISCONNECTED)
+        setStatus(getString(R.string.mayak_status_cancelled))
     }
 
     private fun connectTo(d: Direction) {
@@ -402,7 +414,7 @@ class MayakActivity : AppCompatActivity() {
         val b = backend ?: return
         renderState(ConnState.CONNECTING)
         setStatus(getString(R.string.mayak_status_connecting, d.name))
-        lifecycleScope.launch {
+        connectJob = lifecycleScope.launch {
             try {
                 val paths = session.connect(b, d)
                 val direct = paths.directConf
@@ -426,12 +438,18 @@ class MayakActivity : AppCompatActivity() {
                 tunnel.up(relay)
                 val ip = probeWithRetry()
                 if (ip != null) onConnected(ip) else fail(getString(R.string.mayak_status_no_egress))
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                // пользователь отменил подключение (тап по кнопке) — гасим туннель, БЕЗ ошибки/инвалидации.
+                runCatching { tunnel.down() }
+                throw e
             } catch (e: Exception) {
                 runCatching { tunnel.down() }
                 // Коннект упал — топология/направление могли измениться: сбрасываем кэш направлений,
                 // чтобы следующая загрузка пошла в ядро за свежим списком (фейловер).
                 session.invalidateDirections()
                 fail(humanError(e))
+            } finally {
+                connectJob = null
             }
         }
     }
@@ -494,6 +512,7 @@ class MayakActivity : AppCompatActivity() {
 
     /** Применяет визуальное состояние круга/иконки/статуса/таймера + анимацию (пульс/glow). */
     private fun renderState(state: ConnState) = runOnUiThread {
+        connState = state // единый источник истины: connState всегда синхронен с отрисованным состоянием
         val circleBg = when (state) {
             ConnState.DISCONNECTED -> R.drawable.mayak_circle_disconnected
             ConnState.CONNECTING -> R.drawable.mayak_circle_connecting

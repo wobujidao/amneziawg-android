@@ -91,6 +91,7 @@
     <string name="mayak_status_relay_switch">Direct path blocked — switching to reserve…</string>
     <string name="mayak_status_no_egress">Both paths failed to reach the internet</string>
     <string name="mayak_status_disconnected">Disconnected</string>
+    <string name="mayak_status_cancelled">Connection cancelled</string>
     <string name="mayak_connected">Protected</string>
     <string name="mayak_connecting">Connecting…</string>
     <string name="mayak_tap_to_connect">Tap to connect</string>
