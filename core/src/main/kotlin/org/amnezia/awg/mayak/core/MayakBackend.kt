@@ -87,6 +87,16 @@ class MayakBackend(
     }
 
     /**
+     * Отправка диагностического лога на сервер (POST /v1/client/diag-log). Лог + контекст устройства/
+     * сети ловятся на ядре для анализа (152-ФЗ: под согласие/политику). Возвращает {status,id}.
+     */
+    suspend fun sendDiagLog(token: String, req: DiagLogRequest): DiagLogResponse {
+        val body = json.encodeToString(DiagLogRequest.serializer(), req)
+        val resp = call("POST", "/v1/client/diag-log", token = token, body = body)
+        return json.decodeFromString(DiagLogResponse.serializer(), resp)
+    }
+
+    /**
      * Один HTTP-вызов с фейловером по доменам. На сетевой ошибке (домен недоступен/заблокирован)
      * крутим HostProvider и повторяем; на HTTP-ответе (в т.ч. 4xx/5xx) — НЕ переключаемся, а
      * возвращаем тело / кидаем MayakApiException (это ответ ядра, а не недоступность канала).

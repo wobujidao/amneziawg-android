@@ -95,3 +95,26 @@ data class Obfuscation(
 data class ApiError(
     val error: String = "",
 )
+
+/**
+ * Диагностический лог для отправки на сервер (POST /v1/client/diag-log): сам лог движка + контекст
+ * устройства/сети, чтобы инженер понял причину «не работает на мобиле» (блок IP/сигнатура vs клиент).
+ */
+@Serializable
+data class DiagLogRequest(
+    @SerialName("app_version") val appVersion: String,
+    val os: String,
+    @SerialName("device_model") val deviceModel: String,
+    @SerialName("network_type") val networkType: String, // wifi | cellular | other
+    @SerialName("other_vpn") val otherVpn: Boolean,       // в момент сбора активен ДРУГОЙ VPN?
+    val direction: String = "",
+    @SerialName("device_id") val deviceId: Long = 0,
+    val meta: Map<String, String> = emptyMap(),           // доп. поля (внешний IP, оператор и т.п.)
+    val log: String,
+)
+
+@Serializable
+data class DiagLogResponse(
+    val status: String = "",
+    val id: Long = 0,
+)

@@ -115,6 +115,13 @@ class MayakSession(
         )
     }
 
+    /** Отправка диагностического лога на сервер (кнопка «Отправить лог»). Требует входа (токен). */
+    suspend fun sendDiagLog(backend: MayakBackend, req: org.amnezia.awg.mayak.core.DiagLogRequest) =
+        backend.sendDiagLog(requireToken(), req)
+
+    /** id устройства из хранилища (0 — ещё не зарегистрировано); для контекста диаг-лога. */
+    fun deviceId(): Long = store.get(K_DEVICE)?.toLongOrNull() ?: 0L
+
     private fun requireToken(): String =
         store.get(K_TOKEN) ?: throw IllegalStateException("нет токена — нужен вход")
 

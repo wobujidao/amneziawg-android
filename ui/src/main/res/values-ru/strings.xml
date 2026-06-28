@@ -322,6 +322,15 @@
     <string name="mayak_back">Назад</string>
     <string name="mayak_about">О приложении</string>
     <string name="mayak_settings_logs">Диагностика (логи)</string>
+    <string name="mayak_settings_appearance">Внешний вид</string>
+    <string name="mayak_settings_diagnostics">Диагностика и помощь</string>
+    <string name="mayak_settings_diag_hint">Если что-то не работает — отправь нам лог, по нему мы быстро найдём причину. Данные обрабатываются согласно политике конфиденциальности.</string>
+    <string name="mayak_settings_send_log">Отправить лог</string>
+    <string name="mayak_settings_logs_view">Посмотреть лог</string>
+    <string name="mayak_settings_send_log_sending">Отправляю лог…</string>
+    <string name="mayak_settings_send_log_ok">Лог отправлен. Спасибо!</string>
+    <string name="mayak_settings_send_log_err">Не удалось отправить лог: %1$s</string>
+    <string name="mayak_settings_send_log_need_login">Сначала войдите, чтобы отправить лог.</string>
     <string name="mayak_version">Версия %1$s (сборка %2$d)</string>
     <string name="mayak_based_on">Основано на</string>
     <string name="mayak_engine">Движок</string>

@@ -5,6 +5,7 @@ package org.amnezia.awg.mayak
 import android.content.Intent
 import android.os.Bundle
 import android.widget.RadioGroup
+import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
@@ -12,6 +13,9 @@ import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.launch
 import org.amnezia.awg.R
 import org.amnezia.awg.activity.LogViewerActivity
+import org.amnezia.awg.mayak.core.HostProvider
+import org.amnezia.awg.mayak.core.MayakApiException
+import org.amnezia.awg.mayak.core.MayakBackend
 
 class MayakSettingsActivity : AppCompatActivity() {
 
@@ -36,6 +40,7 @@ class MayakSettingsActivity : AppCompatActivity() {
             startActivity(Intent(this, LogViewerActivity::class.java))
             MayakTransitions.applyAxis(this)
         }
+        findViewById<MaterialButton>(R.id.mayak_settings_send_log).setOnClickListener { sendLog(it as MaterialButton) }
         findViewById<MaterialButton>(R.id.mayak_settings_logout).setOnClickListener { confirmLogout() }
 
         val group = findViewById<RadioGroup>(R.id.mayak_theme_group)
@@ -55,6 +60,41 @@ class MayakSettingsActivity : AppCompatActivity() {
                 MayakPrefs.setThemeMode(this, mode)
                 // setDefaultNightMode пересоздаст активити с новой темой.
             }
+        }
+    }
+
+    /**
+     * Сбор и отправка диагностического лога на сервер (главное действие диагностики). Собираем
+     * контекст устройства/сети + дамп logcat движка → POST /v1/client/diag-log. Требует входа.
+     */
+    private fun sendLog(button: MaterialButton) {
+        val store = KeystoreSecureStore(this)
+        val session = MayakSession(store, AwgKeyProvider(), AndroidHwidProvider(this, store))
+        if (!session.hasToken()) {
+            Toast.makeText(this, R.string.mayak_settings_send_log_need_login, Toast.LENGTH_LONG).show()
+            return
+        }
+        val saved = store.get(MayakActivity.KEY_SERVER)?.trimEnd('/')
+        val hosts = if (saved != null && saved !in MayakActivity.DEFAULT_HOSTS)
+            listOf(saved) + MayakActivity.DEFAULT_HOSTS else MayakActivity.DEFAULT_HOSTS
+        val backend = MayakBackend(HostProvider(hosts))
+
+        val original = button.text
+        button.isEnabled = false
+        button.setText(R.string.mayak_settings_send_log_sending)
+        lifecycleScope.launch {
+            val msg = try {
+                val req = DiagCollector.collect(this@MayakSettingsActivity, direction = "", deviceId = session.deviceId())
+                session.sendDiagLog(backend, req)
+                getString(R.string.mayak_settings_send_log_ok)
+            } catch (e: MayakApiException) {
+                getString(R.string.mayak_settings_send_log_err, "HTTP ${e.status}: ${e.message}")
+            } catch (e: Exception) {
+                getString(R.string.mayak_settings_send_log_err, e.message ?: "ошибка сети")
+            }
+            button.isEnabled = true
+            button.text = original
+            Toast.makeText(this@MayakSettingsActivity, msg, Toast.LENGTH_LONG).show()
         }
     }
 

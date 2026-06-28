@@ -114,6 +114,15 @@
     <string name="mayak_back">Back</string>
     <string name="mayak_about">About</string>
     <string name="mayak_settings_logs">Diagnostics (logs)</string>
+    <string name="mayak_settings_appearance">Appearance</string>
+    <string name="mayak_settings_diagnostics">Diagnostics &amp; help</string>
+    <string name="mayak_settings_diag_hint">If something isn\'t working, send us the log — it lets us find the cause fast. Data is processed per the privacy policy.</string>
+    <string name="mayak_settings_send_log">Send log</string>
+    <string name="mayak_settings_logs_view">View log</string>
+    <string name="mayak_settings_send_log_sending">Sending log…</string>
+    <string name="mayak_settings_send_log_ok">Log sent. Thank you!</string>
+    <string name="mayak_settings_send_log_err">Couldn\'t send log: %1$s</string>
+    <string name="mayak_settings_send_log_need_login">Sign in first to send a log.</string>
     <string name="mayak_version">Version %1$s (build %2$d)</string>
     <string name="mayak_based_on">Based on</string>
     <string name="mayak_engine">Engine</string>

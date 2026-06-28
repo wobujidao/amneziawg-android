@@ -653,13 +653,13 @@ class MayakActivity : AppCompatActivity() {
     private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
 
     companion object {
-        private const val KEY_SERVER = "server_url"
+        const val KEY_SERVER = "server_url" // доступен из настроек для сборки того же HostProvider (диаг-лог)
 
         // Адреса ядра по умолчанию: публичный домен (LE-серт, система доверия) ПЕРВЫМ,
         // затем IP-фолбэк (наш CA, см. network_security_config + res/raw/mayak_ca.pem).
         // :core делает фейловер по сетевым ошибкам и «залипает» на рабочем — поэтому пока
         // DNS домена не разъехался, всё едет через IP, а как только домен поднимется — через домен.
-        private val DEFAULT_HOSTS = listOf(
+        val DEFAULT_HOSTS = listOf( // доступен из настроек для сборки HostProvider (диаг-лог)
             "https://api.mayakvpn.ru",
             "https://45.132.18.167:8443",
         )
