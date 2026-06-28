@@ -61,6 +61,9 @@ class MayakActivity : AppCompatActivity() {
     private enum class ConnState { DISCONNECTED, CONNECTING, CONNECTED }
     private var connState = ConnState.DISCONNECTED
     private var connectJob: Job? = null // корутина текущего подключения — чтобы можно было ОТМЕНИТЬ тапом
+    // Кэш конфигов /connect по направлению: наполняется ЗАРАНЕЕ (при выборе страны), используется в момент
+    // коннекта — чтобы рядом с хендшейком НЕ было вызова api.mayakvpn.ru (РФ-DPI палит VPN-домен).
+    private val confCache = mutableMapOf<Long, Paths>()
     private var directions: List<Direction> = emptyList()
     private var selectedDir: Direction? = null
     private val rowViews = mutableListOf<View>()
@@ -367,6 +370,9 @@ class MayakActivity : AppCompatActivity() {
     private fun selectDir(d: Direction) {
         selectedDir = d
         MayakPrefs.setLastDirectionId(this, d.id)
+        // ПРЕДЗАГРУЗКА конфига /connect заранее (при выборе, а не в момент коннекта) — чтобы рядом с
+        // хендшейком наш VPN-домен api.mayakvpn.ru не светился в эфире (РФ-DPI режет по нему). Тихо, в фоне.
+        backend?.let { b -> lifecycleScope.launch { runCatching { confCache[d.id] = session.connect(b, d) } } }
         for (row in rowViews) {
             val isSel = (row.tag as? Long) == d.id
             row.setBackgroundResource(if (isSel) R.drawable.mayak_row_selected else android.R.color.transparent)
@@ -416,10 +422,12 @@ class MayakActivity : AppCompatActivity() {
         setStatus(getString(R.string.mayak_status_connecting, d.name))
         connectJob = lifecycleScope.launch {
             try {
-                // ТЕСТ-СБОРКА (диагностика мобильного DPI): подключаемся ЗАШИТЫМ конфигом к нашему экзиту,
-                // БЕЗ обращения к /connect (api.mayakvpn.ru) — исключаем выдачу/сетевой вызов из уравнения.
-                val direct: String? = BAKED_TEST_CONF
-                val relay: String? = null
+                // Конфиг берём из ПРЕДЗАГРУЖЕННОГО кэша (наполняется при выборе страны), чтобы в момент
+                // подключения НЕ дёргать api.mayakvpn.ru: РФ-DPI (сотовая) палит наш VPN-домен в TLS/DNS
+                // рядом с хендшейком и режет туннель. См. memory mobile-dpi-api-domain-leak-2026-06-28.
+                val paths = confCache[d.id] ?: session.connect(b, d)
+                val direct = paths.directConf
+                val relay = paths.relayConf
                 if (direct == null && relay == null) {
                     fail(getString(R.string.mayak_status_no_egress)); return@launch
                 }
@@ -673,22 +681,6 @@ class MayakActivity : AppCompatActivity() {
     private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
 
     companion object {
-        // ТЕСТ-СБОРКА: зашитый конфиг к нашему экзиту (тот же ключ/порт/обфускация, что выдаёт /connect),
-        // чтобы проверить мобильный коннект БЕЗ обращения к api.mayakvpn.ru. Ключ — одноразовый тестовый.
-        private const val BAKED_TEST_CONF = "[Interface]\n" +
-            "PrivateKey = 8K5h6AEeDeeJRDcA7QGBSCJOGvZUdunkpnbi8jDDHX0=\n" +
-            "Address = 10.32.0.50/32\n" +
-            "DNS = 1.1.1.1\n" +
-            "MTU = 1280\n" +
-            "Jc = 3\nJmin = 68\nJmax = 249\nS1 = 137\nS2 = 142\nS3 = 47\nS4 = 15\n" +
-            "H1 = 37635761-398894875\nH2 = 454258317-455801569\n" +
-            "H3 = 704160437-763367486\nH4 = 1395896211-1530117507\n" +
-            "I1 = <r 200>\n\n" +
-            "[Peer]\n" +
-            "PublicKey = RyGAsF3n+XDSspboGqZZMaXBLwCai8cdIIQXerVEuUE=\n" +
-            "Endpoint = 195.133.63.38:51820\n" +
-            "AllowedIPs = 0.0.0.0/0\n" +
-            "PersistentKeepalive = 33\n"
         const val KEY_SERVER = "server_url" // доступен из настроек для сборки того же HostProvider (диаг-лог)
 
         // Адреса ядра по умолчанию: публичный домен (LE-серт, система доверия) ПЕРВЫМ,
