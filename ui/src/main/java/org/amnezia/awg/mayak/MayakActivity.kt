@@ -61,9 +61,11 @@ class MayakActivity : AppCompatActivity() {
     private enum class ConnState { DISCONNECTED, CONNECTING, CONNECTED }
     private var connState = ConnState.DISCONNECTED
     private var connectJob: Job? = null // корутина текущего подключения — чтобы можно было ОТМЕНИТЬ тапом
-    // Кэш конфигов /connect по направлению: наполняется ЗАРАНЕЕ (при выборе страны), используется в момент
-    // коннекта — чтобы рядом с хендшейком НЕ было вызова api.mayakvpn.ru (РФ-DPI палит VPN-домен).
+    // Кэш конфигов /connect по направлению: предзагружается при выборе страны, используется ОДНОРАЗОВО в
+    // момент коннекта (M4: confCache.remove → нет переиспользования устаревшего lease; провал → след. коннект
+    // тянет свежий). preloadJob отменяет предыдущую предзагрузку при быстром переключении стран.
     private val confCache = mutableMapOf<Long, Paths>()
+    private var preloadJob: Job? = null
     private var directions: List<Direction> = emptyList()
     private var selectedDir: Direction? = null
     private val rowViews = mutableListOf<View>()
@@ -370,9 +372,10 @@ class MayakActivity : AppCompatActivity() {
     private fun selectDir(d: Direction) {
         selectedDir = d
         MayakPrefs.setLastDirectionId(this, d.id)
-        // ПРЕДЗАГРУЗКА конфига /connect заранее (при выборе, а не в момент коннекта) — чтобы рядом с
-        // хендшейком наш VPN-домен api.mayakvpn.ru не светился в эфире (РФ-DPI режет по нему). Тихо, в фоне.
-        backend?.let { b -> lifecycleScope.launch { runCatching { confCache[d.id] = session.connect(b, d) } } }
+        // ПРЕДЗАГРУЗКА конфига /connect заранее (тёплый кэш к моменту коннекта). M4: отменяем предыдущую
+        // предзагрузку — быстрое переключение стран не плодит параллельные /connect.
+        preloadJob?.cancel()
+        preloadJob = backend?.let { b -> lifecycleScope.launch { runCatching { confCache[d.id] = session.connect(b, d) } } }
         for (row in rowViews) {
             val isSel = (row.tag as? Long) == d.id
             row.setBackgroundResource(if (isSel) R.drawable.mayak_row_selected else android.R.color.transparent)
@@ -425,7 +428,7 @@ class MayakActivity : AppCompatActivity() {
                 // Конфиг берём из ПРЕДЗАГРУЖЕННОГО кэша (наполняется при выборе страны), чтобы в момент
                 // подключения НЕ дёргать api.mayakvpn.ru: РФ-DPI (сотовая) палит наш VPN-домен в TLS/DNS
                 // рядом с хендшейком и режет туннель. См. memory mobile-dpi-api-domain-leak-2026-06-28.
-                val paths = confCache[d.id] ?: session.connect(b, d)
+                val paths = confCache.remove(d.id) ?: session.connect(b, d) // M4: одноразово (нет переиспользования устаревшего)
                 val direct = paths.directConf
                 val relay = paths.relayConf
                 if (direct == null && relay == null) {

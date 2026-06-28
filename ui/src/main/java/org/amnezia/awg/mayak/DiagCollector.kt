@@ -83,16 +83,33 @@ object DiagCollector {
      */
     private fun captureLog(): String {
         return try {
+            // M3 (аудит): НЕ '-b all' (тащило радио/события/чужие приложения = PII). Берём дефолтные буферы,
+            // оставляем ТОЛЬКО строки нашего приложения (AmneziaWG) и маскируем возможные секреты.
             val proc = ProcessBuilder()
-                .command("logcat", "-d", "-b", "all", "-v", "threadtime", "*:V")
+                .command("logcat", "-d", "-v", "threadtime", "*:V")
                 .redirectErrorStream(true)
                 .start()
-            val text = BufferedReader(InputStreamReader(proc.inputStream)).use { it.readText() }
+            val raw = BufferedReader(InputStreamReader(proc.inputStream)).use { it.readText() }
             proc.waitFor()
-            tail(text, MAX_LOG_BYTES)
+            val ours = raw.lineSequence().filter { it.contains("AmneziaWG") }.joinToString("\n")
+            tail(scrubSecrets(ours), MAX_LOG_BYTES)
         } catch (e: Exception) {
             "не удалось собрать logcat: ${e.message}"
         }
+    }
+
+    // Регэкспы возможных секретов в логе (приватные ключи, токены). Движок ключ не логирует (проверено),
+    // но маскируем на всякий случай — defense-in-depth перед отправкой лога на сервер.
+    private val SECRET_PATTERNS = listOf(
+        Regex("(?i)(private[_ ]?key\\s*[=:]\\s*)\\S+"),
+        Regex("(?i)(authorization:\\s*bearer\\s+)\\S+"),
+        Regex("(?i)(\\b(?:token|secret|password|pass)\\s*[=:]\\s*)\\S+"),
+    )
+
+    private fun scrubSecrets(s: String): String {
+        var t = s
+        for (re in SECRET_PATTERNS) t = re.replace(t) { it.groupValues[1] + "<redacted>" }
+        return t
     }
 
     /** Хвост строки не длиннее limit байт (UTF-8), с пометкой об усечении. */
