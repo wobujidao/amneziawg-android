@@ -416,9 +416,10 @@ class MayakActivity : AppCompatActivity() {
         setStatus(getString(R.string.mayak_status_connecting, d.name))
         connectJob = lifecycleScope.launch {
             try {
-                val paths = session.connect(b, d)
-                val direct = paths.directConf
-                val relay = paths.relayConf
+                // ТЕСТ-СБОРКА (диагностика мобильного DPI): подключаемся ЗАШИТЫМ конфигом к нашему экзиту,
+                // БЕЗ обращения к /connect (api.mayakvpn.ru) — исключаем выдачу/сетевой вызов из уравнения.
+                val direct: String? = BAKED_TEST_CONF
+                val relay: String? = null
                 if (direct == null && relay == null) {
                     fail(getString(R.string.mayak_status_no_egress)); return@launch
                 }
@@ -672,6 +673,22 @@ class MayakActivity : AppCompatActivity() {
     private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
 
     companion object {
+        // ТЕСТ-СБОРКА: зашитый конфиг к нашему экзиту (тот же ключ/порт/обфускация, что выдаёт /connect),
+        // чтобы проверить мобильный коннект БЕЗ обращения к api.mayakvpn.ru. Ключ — одноразовый тестовый.
+        private const val BAKED_TEST_CONF = "[Interface]\n" +
+            "PrivateKey = 8K5h6AEeDeeJRDcA7QGBSCJOGvZUdunkpnbi8jDDHX0=\n" +
+            "Address = 10.32.0.50/32\n" +
+            "DNS = 1.1.1.1\n" +
+            "MTU = 1280\n" +
+            "Jc = 3\nJmin = 68\nJmax = 249\nS1 = 137\nS2 = 142\nS3 = 47\nS4 = 15\n" +
+            "H1 = 37635761-398894875\nH2 = 454258317-455801569\n" +
+            "H3 = 704160437-763367486\nH4 = 1395896211-1530117507\n" +
+            "I1 = <r 200>\n\n" +
+            "[Peer]\n" +
+            "PublicKey = RyGAsF3n+XDSspboGqZZMaXBLwCai8cdIIQXerVEuUE=\n" +
+            "Endpoint = 195.133.63.38:51820\n" +
+            "AllowedIPs = 0.0.0.0/0\n" +
+            "PersistentKeepalive = 33\n"
         const val KEY_SERVER = "server_url" // доступен из настроек для сборки того же HostProvider (диаг-лог)
 
         // Адреса ядра по умолчанию: публичный домен (LE-серт, система доверия) ПЕРВЫМ,
