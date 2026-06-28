@@ -121,6 +121,8 @@ class MayakBackend(
         }
 
     private fun doRequest(url: String, method: String, token: String?, body: String?): String {
+        // только https: иначе Bearer-токен и данные ушли бы plaintext (напр. если резерв-домен задан http).
+        require(url.startsWith("https://")) { "небезопасная схема (нужен https): $url" }
         val conn = URL(url).openConnection() as HttpURLConnection
         try {
             conn.requestMethod = method

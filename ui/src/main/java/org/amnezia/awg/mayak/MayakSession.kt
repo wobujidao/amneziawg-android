@@ -3,6 +3,8 @@
 // устройстве и НИКОГДА не уходит в ядро (ADR-0004) — в connect/devices летит только pubkey.
 package org.amnezia.awg.mayak
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.builtins.ListSerializer
 import org.amnezia.awg.mayak.core.ConfRenderer
 import org.amnezia.awg.mayak.core.Direction
@@ -103,12 +105,14 @@ class MayakSession(
      * Подключение к направлению: гарантируем ключи + регистрацию устройства, берём конфиги у ядра и
      * рендерим .conf с локальной подстановкой приватного ключа.
      */
-    suspend fun connect(backend: MayakBackend, direction: Direction): Paths {
+    // На Dispatchers.IO целиком: тут сеть (backend.connect) И блокирующий DoH-резолв (dohEndpoint).
+    // Иначе DoH на главном потоке кидает NetworkOnMainThreadException (фича была мертва, фоллбэк на IP).
+    suspend fun connect(backend: MayakBackend, direction: Direction): Paths = withContext(Dispatchers.IO) {
         val token = requireToken()
         val priv = ensureKeys()
         val deviceId = ensureDevice(backend, token)
         val res = backend.connect(token, deviceId, direction.id)
-        return Paths(
+        Paths(
             directionName = res.direction,
             directConf = res.direct?.let { ConfRenderer.render(dohEndpoint(it), priv) },
             relayConf = res.relay?.let { ConfRenderer.render(dohEndpoint(it), priv) },
