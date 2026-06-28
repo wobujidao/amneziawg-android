@@ -11,9 +11,18 @@ import javax.net.ssl.HttpsURLConnection
 object DohResolver {
     private val IPV4 = Regex("\"data\"\\s*:\\s*\"(\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3})\"")
 
-    /** Резолвит hostname в первый IPv4 через Cloudflare DoH (по IP, мимо системного DNS). null при ошибке. */
+    // DoH-эндпоинты ПО IP (без системного DNS), порт 443 (прячется в HTTPS — оператору не вырезать).
+    // Несколько провайдеров для стойкости: если один придушили/заблокировали — берём следующий. У всех
+    // сертификат покрывает IP (IP-SAN), поэтому работают по голому адресу. Все на 443 (не 853, который РФ режет).
+    private val DOH = arrayOf(
+        "https://1.1.1.1/dns-query", "https://1.0.0.1/dns-query", // Cloudflare
+        "https://8.8.8.8/dns-query", "https://8.8.4.4/dns-query", // Google
+        "https://9.9.9.9/dns-query",                              // Quad9
+    )
+
+    /** Резолвит hostname в первый IPv4 через DoH (мультипровайдер, по IP, мимо системного DNS). null при ошибке. */
     fun resolve(hostname: String): String? {
-        for (doh in arrayOf("https://1.1.1.1/dns-query", "https://1.0.0.1/dns-query")) {
+        for (doh in DOH) {
             try {
                 val url = URL("$doh?name=$hostname&type=A")
                 val conn = (url.openConnection() as HttpsURLConnection).apply {
