@@ -9,6 +9,7 @@
     <string name="mayak_paste_link_title">Roʻyxatdan oʻtish havolasi</string>
     <string name="mayak_paste_link_hint">mayak://reg?…</string>
     <string name="mayak_pick_country">Mamlakatni tanlang:</string>
+    <string name="mayak_refresh">Yangilash</string>
     <string name="mayak_disconnect">Uzish</string>
     <string name="mayak_logout">Chiqish</string>
     <string name="mayak_status_ready">Tayyor</string>

@@ -264,6 +264,11 @@ class MayakActivity : AppCompatActivity() {
         setContentView(R.layout.activity_mayak_home)
         status = findViewById(R.id.mayak_status)
         dirsContainer = findViewById(R.id.mayak_dirs_container)
+        // Кнопка «Обновить» — явно перетянуть список стран с сервера (новые направления без перелогина).
+        findViewById<View?>(R.id.mayak_refresh_dirs)?.setOnClickListener {
+            it.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+            loadDirections(forceRefresh = true)
+        }
         connectCircle = findViewById(R.id.mayak_connect_circle)
         connectIcon = findViewById(R.id.mayak_connect_icon)
         connectGlow = findViewById(R.id.mayak_connect_glow)
@@ -322,34 +327,50 @@ class MayakActivity : AppCompatActivity() {
      * смене темы → сеть не дёргается). forceRefresh=true — принудительный рефетч (после логина или
      * фейловера). «Загрузку…» показываем только когда реально идём в сеть, без мигания при кэше.
      */
+    // loadDirections — cache-then-refresh: мгновенно показываем кэш (если есть), затем ВСЕГДА тянем свежий
+    // список с сервера. Новые направления появляются сами, БЕЗ перелогина (баг владельца 2026-06-28: кэш
+    // залипал до выхода/входа). Перерисовываем только когда список реально изменился и мы отключены —
+    // чтобы не дёргать UI при активном подключении.
     private fun loadDirections(forceRefresh: Boolean = false) {
         val b = backend ?: return
-        if (forceRefresh || !session.hasCachedDirections()) {
-            setStatus(getString(R.string.mayak_status_loading))
-        }
+        if (!session.hasCachedDirections()) setStatus(getString(R.string.mayak_status_loading))
         lifecycleScope.launch {
             try {
-                val dirs = session.directions(b, forceRefresh)
-                directions = dirs
-                val container = dirsContainer ?: return@launch
-                container.removeAllViews()
-                rowViews.clear()
-                if (dirs.isEmpty()) {
-                    setStatus(getString(R.string.mayak_err_empty_dirs)); return@launch
+                // 1) мгновенный показ кэша (быстрый UI), если список ещё пуст
+                if (directions.isEmpty() && session.hasCachedDirections()) {
+                    renderDirections(session.directions(b, false))
                 }
-                for (d in dirs) {
-                    val row = countryRow(d)
-                    container.addView(row)
-                    rowViews.add(row)
+                // 2) свежий список с сервера (обновляет кэш) — источник правды
+                val fresh = session.directions(b, true)
+                val changed = fresh.map { it.id } != directions.map { it.id }
+                if (directions.isEmpty() || (changed && connState == ConnState.DISCONNECTED)) {
+                    renderDirections(fresh)
                 }
-                // Выбор по умолчанию: последняя выбранная страна, иначе первая.
-                val lastId = MayakPrefs.lastDirectionId(this@MayakActivity)
-                val initial = dirs.firstOrNull { it.id == lastId } ?: dirs.first()
-                selectDir(initial)
-                if (connState == ConnState.DISCONNECTED) {
-                    setStatus(getString(R.string.mayak_status_disconnected))
-                }
-            } catch (e: Exception) { setStatus(humanError(e)) }
+            } catch (e: Exception) {
+                if (directions.isEmpty()) setStatus(humanError(e))
+            }
+        }
+    }
+
+    /** Перерисовать список стран + восстановить выбор (последняя выбранная, иначе первая). */
+    private fun renderDirections(dirs: List<Direction>) {
+        directions = dirs
+        val container = dirsContainer ?: return
+        container.removeAllViews()
+        rowViews.clear()
+        if (dirs.isEmpty()) {
+            setStatus(getString(R.string.mayak_err_empty_dirs)); return
+        }
+        for (d in dirs) {
+            val row = countryRow(d)
+            container.addView(row)
+            rowViews.add(row)
+        }
+        val lastId = MayakPrefs.lastDirectionId(this@MayakActivity)
+        val initial = dirs.firstOrNull { it.id == lastId } ?: dirs.first()
+        selectDir(initial)
+        if (connState == ConnState.DISCONNECTED) {
+            setStatus(getString(R.string.mayak_status_disconnected))
         }
     }
 

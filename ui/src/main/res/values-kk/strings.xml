@@ -9,6 +9,7 @@
     <string name="mayak_paste_link_title">Тіркеу сілтемесі</string>
     <string name="mayak_paste_link_hint">mayak://reg?…</string>
     <string name="mayak_pick_country">Елді таңдаңыз:</string>
+    <string name="mayak_refresh">Жаңарту</string>
     <string name="mayak_disconnect">Ажырату</string>
     <string name="mayak_logout">Шығу</string>
     <string name="mayak_status_ready">Дайын</string>

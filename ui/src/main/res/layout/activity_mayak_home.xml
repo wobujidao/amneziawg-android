@@ -171,11 +171,30 @@
                     android:layout_height="wrap_content"
                     android:orientation="vertical">
 
-                    <TextView
-                        android:layout_width="wrap_content"
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="@string/mayak_pick_country"
-                        android:textAppearance="@style/Mayak.CardTitle" />
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/mayak_pick_country"
+                            android:textAppearance="@style/Mayak.CardTitle" />
+
+                        <TextView
+                            android:id="@+id/mayak_refresh_dirs"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:padding="8dp"
+                            android:text="@string/mayak_refresh"
+                            android:textColor="?attr/colorPrimary"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:clickable="true"
+                            android:focusable="true" />
+                    </LinearLayout>
 
                     <LinearLayout
                         android:id="@+id/mayak_dirs_container"

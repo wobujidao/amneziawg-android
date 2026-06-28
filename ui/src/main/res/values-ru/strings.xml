@@ -287,6 +287,7 @@
     <string name="mayak_paste_link_title">Регистрационная ссылка</string>
     <string name="mayak_paste_link_hint">mayak://reg?…</string>
     <string name="mayak_pick_country">Выберите страну:</string>
+    <string name="mayak_refresh">Обновить</string>
     <string name="mayak_disconnect">Отключить</string>
     <string name="mayak_logout">Выйти</string>
     <string name="mayak_status_ready">Готов</string>

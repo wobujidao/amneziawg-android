@@ -9,6 +9,7 @@
     <string name="mayak_paste_link_title">Рэгістрацыйная спасылка</string>
     <string name="mayak_paste_link_hint">mayak://reg?…</string>
     <string name="mayak_pick_country">Выберыце краіну:</string>
+    <string name="mayak_refresh">Абнавіць</string>
     <string name="mayak_disconnect">Адключыць</string>
     <string name="mayak_logout">Выйсці</string>
     <string name="mayak_status_ready">Гатова</string>
