@@ -11,6 +11,7 @@ import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.launch
 import org.amnezia.awg.R
+import org.amnezia.awg.activity.LogViewerActivity
 
 class MayakSettingsActivity : AppCompatActivity() {
 
@@ -27,6 +28,12 @@ class MayakSettingsActivity : AppCompatActivity() {
         }
         findViewById<MaterialButton>(R.id.mayak_settings_about).setOnClickListener {
             startActivity(Intent(this, MayakAboutActivity::class.java))
+            MayakTransitions.applyAxis(this)
+        }
+        // Диагностика: открываем встроенный лог-вьюер (logcat всего AWG-движка: хендшейки, ошибки),
+        // оттуда юзер делится логом (кнопка Share). Раньше до него не было входа из Маяк-UI.
+        findViewById<MaterialButton>(R.id.mayak_settings_logs).setOnClickListener {
+            startActivity(Intent(this, LogViewerActivity::class.java))
             MayakTransitions.applyAxis(this)
         }
         findViewById<MaterialButton>(R.id.mayak_settings_logout).setOnClickListener { confirmLogout() }

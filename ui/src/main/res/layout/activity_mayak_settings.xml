@@ -154,6 +154,17 @@
                     app:iconGravity="textStart"
                     app:iconTint="@color/mayak_outline"
                     android:text="@string/mayak_about" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/mayak_settings_logs"
+                    style="@style/Mayak.Button.Outlined"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    app:icon="@drawable/ic_action_open"
+                    app:iconGravity="textStart"
+                    app:iconTint="@color/mayak_outline"
+                    android:text="@string/mayak_settings_logs" />
             </com.google.android.material.card.MaterialCardView>
 
             <!-- Выход из аккаунта -->

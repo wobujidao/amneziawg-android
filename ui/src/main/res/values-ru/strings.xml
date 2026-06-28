@@ -321,6 +321,7 @@
     <string name="mayak_theme_system">Системная</string>
     <string name="mayak_back">Назад</string>
     <string name="mayak_about">О приложении</string>
+    <string name="mayak_settings_logs">Диагностика (логи)</string>
     <string name="mayak_version">Версия %1$s (сборка %2$d)</string>
     <string name="mayak_based_on">Основано на</string>
     <string name="mayak_engine">Движок</string>
