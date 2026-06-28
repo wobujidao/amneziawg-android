@@ -64,7 +64,8 @@ data class ClientConfig(
     val mtu: Int = 0,
     val obfuscation: Obfuscation? = null,
     @SerialName("server_pubkey") val serverPubkey: String,
-    val endpoint: String,
+    val endpoint: String, // IP:port — рабочий путь без DNS
+    @SerialName("endpoint_fqdn") val endpointFqdn: String = "", // fqdn:port — резолвим через DoH, фоллбэк на endpoint
     @SerialName("allowed_ips") val allowedIps: String,
     @SerialName("persistent_keepalive") val persistentKeepalive: Int = 0,
 )

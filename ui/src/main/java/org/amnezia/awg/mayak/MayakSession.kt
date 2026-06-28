@@ -110,9 +110,17 @@ class MayakSession(
         val res = backend.connect(token, deviceId, direction.id)
         return Paths(
             directionName = res.direction,
-            directConf = res.direct?.let { ConfRenderer.render(it, priv) },
-            relayConf = res.relay?.let { ConfRenderer.render(it, priv) },
+            directConf = res.direct?.let { ConfRenderer.render(dohEndpoint(it), priv) },
+            relayConf = res.relay?.let { ConfRenderer.render(dohEndpoint(it), priv) },
         )
+    }
+
+    // Если выдача дала FQDN endpoint — резолвим его через DoH (шифрованно, мимо подмены DNS оператором) и
+    // подставляем полученный IP. При недоступности DoH остаётся IP-endpoint из /connect → связь не ломается.
+    private fun dohEndpoint(cfg: org.amnezia.awg.mayak.core.ClientConfig): org.amnezia.awg.mayak.core.ClientConfig {
+        if (cfg.endpointFqdn.isBlank()) return cfg
+        val resolved = DohResolver.resolveEndpoint(cfg.endpointFqdn)
+        return if (resolved != cfg.endpointFqdn) cfg.copy(endpoint = resolved) else cfg
     }
 
     /** Отправка диагностического лога на сервер (кнопка «Отправить лог»). Требует входа (токен). */
