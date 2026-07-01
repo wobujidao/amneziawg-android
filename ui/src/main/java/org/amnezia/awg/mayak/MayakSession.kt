@@ -3,6 +3,8 @@
 // устройстве и НИКОГДА не уходит в ядро (ADR-0004) — в connect/devices летит только pubkey.
 package org.amnezia.awg.mayak
 
+import android.os.SystemClock
+import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.builtins.ListSerializer
@@ -37,6 +39,18 @@ class MayakSession(
         // Activity (смена темы/языка) — поэтому смена темы больше не дёргает сеть. MayakSession
         // создаётся заново на каждом onCreate, так что in-memory-слой держим в companion (static).
         @Volatile private var memDirections: List<Direction>? = null
+
+        // Монотонная метка последнего СЕТЕВОГО фетча направлений (SystemClock.elapsedRealtime, мс).
+        // 0 = кэш не из сети (свежий cold-start из зашифрованного хранилища) → считаем устаревшим, чтобы
+        // первый onCreate дотянул свежий список. directionsFresh(ttl) по ней решает, нужен ли рефетч:
+        // смена темы происходит в пределах TTL → сеть молчит; переоткрытие спустя TTL → рефетч (новые
+        // направления появляются сами, без перелогина — примиряет оба бага владельца 06-27/06-28).
+        @Volatile private var memDirectionsAt: Long = 0L
+
+        // Процесс-скоупный кэш предзагруженных /connect-конфигов (переживает пересоздание Activity →
+        // смена темы не дёргает /connect повторно). Одноразовый (take удаляет). Содержит приватный ключ
+        // в .conf → только в памяти, чистим вместе с направлениями (логин/выход/фейловер).
+        private val connectCache = ConcurrentHashMap<Long, Paths>()
 
         private val dirsSerializer = ListSerializer(Direction.serializer())
     }
@@ -78,9 +92,21 @@ class MayakSession(
     /** Есть ли готовый кэш направлений (UI решает, показывать ли «загрузка…» или отдать мгновенно). */
     fun hasCachedDirections(): Boolean = cachedDirections() != null
 
+    /**
+     * Свеж ли кэш направлений: получен из сети (memDirectionsAt != 0) и моложе ttlMs. true → рефетч не
+     * нужен (напр. пересоздание Activity при смене темы в пределах TTL). false → кэш устарел/из хранилища
+     * → UI дотянет свежий список. Не путать с hasCachedDirections (есть ли ЧТО показать вообще).
+     */
+    fun directionsFresh(ttlMs: Long): Boolean {
+        val at = memDirectionsAt
+        return at != 0L && memDirections != null && (SystemClock.elapsedRealtime() - at) < ttlMs
+    }
+
     /** Сбросить кэш направлений (смена логина/выход/неуспешный коннект — топология могла измениться). */
     fun invalidateDirections() {
         memDirections = null
+        memDirectionsAt = 0L
+        connectCache.clear() // предзагруженные конфиги прошлой топологии/пользователя тоже неактуальны
         store.remove(K_DIRS_CACHE)
     }
 
@@ -95,6 +121,7 @@ class MayakSession(
     /** Положить направления в кэш (in-memory + зашифрованное хранилище через SecureStore). */
     private fun cacheDirections(dirs: List<Direction>) {
         memDirections = dirs
+        memDirectionsAt = SystemClock.elapsedRealtime() // отметка «свежо из сети» → смена темы не рефетчит
         // SecureStore (KeystoreSecureStore) уже шифрует at-rest → кэш зашифрован переиспользованием.
         // TODO(tech-debt): KeystoreSecureStore на депрекейтнутом androidx.security.crypto — мигрировать
         //   на Android Keystore напрямую / datastore-tink (отдельная задача, см. docs/research 2026-06-27).
@@ -118,6 +145,21 @@ class MayakSession(
             relayConf = res.relay?.let { ConfRenderer.render(dohEndpoint(it), priv) },
         )
     }
+
+    /**
+     * Предзагрузить конфиг направления в процесс-скоупный кэш (тёплый кэш к моменту коннекта: в момент
+     * подключения НЕ дёргаем api.mayakvpn.ru — РФ-DPI палит наш домен рядом с хендшейком). Переживает
+     * пересоздание Activity, поэтому смена темы не гоняет /connect заново. Одноразовый (см. takeCachedConnect).
+     */
+    suspend fun preloadConnect(backend: MayakBackend, direction: Direction) {
+        connectCache[direction.id] = connect(backend, direction)
+    }
+
+    /** Тёплый предзагруженный конфиг направления? (UI решает, надо ли гонять preloadConnect на выборе). */
+    fun hasCachedConnect(directionId: Long): Boolean = connectCache.containsKey(directionId)
+
+    /** Взять предзагруженный конфиг ОДНОРАЗОВО (удаляет из кэша — нет переиспользования устаревшего lease). */
+    fun takeCachedConnect(directionId: Long): Paths? = connectCache.remove(directionId)
 
     // Если выдача дала FQDN endpoint — резолвим его через DoH (шифрованно, мимо подмены DNS оператором) и
     // подставляем полученный IP. При недоступности DoH остаётся IP-endpoint из /connect → связь не ломается.

@@ -61,10 +61,11 @@ class MayakActivity : AppCompatActivity() {
     private enum class ConnState { DISCONNECTED, CONNECTING, CONNECTED }
     private var connState = ConnState.DISCONNECTED
     private var connectJob: Job? = null // корутина текущего подключения — чтобы можно было ОТМЕНИТЬ тапом
-    // Кэш конфигов /connect по направлению: предзагружается при выборе страны, используется ОДНОРАЗОВО в
-    // момент коннекта (M4: confCache.remove → нет переиспользования устаревшего lease; провал → след. коннект
-    // тянет свежий). preloadJob отменяет предыдущую предзагрузку при быстром переключении стран.
-    private val confCache = mutableMapOf<Long, Paths>()
+    // Кэш конфигов /connect по направлению живёт в MayakSession (процесс-скоупный, ПЕРЕЖИВАЕТ пересоздание
+    // Activity) — предзагружается при выборе страны, берётся ОДНОРАЗОВО в момент коннекта (нет
+    // переиспользования устаревшего lease; провал → след. коннект тянет свежий). Раньше это было поле
+    // Activity → умирало при смене темы и /connect гонялся заново (баг: смена темы дёргала сеть).
+    // preloadJob отменяет предыдущую предзагрузку при быстром переключении стран.
     private var preloadJob: Job? = null
     private var directions: List<Direction> = emptyList()
     private var selectedDir: Direction? = null
@@ -340,11 +341,16 @@ class MayakActivity : AppCompatActivity() {
                 if (directions.isEmpty() && session.hasCachedDirections()) {
                     renderDirections(session.directions(b, false))
                 }
-                // 2) свежий список с сервера (обновляет кэш) — источник правды
-                val fresh = session.directions(b, true)
-                val changed = fresh.map { it.id } != directions.map { it.id }
-                if (directions.isEmpty() || (changed && connState == ConnState.DISCONNECTED)) {
-                    renderDirections(fresh)
+                // 2) свежий список с сервера (обновляет кэш) — НО не при простом пересоздании Activity.
+                // Смена темы (recreate) в пределах TTL → кэш свеж → в сеть НЕ идём (баг владельца 06-27:
+                // сеть дёргалась даже на смене темы). Устарел/переоткрытие/явный рефреш → тянем свежий,
+                // новые направления появляются сами без перелогина (баг владельца 06-28).
+                if (forceRefresh || !session.directionsFresh(DIRECTIONS_TTL_MS)) {
+                    val fresh = session.directions(b, true)
+                    val changed = fresh.map { it.id } != directions.map { it.id }
+                    if (directions.isEmpty() || (changed && connState == ConnState.DISCONNECTED)) {
+                        renderDirections(fresh)
+                    }
                 }
             } catch (e: Exception) {
                 if (directions.isEmpty()) setStatus(humanError(e))
@@ -394,9 +400,11 @@ class MayakActivity : AppCompatActivity() {
         selectedDir = d
         MayakPrefs.setLastDirectionId(this, d.id)
         // ПРЕДЗАГРУЗКА конфига /connect заранее (тёплый кэш к моменту коннекта). M4: отменяем предыдущую
-        // предзагрузку — быстрое переключение стран не плодит параллельные /connect.
+        // предзагрузку — быстрое переключение стран не плодит параллельные /connect. Кэш живёт в session
+        // (переживает смену темы) → если он уже тёплый, повторно /connect НЕ гоняем (смена темы молчит).
         preloadJob?.cancel()
-        preloadJob = backend?.let { b -> lifecycleScope.launch { runCatching { confCache[d.id] = session.connect(b, d) } } }
+        preloadJob = backend?.takeIf { !session.hasCachedConnect(d.id) }
+            ?.let { b -> lifecycleScope.launch { runCatching { session.preloadConnect(b, d) } } }
         for (row in rowViews) {
             val isSel = (row.tag as? Long) == d.id
             row.setBackgroundResource(if (isSel) R.drawable.mayak_row_selected else android.R.color.transparent)
@@ -449,7 +457,7 @@ class MayakActivity : AppCompatActivity() {
                 // Конфиг берём из ПРЕДЗАГРУЖЕННОГО кэша (наполняется при выборе страны), чтобы в момент
                 // подключения НЕ дёргать api.mayakvpn.ru: РФ-DPI (сотовая) палит наш VPN-домен в TLS/DNS
                 // рядом с хендшейком и режет туннель. См. memory mobile-dpi-api-domain-leak-2026-06-28.
-                val paths = confCache.remove(d.id) ?: session.connect(b, d) // M4: одноразово (нет переиспользования устаревшего)
+                val paths = session.takeCachedConnect(d.id) ?: session.connect(b, d) // M4: одноразово (нет переиспользования устаревшего)
                 val direct = paths.directConf
                 val relay = paths.relayConf
                 if (direct == null && relay == null) {
@@ -724,5 +732,11 @@ class MayakActivity : AppCompatActivity() {
         // Сервер добавляет пира sync-таймером (~15с) → повторяем egress-пробу до ~24с.
         private const val PROBE_ATTEMPTS = 6
         private const val PROBE_DELAY_MS = 4_000L
+
+        // Свежесть кэша направлений: в пределах TTL пересоздание Activity (смена темы) НЕ рефетчит
+        // список из сети; спустя TTL переоткрытие приложения дотягивает свежий (новые направления
+        // появляются сами). Явный рефреш (кнопка) и логин рефетчат всегда. 5 минут — баланс «не дёргать
+        // сеть на смене темы» ↔ «показать новые направления без перелогина».
+        private const val DIRECTIONS_TTL_MS = 5 * 60 * 1000L
     }
 }
