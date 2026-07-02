@@ -60,6 +60,7 @@ class MayakActivity : AppCompatActivity() {
     // --- состояние главного экрана (Happ-стиль) ---
     private enum class ConnState { DISCONNECTED, CONNECTING, CONNECTED }
     private var connState = ConnState.DISCONNECTED
+    private var isHomeShown = false // главный экран показан (для пересинхронизации состояния в onResume)
     private var connectJob: Job? = null // корутина текущего подключения — чтобы можно было ОТМЕНИТЬ тапом
     // Кэш конфигов /connect по направлению живёт в MayakSession (процесс-скоупный, ПЕРЕЖИВАЕТ пересоздание
     // Activity) — предзагружается при выборе страны, берётся ОДНОРАЗОВО в момент коннекта (нет
@@ -120,8 +121,12 @@ class MayakActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         networkBg?.startAnimation() // фон оживает, только пока экран виден
-        // при возврате на «Подключение…» возобновляем волны
-        if (connState == ConnState.CONNECTING) rippleView?.startWaves()
+        // при возврате на «Подключение…» возобновляем волны и НЕ трогаем состояние (оно переходное)
+        if (connState == ConnState.CONNECTING) { rippleView?.startWaves(); return }
+        // Пересинхронизируемся с фактическим состоянием НАШЕГО туннеля: он мог измениться, пока
+        // приложение было свёрнуто (сам отвалился, или юзер включил VPN другим приложением → наш
+        // VpnService погашен). Так экран всегда честно отражает реальность на возврате.
+        if (isHomeShown) syncConnStateFromTunnel()
     }
 
     override fun onPause() {
@@ -145,6 +150,7 @@ class MayakActivity : AppCompatActivity() {
     // --- экран входа: логотип + название + карточка логин/пароль + QR + рег-ссылка ---
 
     private fun showLogin() {
+        isHomeShown = false
         setContentView(R.layout.activity_mayak_login)
         dirsContainer = null
         status = findViewById(R.id.mayak_status)
@@ -262,6 +268,7 @@ class MayakActivity : AppCompatActivity() {
     // --- главный экран (Happ-стиль): круг-подключение + список стран с флагами ---
 
     private fun showHome() {
+        isHomeShown = true
         setContentView(R.layout.activity_mayak_home)
         status = findViewById(R.id.mayak_status)
         dirsContainer = findViewById(R.id.mayak_dirs_container)
@@ -293,9 +300,11 @@ class MayakActivity : AppCompatActivity() {
             toggleConnect()
         }
 
-        // Восстанавливаем состояние круга после пересоздания (смена темы/языка).
+        // Восстанавливаем состояние круга после пересоздания Activity (смена темы/языка, возврат
+        // в приложение при живом туннеле). tunnel.isUp() честен — backend процесс-скоупный (GoTunnel),
+        // состояние НЕ теряется. Таймер стартует с фактического момента НАШЕГО коннекта, а не «с возврата».
         connState = if (tunnel.isUp()) ConnState.CONNECTED else ConnState.DISCONNECTED
-        if (connState == ConnState.CONNECTED) startTimer() // таймер заново (без точного старта — с момента возврата)
+        if (connState == ConnState.CONNECTED) startTimer()
         renderState(connState)
         fadeInContent() // тонкий fade-through при заходе на главный (login→home)
     }
@@ -668,7 +677,10 @@ class MayakActivity : AppCompatActivity() {
     // --- таймер сессии ---
 
     private fun startTimer() {
-        sessionStartElapsed = SystemClock.elapsedRealtime()
+        // Источник истины по началу сессии — GoTunnel (момент НАШЕГО up(), процесс-скоупный). После
+        // пересоздания Activity таймер продолжает считать реальный аптайм подключения, а не «с возврата».
+        // Fallback на now() — только если по какой-то причине метка отсутствует (напр. туннель поднят вне up()).
+        sessionStartElapsed = GoTunnel.connectedSinceElapsed ?: SystemClock.elapsedRealtime()
         timerJob?.cancel()
         timerJob = lifecycleScope.launch {
             while (isActive) {
@@ -677,6 +689,18 @@ class MayakActivity : AppCompatActivity() {
                 delay(1000)
             }
         }
+    }
+
+    /**
+     * Привести UI к фактическому состоянию НАШЕГО туннеля (вызов из onResume). Следим ТОЛЬКО за нашим
+     * коннектом: tunnel.isUp() true лишь для туннеля, поднятого через наш backend — VPN другого
+     * приложения (Happ и т.п.) сюда не попадёт (наш VpnService при этом погашен → isUp()=false).
+     */
+    private fun syncConnStateFromTunnel() {
+        val target = if (tunnel.isUp()) ConnState.CONNECTED else ConnState.DISCONNECTED
+        if (connState == target) return // уже синхронно — не дёргаем анимации/рендер зря
+        if (target == ConnState.CONNECTED) startTimer() else stopTimer()
+        renderState(target)
     }
 
     private fun stopTimer() {
