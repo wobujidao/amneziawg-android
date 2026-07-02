@@ -1,0 +1,19 @@
+<!-- Монохромная иконка Маяка (маяк = lighthouse) для статус-бар уведомления «Подключено».
+     Белая заливка + прозрачный фон (Android тинтует), НЕ логотип AmneziaWG. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- крыша фонаря -->
+    <path android:fillColor="@android:color/white" android:pathData="M12,2 L15,6 L9,6 Z" />
+    <!-- фонарь (источник света) -->
+    <path android:fillColor="@android:color/white" android:pathData="M10,6 L14,6 L14,9 L10,9 Z" />
+    <!-- башня (сужается кверху) -->
+    <path android:fillColor="@android:color/white" android:pathData="M10.3,9 L13.7,9 L15.2,19.5 L8.8,19.5 Z" />
+    <!-- основание -->
+    <path android:fillColor="@android:color/white" android:pathData="M8,19.5 L16,19.5 L16,21.5 L8,21.5 Z" />
+    <!-- лучи света влево/вправо -->
+    <path android:fillColor="@android:color/white" android:pathData="M9.5,7.5 L5,6 L5,9 Z" />
+    <path android:fillColor="@android:color/white" android:pathData="M14.5,7.5 L19,6 L19,9 Z" />
+</vector>

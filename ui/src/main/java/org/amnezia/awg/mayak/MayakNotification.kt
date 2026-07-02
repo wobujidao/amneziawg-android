@@ -64,7 +64,7 @@ object MayakNotification {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         val notif = NotificationCompat.Builder(ctx, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_tile)
+            .setSmallIcon(R.drawable.ic_stat_mayak) // Маяк (маяк), НЕ логотип AmneziaWG
             .setContentTitle(ctx.getString(R.string.mayak_notif_connected_title))
             .setContentText(label ?: ctx.getString(R.string.mayak_connected))
             .setOngoing(true)          // нельзя смахнуть, пока подключены
