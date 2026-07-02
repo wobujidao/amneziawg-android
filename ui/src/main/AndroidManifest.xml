@@ -149,6 +149,11 @@
             </intent-filter>
         </receiver>
 
+        <!-- кнопка «Отключить» в уведомлении «Подключено» (Mayak) -->
+        <receiver
+            android:name="org.amnezia.awg.mayak.MayakNotificationReceiver"
+            android:exported="false" />
+
         <service
             android:name=".QuickTileService"
             android:exported="true"

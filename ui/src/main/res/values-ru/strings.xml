@@ -305,6 +305,7 @@
     <string name="mayak_notif_channel_name">Статус VPN</string>
     <string name="mayak_notif_channel_desc">Показывает активное подключение</string>
     <string name="mayak_notif_connected_title">Маяк — подключено</string>
+    <string name="mayak_notif_disconnect">Отключить</string>
     <string name="mayak_connecting">Подключение…</string>
     <string name="mayak_tap_to_connect">Нажмите для подключения</string>
     <string name="mayak_select_country_first">Сначала выберите страну</string>

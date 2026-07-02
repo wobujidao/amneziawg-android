@@ -64,10 +64,17 @@ object MayakNotification {
             ctx, 0, open,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-        val notif = NotificationCompat.Builder(ctx, CHANNEL_ID)
+        // Кнопка «Отключить» (Happ-стиль action): гасит туннель без открытия приложения.
+        val disconnectIntent = Intent(ctx, MayakNotificationReceiver::class.java)
+            .setAction(MayakNotificationReceiver.ACTION_DISCONNECT)
+        val disconnectPi = PendingIntent.getBroadcast(
+            ctx, 1, disconnectIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        // Макет как в Happ: имя приложения «Маяк» рисует система в шапке, крупная строка — направление.
+        val builder = NotificationCompat.Builder(ctx, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_mayak) // Маяк (маяк), НЕ логотип AmneziaWG
-            .setContentTitle(ctx.getString(R.string.mayak_notif_connected_title))
-            .setContentText(label ?: ctx.getString(R.string.mayak_connected))
+            .setContentTitle(label ?: ctx.getString(R.string.mayak_connected))
             .setOngoing(true)          // нельзя смахнуть, пока подключены
             .setOnlyAlertOnce(true)    // обновление метки не «пикает» повторно
             .setShowWhen(false)
@@ -75,8 +82,9 @@ object MayakNotification {
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .build()
-        NotificationManagerCompat.from(ctx).notify(NOTIF_ID, notif)
+            .addAction(0, ctx.getString(R.string.mayak_notif_disconnect), disconnectPi)
+        if (label != null) builder.setContentText(ctx.getString(R.string.mayak_connected)) // «Подключено» подзаголовком
+        NotificationManagerCompat.from(ctx).notify(NOTIF_ID, builder.build())
     }
 
     fun clear(ctx: Context) {
