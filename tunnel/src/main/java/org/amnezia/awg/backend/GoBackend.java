@@ -23,8 +23,11 @@ import org.amnezia.awg.crypto.Key;
 import org.amnezia.awg.crypto.KeyFormatException;
 import org.amnezia.awg.util.NonNullForAll;
 
+import java.net.Inet6Address;
 import java.net.InetAddress;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
@@ -45,6 +48,31 @@ import static org.amnezia.awg.GoBackend.*;
 public final class GoBackend implements Backend {
     private static final int DNS_RESOLUTION_RETRIES = 10;
     private static final String TAG = "AmneziaWG/GoBackend";
+
+    /**
+     * Маяк (SPEC-0014): kill-switch по семействам. Возвращает {blockV4, blockV6} — какие семейства нужно
+     * заглушить через VpnService.Builder.allowFamily(), чтобы трафик семейства НЕ утекал мимо VPN.
+     * <p>
+     * Семейство БЕЗ дефолт-маршрута (mask 0) в туннеле нужно заглушить: иначе Android пускает его по
+     * нативной сети в обход VPN. Классический баг — v4-only full-tunnel (AllowedIPs=0.0.0.0/0 без ::/0):
+     * нативный IPv6 телефона тёк наружу, светя реальный адрес. Заворачиваем целиком только то семейство,
+     * у которого есть дефолт-маршрут И один пир (full-tunnel); остальное — блокируем.
+     * <p>
+     * Чистая функция (без Android-зависимостей) — юнит-тестируется.
+     */
+    static boolean[] killSwitchBlock(final Iterable<InetNetwork> allAllowedIps, final int peerCount) {
+        boolean v4Default = false, v6Default = false;
+        for (final InetNetwork n : allAllowedIps) {
+            if (n.getMask() == 0) {
+                if (n.getAddress() instanceof Inet6Address)
+                    v6Default = true;
+                else
+                    v4Default = true;
+            }
+        }
+        final boolean single = peerCount == 1;
+        return new boolean[]{!(v4Default && single), !(v6Default && single)};
+    }
     @Nullable private static AlwaysOnCallback alwaysOnCallback;
     private static GhettoCompletableFuture<VpnService> vpnService = new GhettoCompletableFuture<>();
     private final Context context;
@@ -391,20 +419,22 @@ public final class GoBackend implements Backend {
             for (final String dnsSearchDomain : config.getInterface().getDnsSearchDomains())
                 builder.addSearchDomain(dnsSearchDomain);
 
-            boolean sawDefaultRoute = false;
+            // Собираем все allowed-ips (для маршрутов и для расчёта kill-switch), добавляем маршруты.
+            final List<InetNetwork> allAllowedIps = new ArrayList<>();
             for (final Peer peer : config.getPeers()) {
                 for (final InetNetwork addr : peer.getAllowedIps()) {
-                    if (addr.getMask() == 0)
-                        sawDefaultRoute = true;
+                    allAllowedIps.add(addr);
                     builder.addRoute(addr.getAddress(), addr.getMask());
                 }
             }
 
-            // "Kill-switch" semantics
-            if (!(sawDefaultRoute && config.getPeers().size() == 1)) {
+            // "Kill-switch" ПО СЕМЕЙСТВАМ (Маяк, SPEC-0014): глушим семейство, которое не заворачиваем
+            // целиком, иначе оно течёт мимо VPN (нативный IPv6 телефона при v4-only конфиге). См. killSwitchBlock.
+            final boolean[] block = killSwitchBlock(allAllowedIps, config.getPeers().size());
+            if (block[0])
                 builder.allowFamily(OsConstants.AF_INET);
+            if (block[1])
                 builder.allowFamily(OsConstants.AF_INET6);
-            }
 
             builder.setMtu(config.getInterface().getMtu().orElse(1280));
 

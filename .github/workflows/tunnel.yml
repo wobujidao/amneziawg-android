@@ -1,0 +1,43 @@
+name: tunnel (unit tests)
+run-name: "tunnel • ${{ github.ref_name }}"
+
+# Юнит-тесты Android-модуля :tunnel (JVM-тесты, без эмулятора). Гардит, в частности, per-family
+# kill-switch (Маяк, SPEC-0014) — защиту от IPv6-утечки. Нужен Android SDK (модуль — Android-библиотека).
+on:
+  push:
+    branches: [ "main", "master" ]
+    paths:
+      - "tunnel/**"
+      - "gradle/libs.versions.toml"
+      - "settings.gradle.kts"
+      - "build.gradle.kts"
+      - ".github/workflows/tunnel.yml"
+  workflow_dispatch: {}
+
+jobs:
+  tunnel:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Test :tunnel
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x ./gradlew
+          ./gradlew --no-daemon --stacktrace :tunnel:testDebugUnitTest
