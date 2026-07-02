@@ -36,6 +36,11 @@ object DiagCollector {
                 meta = buildMap {
                     put("abi", Build.SUPPORTED_ABIS.firstOrNull() ?: "?")
                     put("vpn_transport_present", net.vpnActive.toString())
+                    // Выходные IP нашего подключения (SPEC-0014) — чтобы инженер по логу видел, под каким
+                    // IPv4/IPv6 экзита сидел клиент (диагностика «не работает направление / блок IP»).
+                    // Процесс-скоупно в GoTunnel: заполнены, если в момент сбора туннель поднят нами.
+                    GoTunnel.egressIpv4?.let { put("egress_ipv4", it) }
+                    GoTunnel.egressIpv6?.let { put("egress_ipv6", it) }
                 },
                 log = captureLog(),
             )
