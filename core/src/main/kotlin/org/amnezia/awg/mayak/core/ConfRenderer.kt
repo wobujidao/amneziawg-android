@@ -20,7 +20,10 @@ object ConfRenderer {
         val sb = StringBuilder()
         sb.appendLine("[Interface]")
         sb.appendLine("PrivateKey = $privateKeyBase64")
-        sb.appendLine("Address = ${cfg.address}")
+        // dual-stack (SPEC-0014): при наличии address_v6 кладём v4 и v6 в одну строку Address;
+        // форк парсит IPv6 сам. DNS/AllowedIPs (IPv6-резолверы + ::/0) ядро уже складывает в свои поля.
+        val address = if (cfg.addressV6.isNotBlank()) "${cfg.address}, ${cfg.addressV6}" else cfg.address
+        sb.appendLine("Address = $address")
         if (cfg.dns.isNotBlank()) sb.appendLine("DNS = ${cfg.dns}")
         if (cfg.mtu > 0) sb.appendLine("MTU = ${cfg.mtu}")
 

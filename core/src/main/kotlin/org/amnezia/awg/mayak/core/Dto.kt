@@ -60,6 +60,9 @@ data class ConnectResult(
 @Serializable
 data class ClientConfig(
     val address: String,
+    // IPv6-overlay-адрес клиента (SPEC-0014, dual-stack). Пусто → IPv6 у выдачи выкл. Добавляется в
+    // строку Address рядом с IPv4; ядро отдаёт ТОЛЬКО для ipv6_ok-нод. Форк умеет IPv6 в конфиге сам.
+    @SerialName("address_v6") val addressV6: String = "",
     val dns: String = "",
     val mtu: Int = 0,
     val obfuscation: Obfuscation? = null,
