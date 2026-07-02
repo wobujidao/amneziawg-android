@@ -55,7 +55,7 @@ object MayakNotification {
     /** Показать/обновить уведомление о НАШЕМ подключении. label — из labelFor (или GoTunnel.connectedLabel);
      *  pingMs — пинг сервера для подзаголовка «Подключено · Пинг: 42 мс» (null → без пинга). */
     @SuppressLint("MissingPermission") // notify защищён canPost() (проверка POST_NOTIFICATIONS выше)
-    fun show(ctx: Context, label: String?, pingMs: Int? = null, ipv6: Boolean = false, noReply: Boolean = false) {
+    fun show(ctx: Context, label: String?, pingMs: Int? = null, ipv6: Boolean = false) {
         if (!canPost(ctx)) return // нет POST_NOTIFICATIONS (API33+) — молча пропускаем (запросим в Activity)
         ensureChannel(ctx)
         val open = Intent(ctx, MayakActivity::class.java).apply {
@@ -85,12 +85,8 @@ object MayakNotification {
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .addAction(0, ctx.getString(R.string.mayak_notif_disconnect), disconnectPi)
         if (label != null) {
-            // Подзаголовок. При потере связи (пинг не отвечает N раз подряд, noReply) — честно говорим
-            // «Нет ответа — проверьте соединение» вместо «Подключено» (туннель поднят, но данные не идут:
-            // напр. пропала сотовая в поезде). Иначе «Подключено» + пинг/IPv6, если измерены.
-            val text = if (noReply) {
-                ctx.getString(R.string.mayak_notif_no_reply)
-            } else buildString {
+            // Подзаголовок «Подключено» + пинг сервера («Пинг: 0» = нет ответа) + IPv6, если измерены.
+            val text = buildString {
                 append(ctx.getString(R.string.mayak_connected))
                 if (pingMs != null) { append(" · "); append(ctx.getString(R.string.mayak_ping_label, pingMs)) }
                 if (ipv6) { append(" · "); append(ctx.getString(R.string.mayak_ipv6_badge)) } // честный значок IPv6

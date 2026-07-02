@@ -79,6 +79,8 @@
     <color name="mayak_navy_dark">#0C1426</color>
     <color name="mayak_accent">#4FC3F7</color>
     <color name="mayak_red">#E63946</color>
+    <color name="mayak_ping_green">#2FBF71</color>
+    <color name="mayak_ping_yellow">#E0A800</color>
     <color name="mayak_cream">#FFFDF7</color>
 
     <!-- Семантические (СВЕТЛАЯ): тёплый кремовый фон, тёмно-синий текст -->

@@ -55,11 +55,6 @@ class GoTunnel(context: Context, tunnelName: String = "mayak") : MayakCoreTunnel
         // ещё не мерян / недоступен. Обновляет ping-цикл UI; сбрасывается в down().
         @Volatile var connectedPingMs: Int? = null
 
-        // Связь реально потеряна: пинг не отвечает N раз подряд, хотя туннель поднят (напр. пропала
-        // сотовая в поезде). Ставит ping-цикл; уведомление/статус показывают «Нет ответа», а не
-        // «Подключено» (честность — как с бейджем IPv6). Процесс-скоупно; сбрасывается в down().
-        @Volatile var connectedNoReply: Boolean = false
-
         // Выходной IPv4-адрес (проба ipify через туннель). Процесс-скоупно → показ IP переживает
         // пересоздание Activity (на реоупене видим тот же IP без повторной пробы). Сбрасывается в down().
         @Volatile var egressIpv4: String? = null
@@ -96,7 +91,6 @@ class GoTunnel(context: Context, tunnelName: String = "mayak") : MayakCoreTunnel
         connectedLabel = null
         connectedServerHost = null
         connectedPingMs = null
-        connectedNoReply = false
         egressIpv4 = null
         egressIpv6 = null
         Unit
