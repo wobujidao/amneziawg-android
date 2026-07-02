@@ -42,6 +42,7 @@ object SpeedNotifier {
                         MayakNotification.show(
                             app, GoTunnel.connectedLabel, GoTunnel.connectedPingMs,
                             ipv6 = GoTunnel.egressIpv6 != null, speed = speed,
+                            smallIcon = MayakNotification.speedIcon(down, up), // цифра скорости прямо в статус-баре
                         )
                     }
                     lastRx = rx; lastTx = tx

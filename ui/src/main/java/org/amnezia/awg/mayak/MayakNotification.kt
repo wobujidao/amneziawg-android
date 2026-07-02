@@ -11,6 +11,11 @@ import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.Typeface
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -18,6 +23,7 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.IconCompat
 import org.amnezia.awg.R
 import org.amnezia.awg.mayak.core.Direction
 
@@ -55,7 +61,7 @@ object MayakNotification {
     /** Показать/обновить уведомление о НАШЕМ подключении. label — из labelFor (или GoTunnel.connectedLabel);
      *  pingMs — пинг сервера для подзаголовка «Подключено · Пинг: 42 мс» (null → без пинга). */
     @SuppressLint("MissingPermission") // notify защищён canPost() (проверка POST_NOTIFICATIONS выше)
-    fun show(ctx: Context, label: String?, pingMs: Int? = null, ipv6: Boolean = false, speed: String? = null) {
+    fun show(ctx: Context, label: String?, pingMs: Int? = null, ipv6: Boolean = false, speed: String? = null, smallIcon: IconCompat? = null) {
         if (!canPost(ctx)) return // нет POST_NOTIFICATIONS (API33+) — молча пропускаем (запросим в Activity)
         ensureChannel(ctx)
         val open = Intent(ctx, MayakActivity::class.java).apply {
@@ -74,7 +80,7 @@ object MayakNotification {
         )
         // Макет как в Happ: имя приложения «Маяк» рисует система в шапке, крупная строка — направление.
         val builder = NotificationCompat.Builder(ctx, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_stat_mayak) // Маяк (маяк), НЕ логотип AmneziaWG
+            .setSmallIcon(smallIcon ?: IconCompat.createWithResource(ctx, R.drawable.ic_stat_mayak)) // Маяк или динамический значок скорости
             .setContentTitle(label ?: ctx.getString(R.string.mayak_connected))
             .setOngoing(true)          // нельзя смахнуть, пока подключены
             .setOnlyAlertOnce(true)    // обновление метки не «пикает» повторно
@@ -102,6 +108,30 @@ object MayakNotification {
         bytesPerSec >= 1_000_000 -> String.format("%.1f МБ/с", bytesPerSec / 1_000_000.0)
         bytesPerSec >= 1_000 -> String.format("%.0f КБ/с", bytesPerSec / 1_000.0)
         else -> "$bytesPerSec Б/с"
+    }
+
+    /** Компактная скорость для СТАТУС-БАРА (значок мелкий): «64», «1K», «2M» — без единиц. */
+    private fun compactSpeed(bytesPerSec: Long): String = when {
+        bytesPerSec >= 1_000_000 -> "${bytesPerSec / 1_000_000}M"
+        bytesPerSec >= 1_000 -> "${bytesPerSec / 1_000}K"
+        else -> "$bytesPerSec"
+    }
+
+    /** Значок статус-бара с текущей скоростью: ↓ (сверху) / ↑ (снизу), белым. Рисуем bitmap → IconCompat.
+     *  Так цифра трафика видна в самом статус-баре (верх экрана), а не только в развёрнутой шторке. */
+    fun speedIcon(downBps: Long, upBps: Long): IconCompat {
+        val size = 96
+        val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val c = Canvas(bmp)
+        val p = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.WHITE
+            textAlign = Paint.Align.CENTER
+            typeface = Typeface.DEFAULT_BOLD
+            textSize = 40f
+        }
+        c.drawText("\u2193" + compactSpeed(downBps), size / 2f, 42f, p) // ↓ download (верх)
+        c.drawText("\u2191" + compactSpeed(upBps), size / 2f, 88f, p)   // ↑ upload (низ)
+        return IconCompat.createWithBitmap(bmp)
     }
 
     fun clear(ctx: Context) {
