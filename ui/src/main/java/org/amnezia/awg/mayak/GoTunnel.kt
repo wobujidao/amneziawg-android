@@ -55,6 +55,11 @@ class GoTunnel(context: Context, tunnelName: String = "mayak") : MayakCoreTunnel
         // ещё не мерян / недоступен. Обновляет ping-цикл UI; сбрасывается в down().
         @Volatile var connectedPingMs: Int? = null
 
+        // Выходной IPv6-адрес, если IPv6 РЕАЛЬНО работает через туннель (успешная проба api6.ipify.org).
+        // null = IPv6 не задействован. Ставит UI после коннекта; процесс-скоупно (значок «IPv6» переживёт
+        // пересоздание Activity). Сбрасывается в down(). Честный сигнал (SPEC-0014): по факту egress, не по ::/0.
+        @Volatile var egressIpv6: String? = null
+
         private fun obtainBackend(ctx: Context): Backend =
             sharedBackend ?: synchronized(this) {
                 sharedBackend ?: GoBackend(ctx.applicationContext).also { sharedBackend = it }
@@ -82,6 +87,7 @@ class GoTunnel(context: Context, tunnelName: String = "mayak") : MayakCoreTunnel
         connectedLabel = null
         connectedServerHost = null
         connectedPingMs = null
+        egressIpv6 = null
         Unit
     }
 

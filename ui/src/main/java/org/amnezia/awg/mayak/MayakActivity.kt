@@ -55,6 +55,9 @@ class MayakActivity : AppCompatActivity() {
     private lateinit var session: MayakSession
     private lateinit var tunnel: GoTunnel
     private val probe = IpifyProbe()
+    // IPv6-проба: api6.ipify.org резолвится ТОЛЬКО в IPv6 → успешный 200 = реальный IPv6-egress через
+    // туннель. Честный сигнал для значка «IPv6» (SPEC-0014): зажигаем по факту выхода, не по наличию ::/0.
+    private val probe6 = IpifyProbe(url = "https://api6.ipify.org?format=json")
 
     private var backend: MayakBackend? = null
     private var pendingConnect: Direction? = null
@@ -86,6 +89,7 @@ class MayakActivity : AppCompatActivity() {
     private var connectGlow: View? = null
     private var timerView: TextView? = null
     private var ipView: TextView? = null
+    private var ipv6Badge: TextView? = null
     private var pingView: TextView? = null
     private var pulseAnimator: ObjectAnimator? = null
     private var glowBreath: ObjectAnimator? = null
@@ -376,6 +380,7 @@ class MayakActivity : AppCompatActivity() {
         connectGlow = findViewById(R.id.mayak_connect_glow)
         timerView = findViewById(R.id.mayak_timer)
         ipView = findViewById(R.id.mayak_ip)
+        ipv6Badge = findViewById(R.id.mayak_ipv6_badge)
         pingView = findViewById(R.id.mayak_ping)
         rippleView = findViewById(R.id.mayak_ripple)
         networkBg = findViewById(R.id.mayak_network_bg)
@@ -402,7 +407,10 @@ class MayakActivity : AppCompatActivity() {
         if (connState == ConnState.CONNECTED) {
             startTimer()
             startPing() // пинг сервера (хост персистится в GoTunnel)
-            MayakNotification.show(this, GoTunnel.connectedLabel, GoTunnel.connectedPingMs) // персист-метка направления
+            // Значок IPv6 персистится в GoTunnel (процесс-скоупно) → на реоупене восстанавливаем без новой пробы.
+            val v6 = GoTunnel.egressIpv6
+            setIpv6Badge(v6 != null)
+            MayakNotification.show(this, GoTunnel.connectedLabel, GoTunnel.connectedPingMs, ipv6 = v6 != null) // персист-метка направления
         } else {
             MayakNotification.clear(this)
         }
@@ -580,7 +588,7 @@ class MayakActivity : AppCompatActivity() {
                 // поэтому пробу egress повторяем несколько раз, прежде чем сдаться.
                 if (direct != null) {
                     GoTunnel.connectedServerHost = MayakPing.hostOf(paths.directEndpoint) // сервер для пинга
-                    tunnel.up(direct)
+                    tunnel.up(maybeStripIpv6(direct))
                     setStatus(getString(R.string.mayak_status_probing))
                     val ip = probeWithRetry()
                     if (ip != null) { onConnected(ip); return@launch }
@@ -590,7 +598,7 @@ class MayakActivity : AppCompatActivity() {
                 // Резерв: прямого не было вовсе или он не прошёл пробу.
                 if (direct != null) setStatus(getString(R.string.mayak_status_relay_switch))
                 GoTunnel.connectedServerHost = MayakPing.hostOf(paths.relayEndpoint) // сервер для пинга
-                tunnel.up(relay)
+                tunnel.up(maybeStripIpv6(relay))
                 val ip = probeWithRetry()
                 if (ip != null) onConnected(ip) else fail(getString(R.string.mayak_status_no_egress))
             } catch (e: kotlinx.coroutines.CancellationException) {
@@ -606,6 +614,36 @@ class MayakActivity : AppCompatActivity() {
             } finally {
                 connectJob = null
             }
+        }
+    }
+
+    /** Тумблер «Не использовать IPv6» (SPEC-0014 T5): при выкл срезаем v6 из .conf перед подъёмом
+     *  туннеля (без ::/0 → IPv6 идёт мимо туннеля, значок не зажигается). По умолч. IPv6 ВКЛ. */
+    private fun maybeStripIpv6(conf: String): String =
+        if (MayakPrefs.useIpv6(this)) conf else org.amnezia.awg.mayak.core.ConfRenderer.stripIpv6(conf)
+
+    /** Фоновая IPv6-проба выхода после коннекта: значок «IPv6» зажигаем ТОЛЬКО при реальном egress
+     *  (api6.ipify.org вернул адрес). Не блокирует коннект (v4 уже подтверждён). Честно (SPEC-0014). */
+    private fun startIpv6Probe() {
+        GoTunnel.egressIpv6 = null
+        setIpv6Badge(false)
+        if (!MayakPrefs.useIpv6(this)) return // пользователь выключил IPv6 — не пробуем и не зажигаем
+        lifecycleScope.launch {
+            val v6 = probe6.externalIp() // api6-only host: успех = реальный IPv6-выход через туннель
+            if (v6 != null && connState == ConnState.CONNECTED) {
+                GoTunnel.egressIpv6 = v6
+                setIpv6Badge(true)
+                // Обновляем уведомление — теперь с честным значком IPv6.
+                MayakNotification.show(this@MayakActivity, GoTunnel.connectedLabel, GoTunnel.connectedPingMs, ipv6 = true)
+            }
+        }
+    }
+
+    /** Показать/скрыть значок «IPv6» на главном экране (с тонким fade при появлении). */
+    private fun setIpv6Badge(on: Boolean) = runOnUiThread {
+        ipv6Badge?.let {
+            if (on && it.visibility != View.VISIBLE) { it.visibility = View.VISIBLE; fadeIn(it) }
+            else if (!on) it.visibility = View.GONE
         }
     }
 
@@ -632,6 +670,7 @@ class MayakActivity : AppCompatActivity() {
         successHaptic()
         startTimer()
         startPing() // пинг сервера текущего подключения
+        startIpv6Probe() // фоновая проба IPv6-выхода → честный значок «IPv6»
         // Постоянное уведомление «Подключено» (флаг+направление); метку персистим в GoTunnel (процесс-
         // скоупно) — на повторном открытии покажем то же направление.
         GoTunnel.connectedLabel = MayakNotification.labelFor(this, selectedDir)
@@ -706,6 +745,7 @@ class MayakActivity : AppCompatActivity() {
                 timerView?.visibility = View.GONE
                 ipView?.visibility = View.GONE
                 pingView?.visibility = View.GONE
+                ipv6Badge?.visibility = View.GONE
                 if (::status.isInitialized) status.text = getString(R.string.mayak_status_disconnected)
             }
             ConnState.CONNECTING -> {

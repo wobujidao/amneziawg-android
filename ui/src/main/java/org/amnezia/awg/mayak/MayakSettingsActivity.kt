@@ -43,6 +43,16 @@ class MayakSettingsActivity : AppCompatActivity() {
         findViewById<MaterialButton>(R.id.mayak_settings_send_log).setOnClickListener { sendLog(it as MaterialButton) }
         findViewById<MaterialButton>(R.id.mayak_settings_logout).setOnClickListener { confirmLogout() }
 
+        // Тумблер «Использовать IPv6» (SPEC-0014): по умолч. ВКЛ. При выкл клиент срезает v6 из конфига
+        // при следующем подключении (кэш конфига v6-полный, стрип на apply) → IPv6 идёт мимо туннеля.
+        val ipv6Switch = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.mayak_settings_ipv6)
+        ipv6Switch.isChecked = MayakPrefs.useIpv6(this)
+        ipv6Switch.setOnCheckedChangeListener { _, checked ->
+            MayakPrefs.setUseIpv6(this, checked)
+            // Применится при следующем коннекте (текущий туннель не трогаем, чтобы не рвать сессию молча).
+            Toast.makeText(this, R.string.mayak_settings_ipv6_applied, Toast.LENGTH_SHORT).show()
+        }
+
         val group = findViewById<RadioGroup>(R.id.mayak_theme_group)
         // Отметим текущий режим без срабатывания листенера.
         when (MayakPrefs.themeMode(this)) {

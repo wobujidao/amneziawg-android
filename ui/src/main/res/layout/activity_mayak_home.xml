@@ -171,6 +171,23 @@
                 android:visibility="gone"
                 android:text="" />
 
+            <!-- Значок «IPv6» (виден ТОЛЬКО когда IPv6 реально работает через туннель — честно) -->
+            <TextView
+                android:id="@+id/mayak_ipv6_badge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/mayak_space_1"
+                android:background="@drawable/mayak_bg_ipv6_badge"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="2dp"
+                android:gravity="center"
+                android:textColor="@color/mayak_accent"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:visibility="gone"
+                tools:ignore="HardcodedText"
+                android:text="IPv6" />
+
             <!-- Список стран -->
             <com.google.android.material.card.MaterialCardView
                 style="@style/Mayak.Card"

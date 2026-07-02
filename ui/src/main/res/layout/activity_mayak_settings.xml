@@ -139,6 +139,44 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
+            <!-- ===== Сеть ===== -->
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Mayak.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/mayak_settings_network"
+                        android:textAppearance="@style/Mayak.CardTitle" />
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/mayak_settings_ipv6"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:minHeight="48dp"
+                        android:textColor="@color/mayak_on_surface"
+                        android:text="@string/mayak_settings_ipv6" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="@string/mayak_settings_ipv6_hint"
+                        android:textColor="@color/mayak_on_surface"
+                        android:alpha="0.8"
+                        android:textAppearance="@style/Mayak.Tagline" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
             <!-- ===== Диагностика и помощь ===== -->
             <com.google.android.material.card.MaterialCardView
                 style="@style/Mayak.Card"

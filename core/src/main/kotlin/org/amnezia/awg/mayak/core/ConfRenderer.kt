@@ -63,4 +63,30 @@ object ConfRenderer {
     private fun appendIfPresent(sb: StringBuilder, key: String, value: String) {
         if (value.isNotBlank()) sb.appendLine("$key = $value")
     }
+
+    /**
+     * Убирает IPv6 из готового .conf — для тумблера настроек «Не использовать IPv6» (SPEC-0014 T5).
+     * Из строк Address/DNS/AllowedIPs выкидывает токены с ':' (IPv6-адреса/подсети), в т.ч. `::/0`.
+     * Транспорт (Endpoint) не трогаем — он по IPv4. Строку целиком выкидываем, если после чистки
+     * значение пустое (напр. DNS был только IPv6). Так туннель поднимается чисто по IPv4, без `::/0` →
+     * IPv6-трафик идёт мимо (как будто фичи нет), значок «IPv6» не зажигается (проба не пройдёт).
+     */
+    fun stripIpv6(conf: String): String {
+        val keys = setOf("Address", "DNS", "AllowedIPs")
+        return buildString {
+            for (line in conf.lineSequence()) {
+                val eq = line.indexOf('=')
+                val key = if (eq > 0) line.substring(0, eq).trim() else ""
+                if (key in keys) {
+                    val v4 = line.substring(eq + 1).split(',')
+                        .map { it.trim() }
+                        .filter { it.isNotEmpty() && !it.contains(':') }
+                    if (v4.isEmpty()) continue // всё было IPv6 → строку убираем целиком
+                    appendLine("$key = ${v4.joinToString(", ")}")
+                } else {
+                    appendLine(line)
+                }
+            }
+        }.trimEnd('\n') + "\n"
+    }
 }

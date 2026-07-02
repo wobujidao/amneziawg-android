@@ -106,6 +106,63 @@ class ConfRendererTest {
     }
 
     @Test
+    fun dualStack_foldsV6IntoAddressLine() {
+        // SPEC-0014: при address_v6 v4 и v6 кладутся в одну строку Address.
+        val cfg = ClientConfig(
+            address = "10.8.0.2",
+            addressV6 = "fd00:1::2/128",
+            dns = "1.1.1.1, 2606:4700:4700::1111",
+            obfuscation = null,
+            serverPubkey = "c2VydmVyLXB1YmtleS1mYWtlLTQ0LWNoYXJzLTAwMDAwMDA=",
+            endpoint = "203.0.113.7:51820",
+            allowedIps = "0.0.0.0/0, ::/0",
+        )
+        val conf = ConfRenderer.render(cfg, priv)
+        assertTrue(conf.contains("Address = 10.8.0.2, fd00:1::2/128"))
+        assertTrue(conf.contains("DNS = 1.1.1.1, 2606:4700:4700::1111"))
+    }
+
+    @Test
+    fun stripIpv6_removesV6FromAddressDnsAndAllowedIps() {
+        // Тумблер «Не использовать IPv6»: v6 срезается, транспорт (Endpoint) и v4 целы.
+        val cfg = ClientConfig(
+            address = "10.8.0.2",
+            addressV6 = "fd00:1::2/128",
+            dns = "1.1.1.1, 2606:4700:4700::1111",
+            obfuscation = null,
+            serverPubkey = "c2VydmVyLXB1YmtleS1mYWtlLTQ0LWNoYXJzLTAwMDAwMDA=",
+            endpoint = "203.0.113.7:51820",
+            allowedIps = "0.0.0.0/0, ::/0",
+        )
+        val stripped = ConfRenderer.stripIpv6(ConfRenderer.render(cfg, priv))
+        assertTrue(stripped.contains("Address = 10.8.0.2"))
+        assertFalse(stripped.contains("fd00:1::2")) // v6-адрес ушёл
+        assertTrue(stripped.contains("DNS = 1.1.1.1"))
+        assertFalse(stripped.contains("2606:4700")) // v6-DNS ушёл
+        assertTrue(stripped.contains("AllowedIPs = 0.0.0.0/0"))
+        assertFalse(stripped.contains("::/0")) // ::/0 ушёл → IPv6 не маршрутится в туннель
+        assertTrue(stripped.contains("Endpoint = 203.0.113.7:51820")) // транспорт цел
+        assertTrue(stripped.contains("PrivateKey = $priv"))
+    }
+
+    @Test
+    fun stripIpv6_dropsDnsLineWhenOnlyV6() {
+        // Если DNS был ТОЛЬКО IPv6 — строка убирается целиком (не остаётся пустой «DNS = »).
+        val cfg = ClientConfig(
+            address = "10.8.0.2",
+            addressV6 = "fd00:1::2/128",
+            dns = "2606:4700:4700::1111",
+            obfuscation = null,
+            serverPubkey = "c2VydmVyLXB1YmtleS1mYWtlLTQ0LWNoYXJzLTAwMDAwMDA=",
+            endpoint = "203.0.113.7:51820",
+            allowedIps = "0.0.0.0/0",
+        )
+        val stripped = ConfRenderer.stripIpv6(ConfRenderer.render(cfg, priv))
+        assertFalse(stripped.contains("DNS =")) // строка DNS ушла целиком
+        assertFalse(stripped.contains("DNS ="))
+    }
+
+    @Test
     fun hostProvider_rotatesAndIsSticky() {
         val hp = HostProvider(listOf("https://a.example/", "https://b.example"))
         assertEquals("https://a.example", hp.current())

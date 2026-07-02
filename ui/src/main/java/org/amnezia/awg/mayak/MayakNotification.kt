@@ -55,7 +55,7 @@ object MayakNotification {
     /** Показать/обновить уведомление о НАШЕМ подключении. label — из labelFor (или GoTunnel.connectedLabel);
      *  pingMs — пинг сервера для подзаголовка «Подключено · Пинг: 42 мс» (null → без пинга). */
     @SuppressLint("MissingPermission") // notify защищён canPost() (проверка POST_NOTIFICATIONS выше)
-    fun show(ctx: Context, label: String?, pingMs: Int? = null) {
+    fun show(ctx: Context, label: String?, pingMs: Int? = null, ipv6: Boolean = false) {
         if (!canPost(ctx)) return // нет POST_NOTIFICATIONS (API33+) — молча пропускаем (запросим в Activity)
         ensureChannel(ctx)
         val open = Intent(ctx, MayakActivity::class.java).apply {
@@ -89,6 +89,7 @@ object MayakNotification {
             val text = buildString {
                 append(ctx.getString(R.string.mayak_connected))
                 if (pingMs != null) { append(" · "); append(ctx.getString(R.string.mayak_ping_label, pingMs)) }
+                if (ipv6) { append(" · "); append(ctx.getString(R.string.mayak_ipv6_badge)) } // честный значок IPv6
             }
             builder.setContentText(text)
         }

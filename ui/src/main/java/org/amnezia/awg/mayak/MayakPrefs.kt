@@ -14,6 +14,16 @@ object MayakPrefs {
     private const val KEY_THEME = "theme_mode"
     private const val KEY_LAST_DIR = "last_direction_id"
     private const val KEY_UPDATE_DISMISSED = "update_dismissed_code" // versionCode, для которого нажали «Позже»
+    private const val KEY_USE_IPV6 = "use_ipv6" // тумблер «использовать IPv6 в туннеле» (по умолч. ВКЛ)
+
+    /** Использовать ли IPv6 в туннеле (SPEC-0014). По умолчанию ВКЛ — польза; выключается в настройках
+     *  («Не использовать IPv6»). При выкл клиент срезает v6 из конфига (ConfRenderer.stripIpv6). */
+    fun useIpv6(context: Context): Boolean =
+        prefs(context).getBoolean(KEY_USE_IPV6, true)
+
+    fun setUseIpv6(context: Context, enabled: Boolean) {
+        prefs(context).edit().putBoolean(KEY_USE_IPV6, enabled).apply()
+    }
 
     /** versionCode, обновление до которого пользователь отклонил («Позже») — чтобы не долбить каждый запуск. */
     fun updateDismissedCode(context: Context): Int =
