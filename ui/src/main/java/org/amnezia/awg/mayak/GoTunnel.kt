@@ -42,6 +42,11 @@ class GoTunnel(context: Context, tunnelName: String = "mayak") : MayakCoreTunnel
         @Volatile var connectedSinceElapsed: Long? = null
             private set
 
+        // Метка НАШЕГО коннекта для уведомления «Подключено» ("🇳🇱 Нидерланды"). Ставит UI при коннекте;
+        // процесс-скоупна → переживает пересоздание Activity (на повторном открытии показываем то же
+        // направление, а не «🌐»). Сбрасывается в down() вместе с connectedSinceElapsed.
+        @Volatile var connectedLabel: String? = null
+
         private fun obtainBackend(ctx: Context): Backend =
             sharedBackend ?: synchronized(this) {
                 sharedBackend ?: GoBackend(ctx.applicationContext).also { sharedBackend = it }
@@ -66,6 +71,7 @@ class GoTunnel(context: Context, tunnelName: String = "mayak") : MayakCoreTunnel
     override suspend fun down() = withContext(Dispatchers.IO) {
         backend.setState(tunnel, Tunnel.State.DOWN, null)
         connectedSinceElapsed = null
+        connectedLabel = null
         Unit
     }
 

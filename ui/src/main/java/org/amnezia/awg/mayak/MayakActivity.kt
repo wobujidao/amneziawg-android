@@ -5,11 +5,14 @@
 // Тема следует системе (DayNight) или ручному выбору (MayakPrefs); язык — ru/be/kk/uz/en/de/fr.
 package org.amnezia.awg.mayak
 
+import android.Manifest
 import android.animation.ObjectAnimator
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.SystemClock
 import android.provider.Settings
@@ -101,6 +104,22 @@ class MayakActivity : AppCompatActivity() {
     // сканер QR (zxing) → разбираем как регистрационную ссылку
     private val scanQr = registerForActivityResult(ScanContract()) { result ->
         result.contents?.let { handleRegLink(it) }
+    }
+
+    // POST_NOTIFICATIONS (API 33+) для уведомления «Подключено». Если выдали во время активного
+    // коннекта — показываем уведомление сразу; отказ не критичен (просто не будет уведомления).
+    private val notifPermission =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (granted && tunnel.isUp()) MayakNotification.show(this, GoTunnel.connectedLabel)
+        }
+
+    private fun maybeRequestNotifPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -304,7 +323,12 @@ class MayakActivity : AppCompatActivity() {
         // в приложение при живом туннеле). tunnel.isUp() честен — backend процесс-скоупный (GoTunnel),
         // состояние НЕ теряется. Таймер стартует с фактического момента НАШЕГО коннекта, а не «с возврата».
         connState = if (tunnel.isUp()) ConnState.CONNECTED else ConnState.DISCONNECTED
-        if (connState == ConnState.CONNECTED) startTimer()
+        if (connState == ConnState.CONNECTED) {
+            startTimer()
+            MayakNotification.show(this, GoTunnel.connectedLabel) // персист-метка направления
+        } else {
+            MayakNotification.clear(this)
+        }
         renderState(connState)
         fadeInContent() // тонкий fade-through при заходе на главный (login→home)
     }
@@ -444,11 +468,13 @@ class MayakActivity : AppCompatActivity() {
         pendingConnect = null
         lifecycleScope.launch { runCatching { tunnel.down() } }
         stopTimer()
+        MayakNotification.clear(this)
         renderState(ConnState.DISCONNECTED)
         setStatus(getString(R.string.mayak_status_cancelled))
     }
 
     private fun connectTo(d: Direction) {
+        maybeRequestNotifPermission() // спросим разрешение на уведомление в момент коннекта (естественный контекст)
         val prepare = GoBackend.VpnService.prepare(this)
         if (prepare != null) {
             pendingConnect = d
@@ -526,6 +552,10 @@ class MayakActivity : AppCompatActivity() {
         timerView?.let { fadeIn(it) }
         successHaptic()
         startTimer()
+        // Постоянное уведомление «Подключено» (флаг+направление); метку персистим в GoTunnel (процесс-
+        // скоупно) — на повторном открытии покажем то же направление.
+        GoTunnel.connectedLabel = MayakNotification.labelFor(this, selectedDir)
+        MayakNotification.show(this, GoTunnel.connectedLabel)
         Toast.makeText(this, getString(R.string.mayak_connected), Toast.LENGTH_SHORT).show()
     }
 
@@ -554,6 +584,7 @@ class MayakActivity : AppCompatActivity() {
         lifecycleScope.launch {
             runCatching { tunnel.down() }
             stopTimer()
+            MayakNotification.clear(this@MayakActivity)
             connState = ConnState.DISCONNECTED
             renderState(ConnState.DISCONNECTED)
             setStatus(getString(R.string.mayak_status_disconnected))
@@ -699,7 +730,13 @@ class MayakActivity : AppCompatActivity() {
     private fun syncConnStateFromTunnel() {
         val target = if (tunnel.isUp()) ConnState.CONNECTED else ConnState.DISCONNECTED
         if (connState == target) return // уже синхронно — не дёргаем анимации/рендер зря
-        if (target == ConnState.CONNECTED) startTimer() else stopTimer()
+        if (target == ConnState.CONNECTED) {
+            startTimer()
+            MayakNotification.show(this, GoTunnel.connectedLabel)
+        } else {
+            stopTimer()
+            MayakNotification.clear(this)
+        }
         renderState(target)
     }
 
