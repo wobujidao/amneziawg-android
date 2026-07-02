@@ -41,8 +41,7 @@ object SpeedNotifier {
                         val speed = "↓ ${MayakNotification.formatSpeed(down)}  ↑ ${MayakNotification.formatSpeed(up)}"
                         MayakNotification.show(
                             app, GoTunnel.connectedLabel, GoTunnel.connectedPingMs,
-                            ipv6 = GoTunnel.egressIpv6 != null, speed = speed,
-                            smallIcon = MayakNotification.speedIcon(down, up), // цифра скорости прямо в статус-баре
+                            ipv6 = GoTunnel.egressIpv6 != null, speed = speed, // ↓/↑ в тексте уведомления
                         )
                     }
                     lastRx = rx; lastTx = tx
