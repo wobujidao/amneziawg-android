@@ -309,7 +309,7 @@
     <string name="mayak_connecting">Подключение…</string>
     <string name="mayak_tap_to_connect">Нажмите для подключения</string>
     <string name="mayak_select_country_first">Сначала выберите страну</string>
-    <string name="mayak_ip_label">IP: %1$s</string>
+    <string name="mayak_ip_label">IPv4: %1$s</string>
     <string name="mayak_ip6_label">IPv6: %1$s</string>
     <string name="mayak_ping_label">Пинг: %1$d мс</string>
     <string name="mayak_ping_label_na">Пинг: —</string>
