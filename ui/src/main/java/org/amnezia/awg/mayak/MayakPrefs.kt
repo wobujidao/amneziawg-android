@@ -15,6 +15,7 @@ object MayakPrefs {
     private const val KEY_LAST_DIR = "last_direction_id"
     private const val KEY_UPDATE_DISMISSED = "update_dismissed_code" // versionCode, для которого нажали «Позже»
     private const val KEY_USE_IPV6 = "use_ipv6" // тумблер «использовать IPv6 в туннеле» (по умолч. ВКЛ)
+    private const val KEY_SHOW_SPEED = "show_speed" // тумблер «показывать скорость передачи» (по умолч. ВЫКЛ)
 
     /** Использовать ли IPv6 в туннеле (SPEC-0014). По умолчанию ВКЛ — польза; выключается в настройках
      *  («Не использовать IPv6»). При выкл клиент срезает v6 из конфига (ConfRenderer.stripIpv6). */
@@ -23,6 +24,14 @@ object MayakPrefs {
 
     fun setUseIpv6(context: Context, enabled: Boolean) {
         prefs(context).edit().putBoolean(KEY_USE_IPV6, enabled).apply()
+    }
+
+    /** Показывать ли скорость передачи в туннеле (↓/↑, обновление раз в секунду). По умолчанию ВЫКЛ. */
+    fun showSpeed(context: Context): Boolean =
+        prefs(context).getBoolean(KEY_SHOW_SPEED, false)
+
+    fun setShowSpeed(context: Context, enabled: Boolean) {
+        prefs(context).edit().putBoolean(KEY_SHOW_SPEED, enabled).apply()
     }
 
     /** versionCode, обновление до которого пользователь отклонил («Позже») — чтобы не долбить каждый запуск. */

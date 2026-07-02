@@ -313,6 +313,9 @@
     <string name="mayak_ip6_label">IPv6: %1$s</string>
     <string name="mayak_ping_label">Пинг: %1$d мс</string>
     <string name="mayak_ping_label_na">Пинг: —</string>
+    <string name="mayak_speed_fmt">↓ %1$s   ↑ %2$s</string>
+    <string name="mayak_settings_speed">Показывать скорость передачи</string>
+    <string name="mayak_settings_speed_hint">Отображает текущую скорость скачивания и отдачи в туннеле</string>
     <string name="mayak_update_uptodate">У вас последняя версия</string>
     <string name="mayak_update_check_failed">Не удалось проверить обновление</string>
     <string name="mayak_update_title">Доступно обновление</string>

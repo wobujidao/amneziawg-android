@@ -97,4 +97,10 @@ class GoTunnel(context: Context, tunnelName: String = "mayak") : MayakCoreTunnel
     }
 
     fun isUp(): Boolean = runCatching { backend.getState(tunnel) == Tunnel.State.UP }.getOrDefault(false)
+
+    /** Суммарные rx/tx байты туннеля (для отображения скорости передачи). null — статистика недоступна. */
+    fun transfer(): Pair<Long, Long>? = runCatching {
+        val st = backend.getStatistics(tunnel)
+        st.totalRx() to st.totalTx()
+    }.getOrNull()
 }

@@ -78,10 +78,12 @@ class MayakActivity : AppCompatActivity() {
     private var preloadJob: Job? = null
     private var directions: List<Direction> = emptyList()
     private var selectedDir: Direction? = null
+    private var connectedDir: Direction? = null // направление ЖИВОГО туннеля (для авто-переключения при смене страны)
     private val rowViews = mutableListOf<View>()
     private var timerJob: Job? = null
     private var sessionStartElapsed = 0L
     private var pingJob: Job? = null // периодический пинг сервера текущего подключения
+    private var speedJob: Job? = null // периодический замер скорости передачи (если включён в настройках)
 
     // вьюхи круга/таймера (на главном экране)
     private var connectCircle: View? = null
@@ -91,6 +93,7 @@ class MayakActivity : AppCompatActivity() {
     private var ipView: TextView? = null
     private var ipv6Badge: TextView? = null
     private var pingView: TextView? = null
+    private var speedView: TextView? = null
     private var pulseAnimator: ObjectAnimator? = null
     private var glowBreath: ObjectAnimator? = null
     private var rippleView: RippleView? = null
@@ -393,6 +396,7 @@ class MayakActivity : AppCompatActivity() {
         ipView = findViewById(R.id.mayak_ip)
         ipv6Badge = findViewById(R.id.mayak_ipv6_badge)
         pingView = findViewById(R.id.mayak_ping)
+        speedView = findViewById(R.id.mayak_speed)
         rippleView = findViewById(R.id.mayak_ripple)
         networkBg = findViewById(R.id.mayak_network_bg)
         // волны стартуют от края круга (176dp/2)
@@ -542,6 +546,23 @@ class MayakActivity : AppCompatActivity() {
                 row.alpha = 0.6f
                 row.animate().alpha(1f).setDuration(150).start()
             }
+        }
+        // Выбор ДРУГОЙ страны на живом туннеле → авто-переподключение на неё (раньше выбор не переключал,
+        // и юзер оставался на прежней стране — баг из фидбека владельца 2026-07-02).
+        if (connState == ConnState.CONNECTED && connectedDir?.id != d.id) switchTo(d)
+    }
+
+    /** Переключение страны на живом туннеле: гасим текущий туннель и поднимаем к выбранной стране. */
+    private fun switchTo(d: Direction) {
+        connectJob?.cancel()
+        renderState(ConnState.CONNECTING)
+        setStatus(getString(R.string.mayak_status_connecting, d.name))
+        lifecycleScope.launch {
+            runCatching { tunnel.down() }
+            stopTimer(); stopPing(); stopKeepalive()
+            connState = ConnState.DISCONNECTED
+            connectedDir = null
+            connectTo(d) // повторно поднимаем к новой стране (разрешение VPN уже есть → сразу doConnect)
         }
     }
 
@@ -699,6 +720,7 @@ class MayakActivity : AppCompatActivity() {
         startIpv6Probe() // фоновая проба IPv6-выхода → честный значок «IPv6»
         // Постоянное уведомление «Подключено» (флаг+направление); метку персистим в GoTunnel (процесс-
         // скоупно) — на повторном открытии покажем то же направление.
+        connectedDir = selectedDir // запоминаем направление живого туннеля (для авто-переключения)
         GoTunnel.connectedLabel = MayakNotification.labelFor(this, selectedDir)
         MayakNotification.show(this, GoTunnel.connectedLabel, GoTunnel.connectedPingMs)
         Toast.makeText(this, getString(R.string.mayak_connected), Toast.LENGTH_SHORT).show()
@@ -720,6 +742,7 @@ class MayakActivity : AppCompatActivity() {
 
     private fun fail(message: String) = runOnUiThread {
         connState = ConnState.DISCONNECTED
+        connectedDir = null
         renderState(ConnState.DISCONNECTED)
         setStatus(message)
     }
@@ -733,6 +756,7 @@ class MayakActivity : AppCompatActivity() {
             stopKeepalive()
             MayakNotification.clear(this@MayakActivity)
             connState = ConnState.DISCONNECTED
+            connectedDir = null
             renderState(ConnState.DISCONNECTED)
             setStatus(getString(R.string.mayak_status_disconnected))
         }
@@ -931,12 +955,50 @@ class MayakActivity : AppCompatActivity() {
                 delay(PING_INTERVAL_MS)
             }
         }
+        startSpeed()
+    }
+
+    /** Показ скорости передачи (↓/↑) раз в секунду по дельте rx/tx. Только если включено в настройках. */
+    private fun startSpeed() {
+        stopSpeed()
+        if (!MayakPrefs.showSpeed(this)) { speedView?.visibility = View.GONE; return }
+        speedView?.visibility = View.VISIBLE
+        speedJob = lifecycleScope.launch {
+            var lastRx = -1L
+            var lastTx = -1L
+            while (isActive) {
+                val t = GoTunnel.transfer()
+                if (t != null) {
+                    val (rx, tx) = t
+                    if (lastRx >= 0) speedView?.text = getString(
+                        R.string.mayak_speed_fmt,
+                        formatSpeed((rx - lastRx).coerceAtLeast(0)),
+                        formatSpeed((tx - lastTx).coerceAtLeast(0)),
+                    )
+                    lastRx = rx; lastTx = tx
+                }
+                delay(SPEED_INTERVAL_MS)
+            }
+        }
+    }
+
+    private fun stopSpeed() {
+        speedJob?.cancel(); speedJob = null
+        runOnUiThread { speedView?.visibility = View.GONE }
+    }
+
+    /** Человекочитаемая скорость (байты/с → Б/КБ/МБ в секунду). */
+    private fun formatSpeed(bytesPerSec: Long): String = when {
+        bytesPerSec >= 1_000_000 -> String.format("%.1f МБ/с", bytesPerSec / 1_000_000.0)
+        bytesPerSec >= 1_000 -> String.format("%.0f КБ/с", bytesPerSec / 1_000.0)
+        else -> "$bytesPerSec Б/с"
     }
 
     private fun stopPing() {
         pingJob?.cancel()
         pingJob = null
         runOnUiThread { pingView?.visibility = View.GONE }
+        stopSpeed()
     }
 
     /** Продление аренды overlay-IP (SPEC-0015) — делегируем ПРОЦЕСС-СКОУПНОМУ LeaseKeepalive, чтобы оно
@@ -995,6 +1057,7 @@ class MayakActivity : AppCompatActivity() {
 
         // Период пинга сервера текущего подключения (обновление показателя на главном экране).
         private const val PING_INTERVAL_MS = 5_000L
+        private const val SPEED_INTERVAL_MS = 1_000L
 
 
         // Проверку обновления делаем раз на запуск процесса (пересоздание Activity — смена темы — не дёргает).

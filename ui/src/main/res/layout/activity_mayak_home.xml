@@ -172,6 +172,18 @@
                 android:visibility="gone"
                 android:text="" />
 
+            <!-- Скорость передачи в туннеле (↓/↑; виден при подключении, если включён в настройках) -->
+            <TextView
+                android:id="@+id/mayak_speed"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:gravity="center"
+                android:textColor="@color/mayak_on_bg_muted"
+                android:textSize="13sp"
+                android:visibility="gone"
+                android:text="" />
+
             <!-- Значок «IPv6» (виден ТОЛЬКО когда IPv6 реально работает через туннель — честно) -->
             <TextView
                 android:id="@+id/mayak_ipv6_badge"
