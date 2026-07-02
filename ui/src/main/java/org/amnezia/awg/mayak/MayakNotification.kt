@@ -127,10 +127,14 @@ object MayakNotification {
             color = Color.WHITE
             textAlign = Paint.Align.CENTER
             typeface = Typeface.DEFAULT_BOLD
-            textSize = 40f
+            textSize = 44f
         }
-        c.drawText("\u2193" + compactSpeed(downBps), size / 2f, 42f, p) // ↓ download (верх)
-        c.drawText("\u2191" + compactSpeed(upBps), size / 2f, 88f, p)   // ↑ upload (низ)
+        // Одна ГОРИЗОНТАЛЬНАЯ строка «↓64 ↑0» с авто-подгонкой размера под ширину значка.
+        val text = "\u2193" + compactSpeed(downBps) + " \u2191" + compactSpeed(upBps)
+        while (p.textSize > 18f && p.measureText(text) > size * 0.95f) p.textSize = p.textSize - 2f
+        val fm = p.fontMetrics
+        val y = size / 2f - (fm.ascent + fm.descent) / 2f // вертикальное центрирование по baseline
+        c.drawText(text, size / 2f, y, p)
         return IconCompat.createWithBitmap(bmp)
     }
 
