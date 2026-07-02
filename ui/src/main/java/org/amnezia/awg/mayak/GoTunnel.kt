@@ -51,6 +51,10 @@ class GoTunnel(context: Context, tunnelName: String = "mayak") : MayakCoreTunnel
         // Activity → на повторном открытии продолжаем пинговать тот же сервер). Сбрасывается в down().
         @Volatile var connectedServerHost: String? = null
 
+        // Последний измеренный пинг (мс) до сервера; для показа в уведомлении сразу на реоупене. null =
+        // ещё не мерян / недоступен. Обновляет ping-цикл UI; сбрасывается в down().
+        @Volatile var connectedPingMs: Int? = null
+
         private fun obtainBackend(ctx: Context): Backend =
             sharedBackend ?: synchronized(this) {
                 sharedBackend ?: GoBackend(ctx.applicationContext).also { sharedBackend = it }
@@ -77,6 +81,7 @@ class GoTunnel(context: Context, tunnelName: String = "mayak") : MayakCoreTunnel
         connectedSinceElapsed = null
         connectedLabel = null
         connectedServerHost = null
+        connectedPingMs = null
         Unit
     }
 

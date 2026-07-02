@@ -112,7 +112,7 @@ class MayakActivity : AppCompatActivity() {
     // коннекта — показываем уведомление сразу; отказ не критичен (просто не будет уведомления).
     private val notifPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-            if (granted && tunnel.isUp()) MayakNotification.show(this, GoTunnel.connectedLabel)
+            if (granted && tunnel.isUp()) MayakNotification.show(this, GoTunnel.connectedLabel, GoTunnel.connectedPingMs)
         }
 
     private fun maybeRequestNotifPermission() {
@@ -329,7 +329,7 @@ class MayakActivity : AppCompatActivity() {
         if (connState == ConnState.CONNECTED) {
             startTimer()
             startPing() // пинг сервера (хост персистится в GoTunnel)
-            MayakNotification.show(this, GoTunnel.connectedLabel) // персист-метка направления
+            MayakNotification.show(this, GoTunnel.connectedLabel, GoTunnel.connectedPingMs) // персист-метка направления
         } else {
             MayakNotification.clear(this)
         }
@@ -562,7 +562,7 @@ class MayakActivity : AppCompatActivity() {
         // Постоянное уведомление «Подключено» (флаг+направление); метку персистим в GoTunnel (процесс-
         // скоупно) — на повторном открытии покажем то же направление.
         GoTunnel.connectedLabel = MayakNotification.labelFor(this, selectedDir)
-        MayakNotification.show(this, GoTunnel.connectedLabel)
+        MayakNotification.show(this, GoTunnel.connectedLabel, GoTunnel.connectedPingMs)
         Toast.makeText(this, getString(R.string.mayak_connected), Toast.LENGTH_SHORT).show()
     }
 
@@ -742,7 +742,7 @@ class MayakActivity : AppCompatActivity() {
         if (target == ConnState.CONNECTED) {
             startTimer()
             startPing()
-            MayakNotification.show(this, GoTunnel.connectedLabel)
+            MayakNotification.show(this, GoTunnel.connectedLabel, GoTunnel.connectedPingMs)
         } else {
             stopTimer()
             stopPing()
@@ -768,9 +768,11 @@ class MayakActivity : AppCompatActivity() {
         pingJob = lifecycleScope.launch {
             while (isActive) {
                 val ms = MayakPing.ping(host)
+                GoTunnel.connectedPingMs = ms
                 pingView?.text =
                     if (ms != null) getString(R.string.mayak_ping_label, ms)
                     else getString(R.string.mayak_ping_label_na)
+                MayakNotification.show(this@MayakActivity, GoTunnel.connectedLabel, ms) // пинг и в уведомление
                 delay(PING_INTERVAL_MS)
             }
         }

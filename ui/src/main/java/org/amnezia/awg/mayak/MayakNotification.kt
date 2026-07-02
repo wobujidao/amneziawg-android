@@ -52,9 +52,10 @@ object MayakNotification {
             ContextCompat.checkSelfPermission(ctx, Manifest.permission.POST_NOTIFICATIONS) ==
             PackageManager.PERMISSION_GRANTED
 
-    /** Показать/обновить уведомление о НАШЕМ подключении. label — из labelFor (или GoTunnel.connectedLabel). */
+    /** Показать/обновить уведомление о НАШЕМ подключении. label — из labelFor (или GoTunnel.connectedLabel);
+     *  pingMs — пинг сервера для подзаголовка «Подключено · Пинг: 42 мс» (null → без пинга). */
     @SuppressLint("MissingPermission") // notify защищён canPost() (проверка POST_NOTIFICATIONS выше)
-    fun show(ctx: Context, label: String?) {
+    fun show(ctx: Context, label: String?, pingMs: Int? = null) {
         if (!canPost(ctx)) return // нет POST_NOTIFICATIONS (API33+) — молча пропускаем (запросим в Activity)
         ensureChannel(ctx)
         val open = Intent(ctx, MayakActivity::class.java).apply {
@@ -83,7 +84,14 @@ object MayakNotification {
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .addAction(0, ctx.getString(R.string.mayak_notif_disconnect), disconnectPi)
-        if (label != null) builder.setContentText(ctx.getString(R.string.mayak_connected)) // «Подключено» подзаголовком
+        if (label != null) {
+            // подзаголовок «Подключено» + пинг сервана, если измерен: «Подключено · Пинг: 42 мс»
+            val text = buildString {
+                append(ctx.getString(R.string.mayak_connected))
+                if (pingMs != null) { append(" · "); append(ctx.getString(R.string.mayak_ping_label, pingMs)) }
+            }
+            builder.setContentText(text)
+        }
         NotificationManagerCompat.from(ctx).notify(NOTIF_ID, builder.build())
     }
 
