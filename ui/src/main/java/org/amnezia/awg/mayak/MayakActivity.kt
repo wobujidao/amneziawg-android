@@ -967,7 +967,7 @@ class MayakActivity : AppCompatActivity() {
             var lastRx = -1L
             var lastTx = -1L
             while (isActive) {
-                val t = GoTunnel.transfer()
+                val t = tunnel.transfer()
                 if (t != null) {
                     val (rx, tx) = t
                     if (lastRx >= 0) speedView?.text = getString(
