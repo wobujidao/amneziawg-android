@@ -184,6 +184,15 @@ class MayakSession(
     /** id устройства из хранилища (0 — ещё не зарегистрировано); для контекста диаг-лога. */
     fun deviceId(): Long = store.get(K_DEVICE)?.toLongOrNull() ?: 0L
 
+    /** keepalive аренды overlay-IP (SPEC-0015): продлеваем аренду, пока туннель поднят. Best-effort —
+     *  нет токена/устройства или ошибка сети → тихо пропускаем (это не критичная операция). */
+    suspend fun keepalive(backend: MayakBackend) {
+        val token = store.get(K_TOKEN) ?: return
+        val dev = deviceId()
+        if (dev == 0L) return
+        backend.keepalive(token, dev)
+    }
+
     private fun requireToken(): String =
         store.get(K_TOKEN) ?: throw IllegalStateException("нет токена — нужен вход")
 

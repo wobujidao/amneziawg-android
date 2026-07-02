@@ -48,6 +48,12 @@ data class ConnectRequest(
     @SerialName("direction_id") val directionId: Long,
 )
 
+// keepalive аренды overlay-IP (SPEC-0015): продлеваем аренду устройства, пока туннель поднят.
+@Serializable
+data class KeepaliveRequest(
+    @SerialName("device_id") val deviceId: Long,
+)
+
 /** Ответ connect: имя направления + конфиги путей. Оба пути опциональны (omitempty на стороне ядра). */
 @Serializable
 data class ConnectResult(

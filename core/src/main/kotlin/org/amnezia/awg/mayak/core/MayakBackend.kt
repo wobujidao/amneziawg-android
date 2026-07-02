@@ -86,6 +86,13 @@ class MayakBackend(
         return json.decodeFromString(ConnectResult.serializer(), resp)
     }
 
+    /** keepalive аренды overlay-IP (SPEC-0015): пока туннель поднят, приложение продлевает аренду своих
+     *  назначений (POST /v1/client/keepalive {device_id}), чтобы жнец их не освободил. Ответ игнорируем. */
+    suspend fun keepalive(token: String, deviceId: Long) {
+        val body = json.encodeToString(KeepaliveRequest.serializer(), KeepaliveRequest(deviceId))
+        call("POST", "/v1/client/keepalive", token = token, body = body)
+    }
+
     /**
      * Отправка диагностического лога на сервер (POST /v1/client/diag-log). Лог + контекст устройства/
      * сети ловятся на ядре для анализа (152-ФЗ: под согласие/политику). Возвращает {status,id}.

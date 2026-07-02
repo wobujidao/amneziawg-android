@@ -82,6 +82,7 @@ class MayakActivity : AppCompatActivity() {
     private var timerJob: Job? = null
     private var sessionStartElapsed = 0L
     private var pingJob: Job? = null // периодический пинг сервера текущего подключения
+    private var keepaliveJob: Job? = null // периодическое продление аренды overlay-IP (SPEC-0015)
 
     // вьюхи круга/таймера (на главном экране)
     private var connectCircle: View? = null
@@ -407,6 +408,7 @@ class MayakActivity : AppCompatActivity() {
         if (connState == ConnState.CONNECTED) {
             startTimer()
             startPing() // пинг сервера (хост персистится в GoTunnel)
+            startKeepalive() // продление аренды overlay-IP (SPEC-0015)
             // Значок IPv6 + выходные IP персистятся в GoTunnel (процесс-скоупно) → на реоупене восстанавливаем.
             val v6 = GoTunnel.egressIpv6
             setIpv6Badge(v6 != null)
@@ -554,6 +556,7 @@ class MayakActivity : AppCompatActivity() {
         lifecycleScope.launch { runCatching { tunnel.down() } }
         stopTimer()
         stopPing()
+        stopKeepalive()
         MayakNotification.clear(this)
         renderState(ConnState.DISCONNECTED)
         setStatus(getString(R.string.mayak_status_cancelled))
@@ -682,6 +685,7 @@ class MayakActivity : AppCompatActivity() {
         successHaptic()
         startTimer()
         startPing() // пинг сервера текущего подключения
+        startKeepalive() // продление аренды overlay-IP, пока туннель поднят (SPEC-0015)
         startIpv6Probe() // фоновая проба IPv6-выхода → честный значок «IPv6»
         // Постоянное уведомление «Подключено» (флаг+направление); метку персистим в GoTunnel (процесс-
         // скоупно) — на повторном открытии покажем то же направление.
@@ -716,6 +720,7 @@ class MayakActivity : AppCompatActivity() {
             runCatching { tunnel.down() }
             stopTimer()
             stopPing()
+            stopKeepalive()
             MayakNotification.clear(this@MayakActivity)
             connState = ConnState.DISCONNECTED
             renderState(ConnState.DISCONNECTED)
@@ -867,10 +872,12 @@ class MayakActivity : AppCompatActivity() {
         if (target == ConnState.CONNECTED) {
             startTimer()
             startPing()
+            startKeepalive()
             MayakNotification.show(this, GoTunnel.connectedLabel, GoTunnel.connectedPingMs)
         } else {
             stopTimer()
             stopPing()
+            stopKeepalive()
             MayakNotification.clear(this)
         }
         renderState(target)
@@ -907,6 +914,25 @@ class MayakActivity : AppCompatActivity() {
         pingJob?.cancel()
         pingJob = null
         runOnUiThread { pingView?.visibility = View.GONE }
+    }
+
+    /** Периодическое продление аренды overlay-IP (SPEC-0015), пока туннель поднят: раз в ~30 мин дёргаем
+     *  /keepalive. Best-effort — ошибки сети/ядра глотаем (аренда истечёт только если долго нет связи И
+     *  переподключения; на следующем /connect всё равно продлится). Первый прогон — сразу при коннекте. */
+    private fun startKeepalive() {
+        keepaliveJob?.cancel()
+        val b = backend ?: return
+        keepaliveJob = lifecycleScope.launch {
+            while (isActive) {
+                runCatching { session.keepalive(b) }
+                delay(KEEPALIVE_INTERVAL_MS)
+            }
+        }
+    }
+
+    private fun stopKeepalive() {
+        keepaliveJob?.cancel()
+        keepaliveJob = null
     }
 
     private fun formatDuration(totalSec: Long): String {
@@ -959,6 +985,10 @@ class MayakActivity : AppCompatActivity() {
 
         // Период пинга сервера текущего подключения (обновление показателя на главном экране).
         private const val PING_INTERVAL_MS = 5_000L
+
+        // Период keepalive аренды overlay-IP (SPEC-0015): продлеваем, пока туннель поднят. 30 мин при
+        // TTL 3ч → 6 продлений на срок, с запасом на пропуски/ретраи. Первый прогон — сразу при коннекте.
+        private const val KEEPALIVE_INTERVAL_MS = 30 * 60 * 1000L
 
         // Проверку обновления делаем раз на запуск процесса (пересоздание Activity — смена темы — не дёргает).
         @Volatile private var updateCheckedThisProcess = false
