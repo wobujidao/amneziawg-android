@@ -82,7 +82,6 @@ class MayakActivity : AppCompatActivity() {
     private var timerJob: Job? = null
     private var sessionStartElapsed = 0L
     private var pingJob: Job? = null // периодический пинг сервера текущего подключения
-    private var keepaliveJob: Job? = null // периодическое продление аренды overlay-IP (SPEC-0015)
 
     // вьюхи круга/таймера (на главном экране)
     private var connectCircle: View? = null
@@ -916,24 +915,11 @@ class MayakActivity : AppCompatActivity() {
         runOnUiThread { pingView?.visibility = View.GONE }
     }
 
-    /** Периодическое продление аренды overlay-IP (SPEC-0015), пока туннель поднят: раз в ~30 мин дёргаем
-     *  /keepalive. Best-effort — ошибки сети/ядра глотаем (аренда истечёт только если долго нет связи И
-     *  переподключения; на следующем /connect всё равно продлится). Первый прогон — сразу при коннекте. */
-    private fun startKeepalive() {
-        keepaliveJob?.cancel()
-        val b = backend ?: return
-        keepaliveJob = lifecycleScope.launch {
-            while (isActive) {
-                runCatching { session.keepalive(b) }
-                delay(KEEPALIVE_INTERVAL_MS)
-            }
-        }
-    }
+    /** Продление аренды overlay-IP (SPEC-0015) — делегируем ПРОЦЕСС-СКОУПНОМУ LeaseKeepalive, чтобы оно
+     *  переживало уничтожение Activity (туннель живёт в процессе, а не в Activity). Идемпотентно. */
+    private fun startKeepalive() = LeaseKeepalive.start(this)
 
-    private fun stopKeepalive() {
-        keepaliveJob?.cancel()
-        keepaliveJob = null
-    }
+    private fun stopKeepalive() = LeaseKeepalive.stop()
 
     private fun formatDuration(totalSec: Long): String {
         val h = totalSec / 3600
@@ -986,9 +972,6 @@ class MayakActivity : AppCompatActivity() {
         // Период пинга сервера текущего подключения (обновление показателя на главном экране).
         private const val PING_INTERVAL_MS = 5_000L
 
-        // Период keepalive аренды overlay-IP (SPEC-0015): продлеваем, пока туннель поднят. 30 мин при
-        // TTL 3ч → 6 продлений на срок, с запасом на пропуски/ретраи. Первый прогон — сразу при коннекте.
-        private const val KEEPALIVE_INTERVAL_MS = 30 * 60 * 1000L
 
         // Проверку обновления делаем раз на запуск процесса (пересоздание Activity — смена темы — не дёргает).
         @Volatile private var updateCheckedThisProcess = false

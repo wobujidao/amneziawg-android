@@ -15,6 +15,7 @@ class MayakNotificationReceiver : BroadcastReceiver() {
         val pending = goAsync() // держим ресивер живым, пока гасим туннель в фоне
         Thread {
             try {
+                LeaseKeepalive.stop() // туннель гасим — прекращаем продление аренды (SPEC-0015)
                 runBlocking { GoTunnel(appCtx).down() }
             } catch (_: Throwable) {
                 // туннель мог быть уже опущен / процесс поднялся заново — не критично
