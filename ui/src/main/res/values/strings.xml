@@ -102,7 +102,6 @@
     <string name="mayak_tap_to_connect">Tap to connect</string>
     <string name="mayak_select_country_first">Select a country first</string>
     <string name="mayak_ip_label">IP: %1$s</string>
-    <string name="mayak_ping_ms">%1$d ms</string>
     <string name="mayak_a11y_connect">Connect</string>
     <string name="mayak_a11y_connecting">Connecting</string>
     <string name="mayak_a11y_disconnect">Disconnect</string>

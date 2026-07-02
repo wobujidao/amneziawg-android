@@ -38,16 +38,6 @@
         android:ellipsize="end"
         android:text="—" />
 
-    <TextView
-        android:id="@+id/mayak_row_ping"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginEnd="@dimen/mayak_space_2"
-        android:textColor="@color/mayak_on_surface_muted"
-        android:textSize="13sp"
-        android:maxLines="1"
-        android:text="" />
-
     <ImageView
         android:id="@+id/mayak_row_chevron"
         android:layout_width="22dp"

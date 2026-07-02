@@ -36,8 +36,6 @@ import com.google.android.material.textfield.TextInputLayout
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -76,8 +74,6 @@ class MayakActivity : AppCompatActivity() {
     private var directions: List<Direction> = emptyList()
     private var selectedDir: Direction? = null
     private val rowViews = mutableListOf<View>()
-    private val pingResults = mutableMapOf<Long, Int?>() // dir.id → мс (null = недоступен; нет ключа = ещё меряем)
-    private var pingJob: Job? = null
     private var timerJob: Job? = null
     private var sessionStartElapsed = 0L
 
@@ -395,10 +391,8 @@ class MayakActivity : AppCompatActivity() {
         }
     }
 
-    /** Перерисовать список стран + восстановить выбор (последняя выбранная, иначе первая).
-     *  measure=true → после отрисовки замерить пинг до серверов и пересортировать по нему (только когда
-     *  отключены). measure=false — просто отрисовать в данном порядке (используется при пере-сортировке). */
-    private fun renderDirections(dirs: List<Direction>, measure: Boolean = true) {
+    /** Перерисовать список стран + восстановить выбор (последняя выбранная, иначе первая). */
+    private fun renderDirections(dirs: List<Direction>) {
         directions = dirs
         val container = dirsContainer ?: return
         container.removeAllViews()
@@ -416,34 +410,6 @@ class MayakActivity : AppCompatActivity() {
         selectDir(initial)
         if (connState == ConnState.DISCONNECTED) {
             setStatus(getString(R.string.mayak_status_disconnected))
-            if (measure) measureAndSortPings()
-        }
-    }
-
-    /** Текст пинга для строки: «…» пока меряем, «—» недоступен, «42 мс» — задержка. */
-    private fun pingText(d: Direction): String {
-        if (d.pingHost == null) return ""
-        if (!pingResults.containsKey(d.id)) return "…"
-        val ms = pingResults[d.id] ?: return "—"
-        return getString(R.string.mayak_ping_ms, ms)
-    }
-
-    /** Замерить ICMP-пинг до серверов всех направлений (параллельно) и пересортировать список по ping
-     *  (меньше — выше). Только когда отключены (иначе пинг шёл бы через туннель = неверно). Идёт напрямую
-     *  к IP сервера (ping_host из ядра) — честная задержка устройство→сервер. */
-    private fun measureAndSortPings() {
-        val toPing = directions.filter { it.pingHost != null }
-        if (toPing.isEmpty()) return
-        pingJob?.cancel()
-        pingJob = lifecycleScope.launch {
-            val results = toPing.map { d ->
-                async { d.id to MayakPing.ping(d.pingHost!!) }
-            }.awaitAll()
-            results.forEach { (id, ms) -> pingResults[id] = ms }
-            if (connState != ConnState.DISCONNECTED) return@launch // подключились за время замера — не трогаем UI
-            // пересортировать по ping (недоступные/неизмеренные — в конец), показать мс
-            val sorted = directions.sortedBy { pingResults[it.id] ?: Int.MAX_VALUE }
-            renderDirections(sorted, measure = false)
         }
     }
 
@@ -453,7 +419,6 @@ class MayakActivity : AppCompatActivity() {
         val row = LayoutInflater.from(this).inflate(R.layout.mayak_country_row, container, false)
         row.findViewById<ImageView>(R.id.mayak_row_flag).setImageResource(MayakFlags.drawableForCode(d.code))
         row.findViewById<TextView>(R.id.mayak_row_name).text = d.displayLabel()
-        row.findViewById<TextView>(R.id.mayak_row_ping).text = pingText(d)
         row.tag = d.id
         row.setOnClickListener {
             it.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
