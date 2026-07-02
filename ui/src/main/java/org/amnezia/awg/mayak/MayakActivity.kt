@@ -407,9 +407,10 @@ class MayakActivity : AppCompatActivity() {
         if (connState == ConnState.CONNECTED) {
             startTimer()
             startPing() // пинг сервера (хост персистится в GoTunnel)
-            // Значок IPv6 персистится в GoTunnel (процесс-скоупно) → на реоупене восстанавливаем без новой пробы.
+            // Значок IPv6 + выходные IP персистятся в GoTunnel (процесс-скоупно) → на реоупене восстанавливаем.
             val v6 = GoTunnel.egressIpv6
             setIpv6Badge(v6 != null)
+            if (GoTunnel.egressIpv4 != null) { renderEgress(); ipView?.visibility = View.VISIBLE }
             MayakNotification.show(this, GoTunnel.connectedLabel, GoTunnel.connectedPingMs, ipv6 = v6 != null) // персист-метка направления
         } else {
             MayakNotification.clear(this)
@@ -633,10 +634,20 @@ class MayakActivity : AppCompatActivity() {
             if (v6 != null && connState == ConnState.CONNECTED) {
                 GoTunnel.egressIpv6 = v6
                 setIpv6Badge(true)
+                renderEgress() // показать выходной IPv6 рядом с IPv4 (SPEC-0014)
                 // Обновляем уведомление — теперь с честным значком IPv6.
                 MayakNotification.show(this@MayakActivity, GoTunnel.connectedLabel, GoTunnel.connectedPingMs, ipv6 = true)
             }
         }
+    }
+
+    /** Показ выходных адресов: «IP: <v4>» и, если IPv6 реально работает, второй строкой «IPv6: <v6>». */
+    private fun renderEgress() = runOnUiThread {
+        val v4 = GoTunnel.egressIpv4 ?: return@runOnUiThread
+        val v6 = GoTunnel.egressIpv6
+        ipView?.text = if (v6 != null)
+            getString(R.string.mayak_ip_label, v4) + "\n" + getString(R.string.mayak_ip6_label, v6)
+        else getString(R.string.mayak_ip_label, v4)
     }
 
     /** Показать/скрыть значок «IPv6» на главном экране (с тонким fade при появлении). */
@@ -660,9 +671,10 @@ class MayakActivity : AppCompatActivity() {
     private fun onConnected(ip: String) = runOnUiThread {
         connState = ConnState.CONNECTED
         renderState(ConnState.CONNECTED)
+        GoTunnel.egressIpv4 = ip // персистим выходной IPv4 (показ переживает пересоздание Activity)
         // таймер/IP появляются с лёгким fade (не резким visibility).
         ipView?.let {
-            it.text = getString(R.string.mayak_ip_label, ip)
+            renderEgress()
             it.visibility = View.VISIBLE
             fadeIn(it)
         }
