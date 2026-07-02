@@ -7,7 +7,7 @@
 > ⚠️ Замечание по версионированию: с `versionCode 13` имя `0.1.1` не двигали, хотя
 > `versionCode` дорос до 22. Сборки 14–22 — поток debug-билдов под одним именем 0.1.1.
 > С 2026-07-02 версию двигаем при заметных изменениях (как и договаривались).
-> Текущее: `gradle.properties` — `mayakVersionName=0.2.10`, `mayakVersionCode=33`.
+> Текущее: `gradle.properties` — `mayakVersionName=0.2.15`, `mayakVersionCode=38`.
 
 ## 0.2.15 (2026-07-02) — versionCode 38
 
