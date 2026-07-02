@@ -9,6 +9,8 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <!-- уведомление «Подключено» (флаг+направление), API 33+ требует runtime-разрешения -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- самообновление (Вариант Б): установка скачанного APK из приложения -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission
         android:name="android.permission.SYSTEM_ALERT_WINDOW"
         android:minSdkVersion="34" />
@@ -128,6 +130,17 @@
             android:authorities="${applicationId}.exported-log"
             android:exported="false"
             android:grantUriPermissions="true" />
+
+        <!-- FileProvider для скачанного APK (самообновление, Вариант Б) -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.updates"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/mayak_update_paths" />
+        </provider>
 
         <receiver
             android:name=".BootShutdownReceiver"

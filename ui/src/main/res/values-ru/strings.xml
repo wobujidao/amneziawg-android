@@ -316,6 +316,10 @@
     <string name="mayak_update_msg">Вышла новая версия Маяка %1$s.</string>
     <string name="mayak_update_now">Обновить</string>
     <string name="mayak_update_later">Позже</string>
+    <string name="mayak_update_downloading">Загрузка обновления…</string>
+    <string name="mayak_update_download_failed">Не удалось скачать обновление</string>
+    <string name="mayak_update_untrusted">Проверка подписи не пройдена — установка отменена</string>
+    <string name="mayak_update_need_perm">Разрешите установку из этого источника и нажмите «Обновить» снова</string>
     <string name="mayak_a11y_connect">Подключиться</string>
     <string name="mayak_a11y_connecting">Подключение</string>
     <string name="mayak_a11y_disconnect">Отключиться</string>

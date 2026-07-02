@@ -132,6 +132,7 @@ class MayakActivity : AppCompatActivity() {
         store = KeystoreSecureStore(this)
         session = MayakSession(store, AwgKeyProvider(), AndroidHwidProvider(this, store))
         tunnel = GoTunnel(this)
+        MayakUpdater.cleanup(this) // подчистить скачанный APK после обновления/отмены («убрать лишнее»)
 
         if (session.hasToken()) {
             backend = MayakBackend(hostProvider())
@@ -166,13 +167,49 @@ class MayakActivity : AppCompatActivity() {
         AlertDialog.Builder(this)
             .setTitle(R.string.mayak_update_title)
             .setMessage(msg)
-            .setPositiveButton(R.string.mayak_update_now) { _, _ ->
-                runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(info.apkUrl))) }
-            }
+            .setPositiveButton(R.string.mayak_update_now) { _, _ -> startInAppUpdate(info) }
             .setNegativeButton(R.string.mayak_update_later) { _, _ ->
                 MayakPrefs.setUpdateDismissedCode(this, info.latestVersionCode)
             }
             .show()
+    }
+
+    /** Вариант Б: качаем APK ВНУТРИ приложения с прогрессом, проверяем подпись, запускаем установку. */
+    private fun startInAppUpdate(info: AppVersionInfo) {
+        if (info.apkUrl.isBlank()) return
+        if (!MayakUpdater.canInstall(this)) {
+            // Android 8+: нужно разрешение «установка из этого источника» — ведём в настройки, затем повтор.
+            Toast.makeText(this, R.string.mayak_update_need_perm, Toast.LENGTH_LONG).show()
+            runCatching { startActivity(MayakUpdater.installPermissionIntent(this)) }
+            return
+        }
+        val bar = android.widget.ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
+            max = 100; isIndeterminate = false
+            val p = (16 * resources.displayMetrics.density).toInt()
+            setPadding(p * 3, p, p * 3, p)
+        }
+        val dlg = AlertDialog.Builder(this)
+            .setTitle(R.string.mayak_update_downloading)
+            .setView(bar)
+            .setCancelable(false)
+            .create()
+        dlg.show()
+        lifecycleScope.launch {
+            val apk = MayakUpdater.download(this@MayakActivity, info.apkUrl) { pct ->
+                runOnUiThread { bar.progress = pct }
+            }
+            runCatching { dlg.dismiss() }
+            if (apk == null) {
+                Toast.makeText(this@MayakActivity, R.string.mayak_update_download_failed, Toast.LENGTH_LONG).show()
+                return@launch
+            }
+            if (!MayakUpdater.isTrusted(this@MayakActivity, apk)) {
+                apk.delete() // чужая подпись/пакет — не ставим
+                Toast.makeText(this@MayakActivity, R.string.mayak_update_untrusted, Toast.LENGTH_LONG).show()
+                return@launch
+            }
+            runCatching { MayakUpdater.install(this@MayakActivity, apk) }
+        }
     }
 
     override fun onResume() {
