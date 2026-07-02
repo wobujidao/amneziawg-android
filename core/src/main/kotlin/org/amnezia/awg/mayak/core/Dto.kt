@@ -40,6 +40,9 @@ data class Direction(
     val code: String,
     val name: String,
     val p2p: Boolean = false,
+    // Публичный IP клиент-facing ноды направления — приложение ICMP-пингует его для показа задержки
+    // и сортировки списка по ping (ядро отдаёт в /directions). null → пинг-цель недоступна.
+    @SerialName("ping_host") val pingHost: String? = null,
 )
 
 @Serializable
