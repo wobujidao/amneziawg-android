@@ -53,7 +53,14 @@ class MayakSession(
         // Процесс-скоупный кэш предзагруженных /connect-конфигов (переживает пересоздание Activity →
         // смена темы не дёргает /connect повторно). Одноразовый (take удаляет). Содержит приватный ключ
         // в .conf → только в памяти, чистим вместе с направлениями (логин/выход/фейловер).
-        private val connectCache = ConcurrentHashMap<Long, Paths>()
+        // Храним метку времени: конфиг несёт overlay-IP-«аренду» (SPEC-0015). Аренда живёт на сервере ~3ч;
+        // чтобы не подключиться по УСТАРЕВШЕЙ (возможно уже переосвобождённой/переданной) аренде, кэш старше
+        // CONNECT_CACHE_TTL_MS считаем протухшим → take вернёт null → потянем свежий /connect.
+        private data class CachedPaths(val paths: Paths, val atElapsed: Long)
+        private val connectCache = ConcurrentHashMap<Long, CachedPaths>()
+
+        // 2ч < серверного TTL аренды (3ч) → предзагруженный конфиг не «переживёт» свою аренду.
+        private const val CONNECT_CACHE_TTL_MS = 2 * 60 * 60 * 1000L
 
         private val dirsSerializer = ListSerializer(Direction.serializer())
     }
@@ -160,14 +167,23 @@ class MayakSession(
      * пересоздание Activity, поэтому смена темы не гоняет /connect заново. Одноразовый (см. takeCachedConnect).
      */
     suspend fun preloadConnect(backend: MayakBackend, direction: Direction) {
-        connectCache[direction.id] = connect(backend, direction)
+        connectCache[direction.id] = CachedPaths(connect(backend, direction), android.os.SystemClock.elapsedRealtime())
     }
 
-    /** Тёплый предзагруженный конфиг направления? (UI решает, надо ли гонять preloadConnect на выборе). */
-    fun hasCachedConnect(directionId: Long): Boolean = connectCache.containsKey(directionId)
+    /** Тёплый СВЕЖИЙ предзагруженный конфиг направления? (UI решает, надо ли гонять preloadConnect). Протухший
+     *  (старше CONNECT_CACHE_TTL_MS) считаем отсутствующим — чтобы UI предзагрузил свежий. */
+    fun hasCachedConnect(directionId: Long): Boolean {
+        val c = connectCache[directionId] ?: return false
+        return android.os.SystemClock.elapsedRealtime() - c.atElapsed <= CONNECT_CACHE_TTL_MS
+    }
 
-    /** Взять предзагруженный конфиг ОДНОРАЗОВО (удаляет из кэша — нет переиспользования устаревшего lease). */
-    fun takeCachedConnect(directionId: Long): Paths? = connectCache.remove(directionId)
+    /** Взять предзагруженный конфиг ОДНОРАЗОВО (удаляет из кэша — нет переиспользования устаревшего lease).
+     *  Протухший (старше TTL аренды) НЕ отдаём → коннект дотянет свежий /connect (аренда могла освободиться). */
+    fun takeCachedConnect(directionId: Long): Paths? {
+        val c = connectCache.remove(directionId) ?: return null
+        if (android.os.SystemClock.elapsedRealtime() - c.atElapsed > CONNECT_CACHE_TTL_MS) return null
+        return c.paths
+    }
 
     // Если выдача дала FQDN endpoint — резолвим его через DoH (шифрованно, мимо подмены DNS оператором) и
     // подставляем полученный IP. При недоступности DoH остаётся IP-endpoint из /connect → связь не ломается.
