@@ -127,11 +127,12 @@ object MayakNotification {
             color = Color.WHITE
             textAlign = Paint.Align.CENTER
             typeface = Typeface.DEFAULT_BOLD
-            textSize = 44f
+            textSize = 90f
         }
-        // Одна ГОРИЗОНТАЛЬНАЯ строка «↓64 ↑0» с авто-подгонкой размера под ширину значка.
-        val text = "\u2193" + compactSpeed(downBps) + " \u2191" + compactSpeed(upBps)
-        while (p.textSize > 18f && p.measureText(text) > size * 0.95f) p.textSize = p.textSize - 2f
+        // Значок статус-бара крошечный (~24dp) → крупно (как часы) влезает ТОЛЬКО одна цифра. Показываем
+        // скорость СКАЧИВАНИЯ (главный сигнал «идёт загрузка»); обе ↓/↑ — в развёрнутой шторке. Авто-подгонка.
+        val text = compactSpeed(downBps)
+        while (p.textSize > 40f && p.measureText(text) > size * 0.92f) p.textSize = p.textSize - 4f
         val fm = p.fontMetrics
         val y = size / 2f - (fm.ascent + fm.descent) / 2f // вертикальное центрирование по baseline
         c.drawText(text, size / 2f, y, p)
