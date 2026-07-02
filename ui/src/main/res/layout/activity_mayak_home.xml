@@ -77,11 +77,12 @@
                     android:text="" />
             </LinearLayout>
 
-            <!-- Центр: волны (ripple) + внешний ореол (glow) + круглая кнопка подключения -->
+            <!-- Центр: волны (ripple) + внешний ореол (glow) + круглая кнопка подключения.
+                 marginTop уменьшен (space_5→space_2) — кнопка выше на экране (правка владельца 2026-07-02). -->
             <FrameLayout
                 android:layout_width="256dp"
                 android:layout_height="256dp"
-                android:layout_marginTop="@dimen/mayak_space_5">
+                android:layout_marginTop="@dimen/mayak_space_2">
 
                 <!-- Концентрические волны от кнопки (sonar/активация при подключении) -->
                 <org.amnezia.awg.mayak.RippleView
@@ -122,12 +123,12 @@
                 </FrameLayout>
             </FrameLayout>
 
-            <!-- Статус -->
+            <!-- Статус + блок инфо (время/IP/пинг) подтянуты ближе к кнопке (space_4→space_2, правка владельца) -->
             <TextView
                 android:id="@+id/mayak_status"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/mayak_space_4"
+                android:layout_marginTop="@dimen/mayak_space_2"
                 android:gravity="center"
                 android:textColor="@color/mayak_on_bg"
                 android:textSize="18sp"
