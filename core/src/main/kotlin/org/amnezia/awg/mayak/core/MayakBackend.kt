@@ -96,6 +96,14 @@ class MayakBackend(
         return json.decodeFromString(DiagLogResponse.serializer(), resp)
     }
 
+    /** Последняя версия приложения (самообновление, Вариант А): статический /version.json на хосте,
+     *  через тот же фейловер доменов (домен→IP). Не критично: любая ошибка (нет файла/сети/парса) → null. */
+    suspend fun appVersion(): AppVersionInfo? =
+        runCatching {
+            val resp = call("GET", "/version.json", token = null, body = null)
+            json.decodeFromString(AppVersionInfo.serializer(), resp)
+        }.getOrNull()
+
     /**
      * Один HTTP-вызов с фейловером по доменам. На сетевой ошибке (домен недоступен/заблокирован)
      * крутим HostProvider и повторяем; на HTTP-ответе (в т.ч. 4xx/5xx) — НЕ переключаемся, а

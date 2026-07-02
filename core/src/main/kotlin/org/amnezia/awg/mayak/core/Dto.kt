@@ -119,3 +119,14 @@ data class DiagLogResponse(
     val status: String = "",
     val id: Long = 0,
 )
+
+/** Инфо о последней версии приложения (самообновление, Вариант А): статический version.json на хосте.
+ *  Приложение сверяет свой versionCode; если ниже latest — мягкий нудж со ссылкой apkUrl. */
+@Serializable
+data class AppVersionInfo(
+    @SerialName("latest_version_code") val latestVersionCode: Int = 0,
+    @SerialName("latest_version_name") val latestVersionName: String = "",
+    @SerialName("apk_url") val apkUrl: String = "",
+    @SerialName("min_version_code") val minVersionCode: Int = 0, // ниже этого — жёсткий апдейт (на будущее)
+    val changelog: String = "",
+)

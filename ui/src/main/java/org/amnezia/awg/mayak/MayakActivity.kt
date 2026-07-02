@@ -39,8 +39,10 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import org.amnezia.awg.BuildConfig
 import org.amnezia.awg.R
 import org.amnezia.awg.backend.GoBackend
+import org.amnezia.awg.mayak.core.AppVersionInfo
 import org.amnezia.awg.mayak.core.Direction
 import org.amnezia.awg.mayak.core.HostProvider
 import org.amnezia.awg.mayak.core.MayakApiException
@@ -134,9 +136,43 @@ class MayakActivity : AppCompatActivity() {
         if (session.hasToken()) {
             backend = MayakBackend(hostProvider())
             showHome(); loadDirections()
+            checkAppUpdate() // мягкий нудж, если вышла новая версия (Вариант А)
         } else {
             showLogin()
         }
+    }
+
+    /** Самообновление (Вариант А): сверяем свою версию с /version.json на хосте; если вышла новее —
+     *  мягкое окно со ссылкой на скачивание. Раз на запуск процесса (пересоздание Activity не дёргает);
+     *  «Позже» для версии запоминаем (не долбим). Любая ошибка сети/файла — молча ничего. */
+    private fun checkAppUpdate() {
+        if (updateCheckedThisProcess) return
+        updateCheckedThisProcess = true
+        val b = backend ?: return
+        lifecycleScope.launch {
+            val info = b.appVersion() ?: return@launch
+            if (info.latestVersionCode <= BuildConfig.VERSION_CODE || info.apkUrl.isBlank()) return@launch
+            if (MayakPrefs.updateDismissedCode(this@MayakActivity) >= info.latestVersionCode) return@launch
+            showUpdateDialog(info)
+        }
+    }
+
+    private fun showUpdateDialog(info: AppVersionInfo) {
+        val name = info.latestVersionName.ifBlank { info.latestVersionCode.toString() }
+        val msg = buildString {
+            append(getString(R.string.mayak_update_msg, name))
+            if (info.changelog.isNotBlank()) { append("\n\n"); append(info.changelog) }
+        }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.mayak_update_title)
+            .setMessage(msg)
+            .setPositiveButton(R.string.mayak_update_now) { _, _ ->
+                runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(info.apkUrl))) }
+            }
+            .setNegativeButton(R.string.mayak_update_later) { _, _ ->
+                MayakPrefs.setUpdateDismissedCode(this, info.latestVersionCode)
+            }
+            .show()
     }
 
     override fun onResume() {
@@ -834,6 +870,9 @@ class MayakActivity : AppCompatActivity() {
 
         // Период пинга сервера текущего подключения (обновление показателя на главном экране).
         private const val PING_INTERVAL_MS = 5_000L
+
+        // Проверку обновления делаем раз на запуск процесса (пересоздание Activity — смена темы — не дёргает).
+        @Volatile private var updateCheckedThisProcess = false
 
         // Свежесть кэша направлений: в пределах TTL пересоздание Activity (смена темы) НЕ рефетчит
         // список из сети; спустя TTL переоткрытие приложения дотягивает свежий (новые направления

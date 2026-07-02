@@ -13,6 +13,15 @@ object MayakPrefs {
     private const val PREFS = "mayak_ui_prefs"
     private const val KEY_THEME = "theme_mode"
     private const val KEY_LAST_DIR = "last_direction_id"
+    private const val KEY_UPDATE_DISMISSED = "update_dismissed_code" // versionCode, для которого нажали «Позже»
+
+    /** versionCode, обновление до которого пользователь отклонил («Позже») — чтобы не долбить каждый запуск. */
+    fun updateDismissedCode(context: Context): Int =
+        prefs(context).getInt(KEY_UPDATE_DISMISSED, 0)
+
+    fun setUpdateDismissedCode(context: Context, code: Int) {
+        prefs(context).edit().putInt(KEY_UPDATE_DISMISSED, code).apply()
+    }
 
     /** ID последней выбранной страны (или -1, если не выбирали). */
     fun lastDirectionId(context: Context): Long =
