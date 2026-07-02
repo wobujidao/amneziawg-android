@@ -47,6 +47,10 @@ class GoTunnel(context: Context, tunnelName: String = "mayak") : MayakCoreTunnel
         // направление, а не «🌐»). Сбрасывается в down() вместе с connectedSinceElapsed.
         @Volatile var connectedLabel: String? = null
 
+        // Хост сервера ТЕКУЩЕГО подключения ("IP") для пинга; процесс-скоупно (переживает пересоздание
+        // Activity → на повторном открытии продолжаем пинговать тот же сервер). Сбрасывается в down().
+        @Volatile var connectedServerHost: String? = null
+
         private fun obtainBackend(ctx: Context): Backend =
             sharedBackend ?: synchronized(this) {
                 sharedBackend ?: GoBackend(ctx.applicationContext).also { sharedBackend = it }
@@ -72,6 +76,7 @@ class GoTunnel(context: Context, tunnelName: String = "mayak") : MayakCoreTunnel
         backend.setState(tunnel, Tunnel.State.DOWN, null)
         connectedSinceElapsed = null
         connectedLabel = null
+        connectedServerHost = null
         Unit
     }
 

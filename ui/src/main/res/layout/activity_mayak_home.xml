@@ -159,6 +159,18 @@
                 android:visibility="gone"
                 android:text="" />
 
+            <!-- Пинг до сервера текущего подключения (виден при подключении) -->
+            <TextView
+                android:id="@+id/mayak_ping"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:gravity="center"
+                android:textColor="@color/mayak_on_bg_muted"
+                android:textSize="13sp"
+                android:visibility="gone"
+                android:text="" />
+
             <!-- Список стран -->
             <com.google.android.material.card.MaterialCardView
                 style="@style/Mayak.Card"

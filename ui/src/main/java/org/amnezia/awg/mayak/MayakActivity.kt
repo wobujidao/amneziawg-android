@@ -76,6 +76,7 @@ class MayakActivity : AppCompatActivity() {
     private val rowViews = mutableListOf<View>()
     private var timerJob: Job? = null
     private var sessionStartElapsed = 0L
+    private var pingJob: Job? = null // периодический пинг сервера текущего подключения
 
     // вьюхи круга/таймера (на главном экране)
     private var connectCircle: View? = null
@@ -83,6 +84,7 @@ class MayakActivity : AppCompatActivity() {
     private var connectGlow: View? = null
     private var timerView: TextView? = null
     private var ipView: TextView? = null
+    private var pingView: TextView? = null
     private var pulseAnimator: ObjectAnimator? = null
     private var glowBreath: ObjectAnimator? = null
     private var rippleView: RippleView? = null
@@ -301,6 +303,7 @@ class MayakActivity : AppCompatActivity() {
         connectGlow = findViewById(R.id.mayak_connect_glow)
         timerView = findViewById(R.id.mayak_timer)
         ipView = findViewById(R.id.mayak_ip)
+        pingView = findViewById(R.id.mayak_ping)
         rippleView = findViewById(R.id.mayak_ripple)
         networkBg = findViewById(R.id.mayak_network_bg)
         // волны стартуют от края круга (176dp/2)
@@ -325,6 +328,7 @@ class MayakActivity : AppCompatActivity() {
         connState = if (tunnel.isUp()) ConnState.CONNECTED else ConnState.DISCONNECTED
         if (connState == ConnState.CONNECTED) {
             startTimer()
+            startPing() // пинг сервера (хост персистится в GoTunnel)
             MayakNotification.show(this, GoTunnel.connectedLabel) // персист-метка направления
         } else {
             MayakNotification.clear(this)
@@ -467,6 +471,7 @@ class MayakActivity : AppCompatActivity() {
         pendingConnect = null
         lifecycleScope.launch { runCatching { tunnel.down() } }
         stopTimer()
+        stopPing()
         MayakNotification.clear(this)
         renderState(ConnState.DISCONNECTED)
         setStatus(getString(R.string.mayak_status_cancelled))
@@ -501,6 +506,7 @@ class MayakActivity : AppCompatActivity() {
                 // Прямой путь приоритетен. Сервер добавляет пира в течение ~15с (sync-таймер),
                 // поэтому пробу egress повторяем несколько раз, прежде чем сдаться.
                 if (direct != null) {
+                    GoTunnel.connectedServerHost = MayakPing.hostOf(paths.directEndpoint) // сервер для пинга
                     tunnel.up(direct)
                     setStatus(getString(R.string.mayak_status_probing))
                     val ip = probeWithRetry()
@@ -510,6 +516,7 @@ class MayakActivity : AppCompatActivity() {
                 if (relay == null) { fail(getString(R.string.mayak_status_no_egress)); return@launch }
                 // Резерв: прямого не было вовсе или он не прошёл пробу.
                 if (direct != null) setStatus(getString(R.string.mayak_status_relay_switch))
+                GoTunnel.connectedServerHost = MayakPing.hostOf(paths.relayEndpoint) // сервер для пинга
                 tunnel.up(relay)
                 val ip = probeWithRetry()
                 if (ip != null) onConnected(ip) else fail(getString(R.string.mayak_status_no_egress))
@@ -551,6 +558,7 @@ class MayakActivity : AppCompatActivity() {
         timerView?.let { fadeIn(it) }
         successHaptic()
         startTimer()
+        startPing() // пинг сервера текущего подключения
         // Постоянное уведомление «Подключено» (флаг+направление); метку персистим в GoTunnel (процесс-
         // скоупно) — на повторном открытии покажем то же направление.
         GoTunnel.connectedLabel = MayakNotification.labelFor(this, selectedDir)
@@ -583,6 +591,7 @@ class MayakActivity : AppCompatActivity() {
         lifecycleScope.launch {
             runCatching { tunnel.down() }
             stopTimer()
+            stopPing()
             MayakNotification.clear(this@MayakActivity)
             connState = ConnState.DISCONNECTED
             renderState(ConnState.DISCONNECTED)
@@ -623,6 +632,7 @@ class MayakActivity : AppCompatActivity() {
                 networkBg?.setConnected(false)
                 timerView?.visibility = View.GONE
                 ipView?.visibility = View.GONE
+                pingView?.visibility = View.GONE
                 if (::status.isInitialized) status.text = getString(R.string.mayak_status_disconnected)
             }
             ConnState.CONNECTING -> {
@@ -731,9 +741,11 @@ class MayakActivity : AppCompatActivity() {
         if (connState == target) return // уже синхронно — не дёргаем анимации/рендер зря
         if (target == ConnState.CONNECTED) {
             startTimer()
+            startPing()
             MayakNotification.show(this, GoTunnel.connectedLabel)
         } else {
             stopTimer()
+            stopPing()
             MayakNotification.clear(this)
         }
         renderState(target)
@@ -743,6 +755,31 @@ class MayakActivity : AppCompatActivity() {
         timerJob?.cancel()
         timerJob = null
         runOnUiThread { timerView?.text = formatDuration(0) }
+    }
+
+    /** Периодический пинг сервера ТЕКУЩЕГО подключения (GoTunnel.connectedServerHost) — показываем на
+     *  главном экране, пока подключены. Хост персистим в GoTunnel → пинг продолжается и после пересоздания
+     *  Activity. Нет хоста (напр. туннель поднят вне приложения) → пинг не показываем. */
+    private fun startPing() {
+        val host = GoTunnel.connectedServerHost
+        pingJob?.cancel()
+        if (host == null) { pingView?.visibility = View.GONE; return }
+        pingView?.visibility = View.VISIBLE
+        pingJob = lifecycleScope.launch {
+            while (isActive) {
+                val ms = MayakPing.ping(host)
+                pingView?.text =
+                    if (ms != null) getString(R.string.mayak_ping_label, ms)
+                    else getString(R.string.mayak_ping_label_na)
+                delay(PING_INTERVAL_MS)
+            }
+        }
+    }
+
+    private fun stopPing() {
+        pingJob?.cancel()
+        pingJob = null
+        runOnUiThread { pingView?.visibility = View.GONE }
     }
 
     private fun formatDuration(totalSec: Long): String {
@@ -792,6 +829,9 @@ class MayakActivity : AppCompatActivity() {
         // Сервер добавляет пира sync-таймером (~15с) → повторяем egress-пробу до ~24с.
         private const val PROBE_ATTEMPTS = 6
         private const val PROBE_DELAY_MS = 4_000L
+
+        // Период пинга сервера текущего подключения (обновление показателя на главном экране).
+        private const val PING_INTERVAL_MS = 5_000L
 
         // Свежесть кэша направлений: в пределах TTL пересоздание Activity (смена темы) НЕ рефетчит
         // список из сети; спустя TTL переоткрытие приложения дотягивает свежий (новые направления

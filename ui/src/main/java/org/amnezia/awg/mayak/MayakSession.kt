@@ -16,11 +16,14 @@ import org.amnezia.awg.mayak.core.KeyProvider
 import org.amnezia.awg.mayak.core.MayakBackend
 import org.amnezia.awg.mayak.core.SecureStore
 
-/** Готовые конфиги на выбранное направление: прямой (обязателен) + резервный (если ядро дало). */
+/** Готовые конфиги на выбранное направление: прямой (обязателен) + резервный (если ядро дало).
+ *  *Endpoint — «IP:port» сервера соответствующего пути (после DoH-резолва) для пинга текущего подключения. */
 data class Paths(
     val directionName: String,
     val directConf: String?,
     val relayConf: String?,
+    val directEndpoint: String? = null,
+    val relayEndpoint: String? = null,
 )
 
 class MayakSession(
@@ -139,10 +142,15 @@ class MayakSession(
         val priv = ensureKeys()
         val deviceId = ensureDevice(backend, token)
         val res = backend.connect(token, deviceId, direction.id)
+        // DoH-резолв endpoint делаем ОДИН раз на путь (и для .conf, и для пинг-хоста).
+        val directCfg = res.direct?.let { dohEndpoint(it) }
+        val relayCfg = res.relay?.let { dohEndpoint(it) }
         Paths(
             directionName = res.direction,
-            directConf = res.direct?.let { ConfRenderer.render(dohEndpoint(it), priv) },
-            relayConf = res.relay?.let { ConfRenderer.render(dohEndpoint(it), priv) },
+            directConf = directCfg?.let { ConfRenderer.render(it, priv) },
+            relayConf = relayCfg?.let { ConfRenderer.render(it, priv) },
+            directEndpoint = directCfg?.endpoint,
+            relayEndpoint = relayCfg?.endpoint,
         )
     }
 
