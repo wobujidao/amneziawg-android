@@ -118,7 +118,7 @@ class MayakActivity : AppCompatActivity() {
     // коннекта — показываем уведомление сразу; отказ не критичен (просто не будет уведомления).
     private val notifPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-            if (granted && tunnel.isUp()) MayakNotification.show(this, GoTunnel.connectedLabel, GoTunnel.connectedPingMs)
+            if (granted && tunnel.isUp()) MayakNotification.show(this, GoTunnel.connectedLabel, GoTunnel.connectedPingMs, noReply = GoTunnel.connectedNoReply)
         }
 
     private fun maybeRequestNotifPermission() {
@@ -412,7 +412,7 @@ class MayakActivity : AppCompatActivity() {
             val v6 = GoTunnel.egressIpv6
             setIpv6Badge(v6 != null)
             if (GoTunnel.egressIpv4 != null) { renderEgress(); ipView?.visibility = View.VISIBLE }
-            MayakNotification.show(this, GoTunnel.connectedLabel, GoTunnel.connectedPingMs, ipv6 = v6 != null) // персист-метка направления
+            MayakNotification.show(this, GoTunnel.connectedLabel, GoTunnel.connectedPingMs, ipv6 = v6 != null, noReply = GoTunnel.connectedNoReply) // персист-метка направления
         } else {
             MayakNotification.clear(this)
         }
@@ -638,7 +638,7 @@ class MayakActivity : AppCompatActivity() {
                 setIpv6Badge(true)
                 renderEgress() // показать выходной IPv6 рядом с IPv4 (SPEC-0014)
                 // Обновляем уведомление — теперь с честным значком IPv6.
-                MayakNotification.show(this@MayakActivity, GoTunnel.connectedLabel, GoTunnel.connectedPingMs, ipv6 = true)
+                MayakNotification.show(this@MayakActivity, GoTunnel.connectedLabel, GoTunnel.connectedPingMs, ipv6 = true, noReply = GoTunnel.connectedNoReply)
             }
         }
     }
@@ -689,7 +689,7 @@ class MayakActivity : AppCompatActivity() {
         // Постоянное уведомление «Подключено» (флаг+направление); метку персистим в GoTunnel (процесс-
         // скоупно) — на повторном открытии покажем то же направление.
         GoTunnel.connectedLabel = MayakNotification.labelFor(this, selectedDir)
-        MayakNotification.show(this, GoTunnel.connectedLabel, GoTunnel.connectedPingMs)
+        MayakNotification.show(this, GoTunnel.connectedLabel, GoTunnel.connectedPingMs, noReply = GoTunnel.connectedNoReply)
         Toast.makeText(this, getString(R.string.mayak_connected), Toast.LENGTH_SHORT).show()
     }
 
@@ -872,7 +872,7 @@ class MayakActivity : AppCompatActivity() {
             startTimer()
             startPing()
             startKeepalive()
-            MayakNotification.show(this, GoTunnel.connectedLabel, GoTunnel.connectedPingMs)
+            MayakNotification.show(this, GoTunnel.connectedLabel, GoTunnel.connectedPingMs, noReply = GoTunnel.connectedNoReply)
         } else {
             stopTimer()
             stopPing()
@@ -897,13 +897,20 @@ class MayakActivity : AppCompatActivity() {
         if (host == null) { pingView?.visibility = View.GONE; return }
         pingView?.visibility = View.VISIBLE
         pingJob = lifecycleScope.launch {
+            var fails = 0 // пингов подряд без ответа — не паникуем на одном потерянном пакете
             while (isActive) {
                 val ms = MayakPing.ping(host)
                 GoTunnel.connectedPingMs = ms
-                pingView?.text =
-                    if (ms != null) getString(R.string.mayak_ping_label, ms)
-                    else getString(R.string.mayak_ping_label_na)
-                MayakNotification.show(this@MayakActivity, GoTunnel.connectedLabel, ms) // пинг и в уведомление
+                fails = if (ms == null) fails + 1 else 0
+                // Связь реально потеряна (туннель up, но данные не идут) — после порога неудач подряд.
+                val noReply = fails >= NO_REPLY_THRESHOLD
+                GoTunnel.connectedNoReply = noReply
+                pingView?.text = when {
+                    ms != null -> getString(R.string.mayak_ping_label, ms)
+                    noReply    -> getString(R.string.mayak_no_reply)
+                    else       -> getString(R.string.mayak_ping_label_na)
+                }
+                MayakNotification.show(this@MayakActivity, GoTunnel.connectedLabel, ms, noReply = noReply) // пинг/статус и в уведомление
                 delay(PING_INTERVAL_MS)
             }
         }
@@ -971,6 +978,7 @@ class MayakActivity : AppCompatActivity() {
 
         // Период пинга сервера текущего подключения (обновление показателя на главном экране).
         private const val PING_INTERVAL_MS = 5_000L
+        private const val NO_REPLY_THRESHOLD = 2 // пингов подряд без ответа → «нет связи» (~10с, без флаппинга)
 
 
         // Проверку обновления делаем раз на запуск процесса (пересоздание Activity — смена темы — не дёргает).

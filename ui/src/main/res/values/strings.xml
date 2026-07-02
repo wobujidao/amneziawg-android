@@ -105,6 +105,8 @@
     <string name="mayak_ip6_label">IPv6: %1$s</string>
     <string name="mayak_ping_label">Ping: %1$d ms</string>
     <string name="mayak_ping_label_na">Ping: —</string>
+    <string name="mayak_no_reply">No reply</string>
+    <string name="mayak_notif_no_reply">No reply — check your connection</string>
     <string name="mayak_update_title">Update available</string>
     <string name="mayak_update_msg">A new version %1$s of Mayak is available.</string>
     <string name="mayak_update_now">Update</string>

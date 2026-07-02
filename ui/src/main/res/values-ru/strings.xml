@@ -313,6 +313,8 @@
     <string name="mayak_ip6_label">IPv6: %1$s</string>
     <string name="mayak_ping_label">Пинг: %1$d мс</string>
     <string name="mayak_ping_label_na">Пинг: —</string>
+    <string name="mayak_no_reply">Нет ответа</string>
+    <string name="mayak_notif_no_reply">Нет ответа — проверьте соединение</string>
     <string name="mayak_update_title">Доступно обновление</string>
     <string name="mayak_update_msg">Вышла новая версия Маяка %1$s.</string>
     <string name="mayak_update_now">Обновить</string>
