@@ -150,14 +150,24 @@ class MayakActivity : AppCompatActivity() {
     /** Самообновление (Вариант А): сверяем свою версию с /version.json на хосте; если вышла новее —
      *  мягкое окно со ссылкой на скачивание. Раз на запуск процесса (пересоздание Activity не дёргает);
      *  «Позже» для версии запоминаем (не долбим). Любая ошибка сети/файла — молча ничего. */
-    private fun checkAppUpdate() {
-        if (updateCheckedThisProcess) return
-        updateCheckedThisProcess = true
+    private fun checkAppUpdate(force: Boolean = false) {
+        // Авто-проверка (force=false) — раз на процесс, молча. По кнопке «Обновить» (force=true) проверяем
+        // ВСЕГДА (минуя once-per-process и запомненное «Позже») и даём фидбек «последняя версия».
+        if (!force) {
+            if (updateCheckedThisProcess) return
+            updateCheckedThisProcess = true
+        }
         val b = backend ?: return
         lifecycleScope.launch {
-            val info = b.appVersion() ?: return@launch
-            if (info.latestVersionCode <= BuildConfig.VERSION_CODE || info.apkUrl.isBlank()) return@launch
-            if (MayakPrefs.updateDismissedCode(this@MayakActivity) >= info.latestVersionCode) return@launch
+            val info = b.appVersion() ?: run {
+                if (force) Toast.makeText(this@MayakActivity, R.string.mayak_update_check_failed, Toast.LENGTH_SHORT).show()
+                return@launch
+            }
+            if (info.latestVersionCode <= BuildConfig.VERSION_CODE || info.apkUrl.isBlank()) {
+                if (force) Toast.makeText(this@MayakActivity, R.string.mayak_update_uptodate, Toast.LENGTH_SHORT).show()
+                return@launch
+            }
+            if (!force && MayakPrefs.updateDismissedCode(this@MayakActivity) >= info.latestVersionCode) return@launch
             showUpdateDialog(info)
         }
     }
@@ -374,6 +384,7 @@ class MayakActivity : AppCompatActivity() {
         findViewById<View?>(R.id.mayak_refresh_dirs)?.setOnClickListener {
             it.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
             loadDirections(forceRefresh = true)
+            checkAppUpdate(force = true) // «Обновить» проверяет и список стран, И версию приложения
         }
         connectCircle = findViewById(R.id.mayak_connect_circle)
         connectIcon = findViewById(R.id.mayak_connect_icon)
