@@ -951,7 +951,8 @@ class MayakActivity : AppCompatActivity() {
                     text = getString(R.string.mayak_ping_label, shown)
                     setTextColor(pingColor(shown))
                 }
-                MayakNotification.show(this@MayakActivity, GoTunnel.connectedLabel, shown) // пинг (0 = нет ответа) и в уведомление
+                // Когда включена скорость — уведомление ведёт SpeedNotifier (пинг+скорость, живёт при сворачивании).
+                if (!MayakPrefs.showSpeed(this@MayakActivity)) MayakNotification.show(this@MayakActivity, GoTunnel.connectedLabel, shown)
                 delay(PING_INTERVAL_MS)
             }
         }
@@ -1003,9 +1004,9 @@ class MayakActivity : AppCompatActivity() {
 
     /** Продление аренды overlay-IP (SPEC-0015) — делегируем ПРОЦЕСС-СКОУПНОМУ LeaseKeepalive, чтобы оно
      *  переживало уничтожение Activity (туннель живёт в процессе, а не в Activity). Идемпотентно. */
-    private fun startKeepalive() = LeaseKeepalive.start(this)
+    private fun startKeepalive() { LeaseKeepalive.start(this); SpeedNotifier.start(this) }
 
-    private fun stopKeepalive() = LeaseKeepalive.stop()
+    private fun stopKeepalive() { LeaseKeepalive.stop(); SpeedNotifier.stop() }
 
     private fun formatDuration(totalSec: Long): String {
         val h = totalSec / 3600
