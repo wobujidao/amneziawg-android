@@ -5,6 +5,11 @@ package org.amnezia.awg.mayak
 
 import androidx.annotation.DrawableRes
 import org.amnezia.awg.R
+import org.amnezia.awg.mayak.core.Direction
+
+/** Подпись направления РОВНО как в списке приложения: "Нидерланды (nl)" (или name, если кода нет).
+ *  Единый источник — чтобы уведомление показывало то же, что видно в списке (директива владельца 2026-07-02). */
+fun Direction.displayLabel(): String = if (code.isNotBlank()) "$name ($code)" else name
 
 object MayakFlags {
     // Векторные флаги по двухбуквенному коду (есть для имеющихся направлений).

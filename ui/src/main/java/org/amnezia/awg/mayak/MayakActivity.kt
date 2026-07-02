@@ -418,8 +418,7 @@ class MayakActivity : AppCompatActivity() {
         val container = dirsContainer
         val row = LayoutInflater.from(this).inflate(R.layout.mayak_country_row, container, false)
         row.findViewById<ImageView>(R.id.mayak_row_flag).setImageResource(MayakFlags.drawableForCode(d.code))
-        row.findViewById<TextView>(R.id.mayak_row_name).text =
-            if (d.code.isNotBlank()) "${d.name} (${d.code})" else d.name
+        row.findViewById<TextView>(R.id.mayak_row_name).text = d.displayLabel()
         row.tag = d.id
         row.setOnClickListener {
             it.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)

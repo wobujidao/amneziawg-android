@@ -301,10 +301,10 @@
     <string name="mayak_status_no_egress">Оба пути не вышли в интернет</string>
     <string name="mayak_status_disconnected">Отключено</string>
     <string name="mayak_status_cancelled">Подключение отменено</string>
-    <string name="mayak_connected">Под защитой</string>
+    <string name="mayak_connected">Подключено</string>
     <string name="mayak_notif_channel_name">Статус VPN</string>
-    <string name="mayak_notif_channel_desc">Показывает активное подключение, пока вы под защитой</string>
-    <string name="mayak_notif_connected_title">Маяк — под защитой</string>
+    <string name="mayak_notif_channel_desc">Показывает активное подключение</string>
+    <string name="mayak_notif_connected_title">Маяк — подключено</string>
     <string name="mayak_connecting">Подключение…</string>
     <string name="mayak_tap_to_connect">Нажмите для подключения</string>
     <string name="mayak_select_country_first">Сначала выберите страну</string>

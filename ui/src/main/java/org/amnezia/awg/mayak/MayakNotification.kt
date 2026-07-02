@@ -25,10 +25,11 @@ object MayakNotification {
     private const val CHANNEL_ID = "mayak_vpn_status"
     private const val NOTIF_ID = 0x4D41 // 'MA'
 
-    /** Метка направления для уведомления/персиста: "🇳🇱 Нидерланды" (флаг + имя), либо дефолт. */
+    /** Метка направления для уведомления/персиста: флаг + подпись РОВНО как в списке приложения
+     *  ("🇳🇱 Нидерланды (nl)"), либо дефолт. Текст берём из displayLabel() — один источник со списком. */
     fun labelFor(ctx: Context, dir: Direction?): String {
         if (dir == null) return ctx.getString(R.string.mayak_connected)
-        return "${MayakFlags.emojiForCode(dir.code)} ${dir.name}"
+        return "${MayakFlags.emojiForCode(dir.code)} ${dir.displayLabel()}"
     }
 
     private fun ensureChannel(ctx: Context) {
