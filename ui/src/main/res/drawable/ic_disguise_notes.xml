@@ -1,0 +1,13 @@
+<!-- Заглушка-иконка маскировки «Заметки» (SPEC-0018 F2): янтарная плитка + белые строки. Плейсхолдер. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFB300"
+        android:pathData="M0,0h108v108H0z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M30,38h48v8h-48z M30,54h48v8h-48z M30,70h30v8h-30z" />
+</vector>

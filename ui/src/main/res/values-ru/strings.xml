@@ -353,6 +353,11 @@
     <string name="mayak_settings_split_count">Split-туннель (%1$d)</string>
     <string name="mayak_settings_split_hint">Выберите приложения, которые пойдут МИМО VPN по вашему реальному IP (напр. банки, Госуслуги — они режут заграничные IP). Остальной трафик остаётся под защитой. Выбранные приложения сознательно вне туннеля — добавляйте только нужное.</string>
     <string name="mayak_settings_split_applied">Применится при следующем подключении</string>
+    <string name="mayak_settings_disguise">Значок приложения</string>
+    <string name="mayak_disguise_weather">Погода</string>
+    <string name="mayak_disguise_notes">Заметки</string>
+    <string name="mayak_disguise_calc">Калькулятор</string>
+    <string name="mayak_disguise_applied">Иконка и имя изменятся через несколько секунд. Если нет — перезапустите телефон. На VPN-подключение это не влияет.</string>
     <string name="mayak_ipv6_badge">IPv6</string>
     <string name="mayak_settings_diagnostics">Диагностика и помощь</string>
     <string name="mayak_settings_diag_hint">Если что-то не работает — отправь нам лог, по нему мы быстро найдём причину. Данные обрабатываются согласно политике конфиденциальности.</string>

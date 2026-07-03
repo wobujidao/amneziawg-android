@@ -75,6 +75,9 @@ class MayakSettingsActivity : AppCompatActivity() {
                 .show(supportFragmentManager, null)
         }
 
+        // Значок приложения / маскировка (SPEC-0018 F2): диалог выбора пресета иконки+имени.
+        findViewById<MaterialButton>(R.id.mayak_settings_disguise).setOnClickListener { showDisguiseDialog() }
+
         val group = findViewById<RadioGroup>(R.id.mayak_theme_group)
         // Отметим текущий режим без срабатывания листенера.
         when (MayakPrefs.themeMode(this)) {
@@ -100,6 +103,31 @@ class MayakSettingsActivity : AppCompatActivity() {
         val n = MayakPrefs.splitApps(this).size
         button.text = if (n == 0) getString(R.string.mayak_settings_split)
         else getString(R.string.mayak_settings_split_count, n)
+    }
+
+    /** Диалог маскировки (SPEC-0018 F2): выбор пресета иконки+имени. Применение — MayakDisguise.apply
+     *  (переключает activity-alias, не убивая процесс → VPN не рвётся; иконка обновится через миг). */
+    private fun showDisguiseDialog() {
+        val aliases = MayakDisguise.ALL
+        val labels = arrayOf(
+            getString(R.string.app_name),
+            getString(R.string.mayak_disguise_weather),
+            getString(R.string.mayak_disguise_notes),
+            getString(R.string.mayak_disguise_calc),
+        )
+        val current = MayakDisguise.current(this)
+        val checked = aliases.indexOf(current).coerceAtLeast(0)
+        AlertDialog.Builder(this)
+            .setTitle(R.string.mayak_settings_disguise)
+            .setSingleChoiceItems(labels, checked) { dialog, which ->
+                dialog.dismiss()
+                if (aliases[which] != current) {
+                    MayakDisguise.apply(this, aliases[which])
+                    Toast.makeText(this, R.string.mayak_disguise_applied, Toast.LENGTH_LONG).show()
+                }
+            }
+            .setNegativeButton(R.string.mayak_cancel, null)
+            .show()
     }
 
     /**
