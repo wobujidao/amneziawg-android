@@ -5,6 +5,7 @@ package org.amnezia.awg.mayak
 import android.content.Intent
 import android.os.Bundle
 import android.widget.RadioGroup
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -43,6 +44,14 @@ class MayakSettingsActivity : AppCompatActivity() {
         }
         findViewById<MaterialButton>(R.id.mayak_settings_send_log).setOnClickListener { sendLog(it as MaterialButton) }
         findViewById<MaterialButton>(R.id.mayak_settings_logout).setOnClickListener { confirmLogout() }
+
+        // Показываем, под каким email выполнен вход (запрос владельца: в приложении не было видно аккаунта).
+        val acctStore = KeystoreSecureStore(this)
+        val accountEmail = MayakSession(acctStore, AwgKeyProvider(), AndroidHwidProvider(this, acctStore)).email()
+        findViewById<TextView>(R.id.mayak_settings_account).text = getString(
+            R.string.mayak_settings_account,
+            accountEmail ?: getString(R.string.mayak_settings_account_none),
+        )
 
         // Тумблер «Использовать IPv6» (SPEC-0014): по умолч. ВКЛ. При выкл клиент срезает v6 из конфига
         // при следующем подключении (кэш конфига v6-полный, стрип на apply) → IPv6 идёт мимо туннеля.

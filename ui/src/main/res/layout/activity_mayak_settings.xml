@@ -290,13 +290,22 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
+            <!-- Аккаунт: под каким email выполнен вход (текст ставится в коде из session.email()) -->
+            <TextView
+                android:id="@+id/mayak_settings_account"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:textColor="@color/mayak_on_surface"
+                android:textAppearance="@style/Mayak.Tagline" />
+
             <!-- Выход из аккаунта -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/mayak_settings_logout"
                 style="@style/Mayak.Button.Danger"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
+                android:layout_marginTop="6dp"
                 android:text="@string/mayak_logout" />
         </LinearLayout>
     </ScrollView>

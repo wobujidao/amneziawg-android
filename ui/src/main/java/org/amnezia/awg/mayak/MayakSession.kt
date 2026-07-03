@@ -33,6 +33,7 @@ class MayakSession(
 ) {
     companion object {
         private const val K_TOKEN = "token"
+        private const val K_EMAIL = "email" // email аккаунта (показываем в Настройках, чтоб видеть, кто залогинен)
         private const val K_PRIV = "priv_key"
         private const val K_PUB = "pub_key"
         private const val K_DEVICE = "device_id"
@@ -70,8 +71,12 @@ class MayakSession(
 
     fun hasToken(): Boolean = store.get(K_TOKEN) != null
 
+    /** Email аккаунта, под которым выполнен вход (для показа в Настройках). null — если не входили. */
+    fun email(): String? = store.get(K_EMAIL)
+
     fun logout() {
         store.remove(K_TOKEN)
+        store.remove(K_EMAIL)
         store.remove(K_DEVICE)
         invalidateDirections() // чужой кэш не должен пережить выход
         // ключи устройства оставляем — это идентичность устройства; токен/девайс перезаведём при логине
@@ -81,6 +86,7 @@ class MayakSession(
     suspend fun login(backend: MayakBackend, email: String, password: String) {
         val resp = backend.login(email, password)
         store.put(K_TOKEN, resp.token)
+        store.put(K_EMAIL, email.trim()) // показываем в Настройках, под кем вошли
         invalidateDirections() // смена логина → кэш направлений прошлого пользователя неактуален
     }
 

@@ -150,6 +150,8 @@
     <string name="mayak_disguise_notes">Notes</string>
     <string name="mayak_disguise_calc">Calculator</string>
     <string name="mayak_disguise_applied">The icon and name change in a few seconds. If not, restart the phone. Your VPN connection is not affected.</string>
+    <string name="mayak_settings_account">Account: %1$s</string>
+    <string name="mayak_settings_account_none">not signed in</string>
     <string name="mayak_ipv6_badge">IPv6</string>
     <string name="mayak_settings_diagnostics">Diagnostics &amp; help</string>
     <string name="mayak_settings_diag_hint">If something isn\'t working, send us the log — it lets us find the cause fast. Data is processed per the privacy policy.</string>
