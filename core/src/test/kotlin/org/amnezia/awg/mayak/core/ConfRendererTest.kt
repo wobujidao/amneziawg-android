@@ -163,6 +163,57 @@ class ConfRendererTest {
     }
 
     @Test
+    fun withSplitTunnel_excluded_insertsIntoInterfaceSection() {
+        // Split-туннель (SPEC-0018 F1): ExcludedApplications попадает в [Interface], НЕ в [Peer].
+        val cfg = ClientConfig(
+            address = "10.8.0.2",
+            dns = "1.1.1.1",
+            obfuscation = null,
+            serverPubkey = "c2VydmVyLXB1YmtleS1mYWtlLTQ0LWNoYXJzLTAwMDAwMDA=",
+            endpoint = "203.0.113.7:51820",
+            allowedIps = "0.0.0.0/0",
+        )
+        val conf = ConfRenderer.render(cfg, priv)
+        val out = ConfRenderer.withSplitTunnel(conf, listOf("ru.sberbank.online", "ru.gosuslugi", "ru.sberbank.online"))
+        // строка есть, дубли схлопнуты
+        assertTrue(out.contains("ExcludedApplications = ru.sberbank.online, ru.gosuslugi"))
+        // и она в секции [Interface], до [Peer]
+        val idxExcluded = out.indexOf("ExcludedApplications")
+        val idxPeer = out.indexOf("[Peer]")
+        assertTrue(idxExcluded in 0 until idxPeer)
+        // остальной конфиг цел
+        assertTrue(out.contains("PrivateKey = $priv"))
+        assertTrue(out.contains("Endpoint = 203.0.113.7:51820"))
+    }
+
+    @Test
+    fun withSplitTunnel_included_usesIncludedApplicationsKey() {
+        // excluded=false → в туннель идут ТОЛЬКО перечисленные (IncludedApplications), не Excluded.
+        val cfg = ClientConfig(
+            address = "10.8.0.2", obfuscation = null,
+            serverPubkey = "c2VydmVyLXB1YmtleS1mYWtlLTQ0LWNoYXJzLTAwMDAwMDA=",
+            endpoint = "203.0.113.7:51820", allowedIps = "0.0.0.0/0",
+        )
+        val out = ConfRenderer.withSplitTunnel(ConfRenderer.render(cfg, priv), listOf("org.telegram.messenger"), excluded = false)
+        assertTrue(out.contains("IncludedApplications = org.telegram.messenger"))
+        assertFalse(out.contains("ExcludedApplications"))
+    }
+
+    @Test
+    fun withSplitTunnel_emptyListLeavesConfUnchanged() {
+        val cfg = ClientConfig(
+            address = "10.8.0.2", obfuscation = null,
+            serverPubkey = "c2VydmVyLXB1YmtleS1mYWtlLTQ0LWNoYXJzLTAwMDAwMDA=",
+            endpoint = "203.0.113.7:51820", allowedIps = "0.0.0.0/0",
+        )
+        val conf = ConfRenderer.render(cfg, priv)
+        // пустой список и список из пустых строк — конфиг не меняется, ключ не появляется
+        assertEquals(conf, ConfRenderer.withSplitTunnel(conf, emptyList()))
+        assertEquals(conf, ConfRenderer.withSplitTunnel(conf, listOf("", "  ")))
+        assertFalse(ConfRenderer.withSplitTunnel(conf, emptyList()).contains("Applications"))
+    }
+
+    @Test
     fun hostProvider_rotatesAndIsSticky() {
         val hp = HostProvider(listOf("https://a.example/", "https://b.example"))
         assertEquals("https://a.example", hp.current())

@@ -192,6 +192,28 @@
                         android:textColor="@color/mayak_on_surface"
                         android:alpha="0.8"
                         android:textAppearance="@style/Mayak.Tagline" />
+
+                    <!-- Split-туннель (SPEC-0018 F1): выбор приложений мимо VPN. Текст кнопки со счётчиком
+                         выбранных ставится в коде (MayakSettingsActivity). -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/mayak_settings_split"
+                        style="@style/Mayak.Button.Outlined"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        app:icon="@drawable/ic_settings"
+                        app:iconGravity="textStart"
+                        app:iconTint="@color/mayak_outline"
+                        android:text="@string/mayak_settings_split" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="@string/mayak_settings_split_hint"
+                        android:textColor="@color/mayak_on_surface"
+                        android:alpha="0.8"
+                        android:textAppearance="@style/Mayak.Tagline" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

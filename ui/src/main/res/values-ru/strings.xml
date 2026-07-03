@@ -349,6 +349,10 @@
     <string name="mayak_settings_ipv6">Использовать IPv6</string>
     <string name="mayak_settings_ipv6_hint">Приносит IPv6 через туннель туда, где оператор его не даёт. Значок «IPv6» загорается, только когда он реально работает. Выключи, если что-то не работает.</string>
     <string name="mayak_settings_ipv6_applied">Применится при следующем подключении</string>
+    <string name="mayak_settings_split">Split-туннель</string>
+    <string name="mayak_settings_split_count">Split-туннель (%1$d)</string>
+    <string name="mayak_settings_split_hint">Выберите приложения, которые пойдут МИМО VPN по вашему реальному IP (напр. банки, Госуслуги — они режут заграничные IP). Остальной трафик остаётся под защитой. Выбранные приложения сознательно вне туннеля — добавляйте только нужное.</string>
+    <string name="mayak_settings_split_applied">Применится при следующем подключении</string>
     <string name="mayak_ipv6_badge">IPv6</string>
     <string name="mayak_settings_diagnostics">Диагностика и помощь</string>
     <string name="mayak_settings_diag_hint">Если что-то не работает — отправь нам лог, по нему мы быстро найдём причину. Данные обрабатываются согласно политике конфиденциальности.</string>

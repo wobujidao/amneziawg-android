@@ -89,4 +89,29 @@ object ConfRenderer {
             }
         }.trimEnd('\n') + "\n"
     }
+
+    /**
+     * Split-туннель (SPEC-0018 F1): добавляет строку `ExcludedApplications`/`IncludedApplications` в
+     * секцию [Interface] готового .conf. Режимы:
+     *  - excluded=true (по умолч.): перечисленные приложения идут МИМО туннеля (напр. банки/госуслуги,
+     *    которые режут загран-IP); остальной трафик — в туннеле.
+     *  - excluded=false: в туннель идут ТОЛЬКО перечисленные, всё остальное — напрямую (обратный режим).
+     * Оба ключа известны парсеру форка (BadConfigException.EXCLUDED/INCLUDED_APPLICATIONS) и применяются
+     * GoBackend через VpnService.Builder.{exclude,include}Applications. Пустой список — конфиг НЕ трогаем
+     * (весь трафик в туннеле — безопасно by default). Вставляем строку сразу после [Interface] — так
+     * гарантированно в нужной секции (не в [Peer]). Пустые/дублирующиеся package-имена отбрасываем.
+     */
+    fun withSplitTunnel(conf: String, packages: List<String>, excluded: Boolean = true): String {
+        val pkgs = packages.map { it.trim() }.filter { it.isNotEmpty() }.distinct()
+        if (pkgs.isEmpty()) return conf
+        val key = if (excluded) "ExcludedApplications" else "IncludedApplications"
+        return buildString {
+            for (line in conf.lineSequence()) {
+                appendLine(line)
+                if (line.trim() == "[Interface]") {
+                    appendLine("$key = ${pkgs.joinToString(", ")}")
+                }
+            }
+        }.trimEnd('\n') + "\n"
+    }
 }

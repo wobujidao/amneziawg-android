@@ -13,6 +13,7 @@ import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.launch
 import org.amnezia.awg.R
 import org.amnezia.awg.activity.LogViewerActivity
+import org.amnezia.awg.fragment.AppListDialogFragment
 import org.amnezia.awg.mayak.core.HostProvider
 import org.amnezia.awg.mayak.core.MayakApiException
 import org.amnezia.awg.mayak.core.MayakBackend
@@ -56,6 +57,24 @@ class MayakSettingsActivity : AppCompatActivity() {
             Toast.makeText(this, R.string.mayak_settings_ipv6_applied, Toast.LENGTH_SHORT).show()
         }
 
+        // Split-туннель (SPEC-0018 F1): кнопка открывает диалог выбора приложений. Переиспользуем
+        // upstream AppListDialogFragment (список интернет-приложений + вкладки исключить/включить),
+        // результат сохраняем в MayakPrefs — применится при следующем коннекте (prepareConf).
+        val splitButton = findViewById<MaterialButton>(R.id.mayak_settings_split)
+        updateSplitButton(splitButton)
+        supportFragmentManager.setFragmentResultListener(AppListDialogFragment.REQUEST_SELECTION, this) { _, bundle ->
+            val apps = bundle.getStringArray(AppListDialogFragment.KEY_SELECTED_APPS)?.toSet() ?: emptySet()
+            val excluded = bundle.getBoolean(AppListDialogFragment.KEY_IS_EXCLUDED, true)
+            MayakPrefs.setSplitApps(this, apps, excluded)
+            updateSplitButton(splitButton)
+            Toast.makeText(this, R.string.mayak_settings_split_applied, Toast.LENGTH_SHORT).show()
+        }
+        splitButton.setOnClickListener {
+            val current = ArrayList<String?>(MayakPrefs.splitApps(this))
+            AppListDialogFragment.newInstance(current, MayakPrefs.splitExcluded(this))
+                .show(supportFragmentManager, null)
+        }
+
         val group = findViewById<RadioGroup>(R.id.mayak_theme_group)
         // Отметим текущий режим без срабатывания листенера.
         when (MayakPrefs.themeMode(this)) {
@@ -74,6 +93,13 @@ class MayakSettingsActivity : AppCompatActivity() {
                 // setDefaultNightMode пересоздаст активити с новой темой.
             }
         }
+    }
+
+    /** Текст кнопки split-туннеля: без выбора — общее название, иначе со счётчиком выбранных приложений. */
+    private fun updateSplitButton(button: MaterialButton) {
+        val n = MayakPrefs.splitApps(this).size
+        button.text = if (n == 0) getString(R.string.mayak_settings_split)
+        else getString(R.string.mayak_settings_split_count, n)
     }
 
     /**

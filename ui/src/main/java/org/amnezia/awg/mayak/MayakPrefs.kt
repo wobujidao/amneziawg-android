@@ -16,6 +16,8 @@ object MayakPrefs {
     private const val KEY_UPDATE_DISMISSED = "update_dismissed_code" // versionCode, для которого нажали «Позже»
     private const val KEY_USE_IPV6 = "use_ipv6" // тумблер «использовать IPv6 в туннеле» (по умолч. ВКЛ)
     private const val KEY_SHOW_SPEED = "show_speed" // тумблер «показывать скорость передачи» (по умолч. ВЫКЛ)
+    private const val KEY_SPLIT_APPS = "split_apps" // split-туннель: package-имена приложений (StringSet)
+    private const val KEY_SPLIT_EXCLUDED = "split_excluded" // split-туннель: true=исключить эти, false=только эти
 
     /** Использовать ли IPv6 в туннеле (SPEC-0014). По умолчанию ВКЛ — польза; выключается в настройках
      *  («Не использовать IPv6»). При выкл клиент срезает v6 из конфига (ConfRenderer.stripIpv6). */
@@ -32,6 +34,24 @@ object MayakPrefs {
 
     fun setShowSpeed(context: Context, enabled: Boolean) {
         prefs(context).edit().putBoolean(KEY_SHOW_SPEED, enabled).apply()
+    }
+
+    /** Split-туннель (SPEC-0018 F1): package-имена приложений, которые идут МИМО туннеля (excluded=true,
+     *  по умолч.) — напр. банки/госуслуги, режущие загран-IP. Пусто = весь трафик в туннеле (безопасно
+     *  by default). При excluded=false — наоборот, в туннель идут ТОЛЬКО эти. Применяется при коннекте
+     *  (ConfRenderer.withSplitTunnel). Возвращаем КОПИЮ (getStringSet отдаёт живой набор — нельзя мутировать). */
+    fun splitApps(context: Context): Set<String> =
+        prefs(context).getStringSet(KEY_SPLIT_APPS, emptySet())?.toSet() ?: emptySet()
+
+    /** true (по умолч.) — выбранные приложения ИСКЛЮЧЕНЫ из туннеля; false — только они В туннеле. */
+    fun splitExcluded(context: Context): Boolean =
+        prefs(context).getBoolean(KEY_SPLIT_EXCLUDED, true)
+
+    fun setSplitApps(context: Context, apps: Set<String>, excluded: Boolean) {
+        prefs(context).edit()
+            .putStringSet(KEY_SPLIT_APPS, apps)
+            .putBoolean(KEY_SPLIT_EXCLUDED, excluded)
+            .apply()
     }
 
     /** versionCode, обновление до которого пользователь отклонил («Позже») — чтобы не долбить каждый запуск. */

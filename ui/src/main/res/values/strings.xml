@@ -141,6 +141,10 @@
     <string name="mayak_settings_ipv6">Use IPv6</string>
     <string name="mayak_settings_ipv6_hint">Brings IPv6 through the tunnel where your carrier doesn\'t give it. The IPv6 badge lights up only when it really works. Turn off if it causes issues.</string>
     <string name="mayak_settings_ipv6_applied">Applies on the next connection</string>
+    <string name="mayak_settings_split">Split tunneling</string>
+    <string name="mayak_settings_split_count">Split tunneling (%1$d)</string>
+    <string name="mayak_settings_split_hint">Choose apps that go around the VPN over your real IP (e.g. banking, government apps that block foreign IPs). Everything else stays protected. Selected apps are intentionally outside the tunnel — add only what you need.</string>
+    <string name="mayak_settings_split_applied">Applies on the next connection</string>
     <string name="mayak_ipv6_badge">IPv6</string>
     <string name="mayak_settings_diagnostics">Diagnostics &amp; help</string>
     <string name="mayak_settings_diag_hint">If something isn\'t working, send us the log — it lets us find the cause fast. Data is processed per the privacy policy.</string>

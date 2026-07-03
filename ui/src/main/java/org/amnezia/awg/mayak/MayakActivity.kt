@@ -623,7 +623,7 @@ class MayakActivity : AppCompatActivity() {
                 // поэтому пробу egress повторяем несколько раз, прежде чем сдаться.
                 if (direct != null) {
                     GoTunnel.connectedServerHost = MayakPing.hostOf(paths.directEndpoint) // сервер для пинга
-                    tunnel.up(maybeStripIpv6(direct))
+                    tunnel.up(prepareConf(direct))
                     setStatus(getString(R.string.mayak_status_probing))
                     val ip = probeWithRetry()
                     if (ip != null) { onConnected(ip); return@launch }
@@ -633,7 +633,7 @@ class MayakActivity : AppCompatActivity() {
                 // Резерв: прямого не было вовсе или он не прошёл пробу.
                 if (direct != null) setStatus(getString(R.string.mayak_status_relay_switch))
                 GoTunnel.connectedServerHost = MayakPing.hostOf(paths.relayEndpoint) // сервер для пинга
-                tunnel.up(maybeStripIpv6(relay))
+                tunnel.up(prepareConf(relay))
                 val ip = probeWithRetry()
                 if (ip != null) onConnected(ip) else fail(getString(R.string.mayak_status_no_egress))
             } catch (e: kotlinx.coroutines.CancellationException) {
@@ -656,6 +656,16 @@ class MayakActivity : AppCompatActivity() {
      *  туннеля (без ::/0 → IPv6 идёт мимо туннеля, значок не зажигается). По умолч. IPv6 ВКЛ. */
     private fun maybeStripIpv6(conf: String): String =
         if (MayakPrefs.useIpv6(this)) conf else org.amnezia.awg.mayak.core.ConfRenderer.stripIpv6(conf)
+
+    /** Готовит .conf к подъёму туннеля: сначала IPv6-тумблер (SPEC-0014), затем split-туннель
+     *  (SPEC-0018 F1 — выбранные приложения мимо/только-в туннель). Оба — трансформы строки конфига
+     *  из настроек пользователя; применяются к обоим плечам (direct/relay). Пустой список split — no-op. */
+    private fun prepareConf(conf: String): String =
+        org.amnezia.awg.mayak.core.ConfRenderer.withSplitTunnel(
+            maybeStripIpv6(conf),
+            MayakPrefs.splitApps(this).toList(),
+            MayakPrefs.splitExcluded(this),
+        )
 
     /** Фоновая IPv6-проба выхода после коннекта: значок «IPv6» зажигаем ТОЛЬКО при реальном egress
      *  (api6.ipify.org вернул адрес). Не блокирует коннект (v4 уже подтверждён). Честно (SPEC-0014). */
