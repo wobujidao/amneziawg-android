@@ -43,7 +43,13 @@ class HostProvider(baseUrls: List<String>) {
 class MayakBackend(
     private val hosts: HostProvider,
     private val json: Json = defaultJson,
-    private val connectTimeoutMs: Int = 10_000,
+    // connectTimeout — ТОЛЬКО TCP-хендшейк (не ответ сервера). Держим коротким для БЫСТРОГО фейловера:
+    // заблокированный/недостижимый IP ядра даёт connect-таймаут, и при 10с перебор N доменов = N×10с
+    // (инцидент 2026-07-05: «недоступен (2)» = ~20с зависания). 5с достаточно даже для медленной РФ-сотовой
+    // (TCP-connect к ЖИВОМУ хосту обычно <2-3с), но втрое ускоряет уход с мёртвого домена (best-practice
+    // fast-failover, ресёрч 2026-07-05 control-channel-resilience). readTimeout выше — ответ ядра/прокси
+    // может быть медленнее хендшейка.
+    private val connectTimeoutMs: Int = 5_000,
     private val readTimeoutMs: Int = 15_000,
 ) {
     companion object {
