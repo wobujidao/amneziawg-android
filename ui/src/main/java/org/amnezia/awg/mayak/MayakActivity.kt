@@ -522,7 +522,11 @@ class MayakActivity : AppCompatActivity() {
         }
         val lastId = MayakPrefs.lastDirectionId(this@MayakActivity)
         val initial = dirs.firstOrNull { it.id == lastId } ?: dirs.first()
-        selectDir(initial)
+        // На живом туннеле после пересоздания Activity (смена темы) connectedDir сброшен (instance-поле) —
+        // восстанавливаем его из выбора (это и есть подключённая страна), иначе пассивный selectDir принял
+        // бы живую страну за «другую» и, будь он userInitiated, дёрнул бы switchTo.
+        if (connState == ConnState.CONNECTED && connectedDir == null) connectedDir = initial
+        selectDir(initial, userInitiated = false) // пассивно: без сети, без переподключения (тема молчит)
         if (connState == ConnState.DISCONNECTED) {
             setStatus(getString(R.string.mayak_status_disconnected))
         }
@@ -542,17 +546,26 @@ class MayakActivity : AppCompatActivity() {
         return row
     }
 
-    /** Выбрать страну: подсветить строку, запомнить выбор. Не подключает. */
-    private fun selectDir(d: Direction) {
+    /**
+     * Выбрать страну: подсветить строку, запомнить выбор. Не подключает.
+     * userInitiated=true — реальный тап: греем /connect-кэш и, на живом туннеле, авто-переключаемся на
+     * выбранную страну. userInitiated=false — пассивное восстановление выбора при пересоздании Activity
+     * (смена темы/языка): НИКАКОЙ сети и НИКАКОГО переподключения (баг владельца 2026-07-06 — смена темы
+     * дёргала /connect, а на живом туннеле рвала его через switchTo, т.к. connectedDir сбрасывался).
+     */
+    private fun selectDir(d: Direction, userInitiated: Boolean = true) {
         selectedDir = d
         MayakPrefs.setLastDirectionId(this, d.id)
         networkBg?.setExitByName(d.name) // дуга-маршрут на карте указывает на выбранную страну
-        // ПРЕДЗАГРУЗКА конфига /connect заранее (тёплый кэш к моменту коннекта). M4: отменяем предыдущую
-        // предзагрузку — быстрое переключение стран не плодит параллельные /connect. Кэш живёт в session
-        // (переживает смену темы) → если он уже тёплый, повторно /connect НЕ гоняем (смена темы молчит).
-        preloadJob?.cancel()
-        preloadJob = backend?.takeIf { !session.hasCachedConnect(d.id) }
-            ?.let { b -> lifecycleScope.launch { runCatching { session.preloadConnect(b, d) } } }
+        // ПРЕДЗАГРУЗКА конфига /connect (DPI: тёплый кэш к моменту коннекта). Греем по реальному тапу ИЛИ
+        // один раз за процесс при первом входе на главный — но НЕ на пересоздании Activity (смена темы
+        // молчит: userInitiated=false и homeWarmedThisProcess уже true). M4: отменяем предыдущую предзагрузку.
+        if (userInitiated || !homeWarmedThisProcess) {
+            homeWarmedThisProcess = true
+            preloadJob?.cancel()
+            preloadJob = backend?.takeIf { !session.hasCachedConnect(d.id) }
+                ?.let { b -> lifecycleScope.launch { runCatching { session.preloadConnect(b, d) } } }
+        }
         for (row in rowViews) {
             val isSel = (row.tag as? Long) == d.id
             row.setBackgroundResource(if (isSel) R.drawable.mayak_row_selected else android.R.color.transparent)
@@ -562,8 +575,9 @@ class MayakActivity : AppCompatActivity() {
             }
         }
         // Выбор ДРУГОЙ страны на живом туннеле → авто-переподключение на неё (раньше выбор не переключал,
-        // и юзер оставался на прежней стране — баг из фидбека владельца 2026-07-02).
-        if (connState == ConnState.CONNECTED && connectedDir?.id != d.id) switchTo(d)
+        // и юзер оставался на прежней стране — баг из фидбека владельца 2026-07-02). ТОЛЬКО по реальному
+        // тапу: пассивное восстановление при смене темы не должно рвать живой туннель.
+        if (userInitiated && connState == ConnState.CONNECTED && connectedDir?.id != d.id) switchTo(d)
     }
 
     /** Переключение страны на живом туннеле: гасим текущий туннель и поднимаем к выбранной стране. */
@@ -1158,6 +1172,10 @@ class MayakActivity : AppCompatActivity() {
 
         // Проверку обновления делаем раз на запуск процесса (пересоздание Activity — смена темы — не дёргает).
         @Volatile private var updateCheckedThisProcess = false
+
+        // Тёплый /connect-кэш (DPI: не дёргать api.mayakvpn.ru рядом с хендшейком) греем один раз за процесс
+        // при первом входе на главный. Пересоздание Activity (смена темы) уже НЕ греет (баг владельца 2026-07-06).
+        @Volatile private var homeWarmedThisProcess = false
 
         // Свежесть кэша направлений: в пределах TTL пересоздание Activity (смена темы) НЕ рефетчит
         // список из сети; спустя TTL переоткрытие приложения дотягивает свежий (новые направления
