@@ -160,7 +160,8 @@ class NetworkBackgroundView @JvmOverloads constructor(
         // дуга-маршрут
         val mx = (ax + bx) / 2f
         val my = (ay + by) / 2f - hypot(bx - ax, by - ay) * 0.28f
-        faintPaint.color = cRoute; faintPaint.alpha = 26; faintPaint.strokeWidth = 3f
+        // базовая дуга видна ВСЕГДА (муть-золото), даже без подключения — «вот куда идёт трафик»
+        faintPaint.color = cRoute; faintPaint.alpha = if (connected) 90 else 130; faintPaint.strokeWidth = 3f
         path.reset(); path.moveTo(ax, ay); path.quadTo(mx, my, bx, by)
         canvas.drawPath(path, faintPaint)
         if (prog > 0f) {
@@ -184,13 +185,14 @@ class NetworkBackgroundView @JvmOverloads constructor(
                 canvas.drawCircle(x, y, 5f, glowPaint)
             }
         }
-        // узлы
+        // узлы: устройство (светлая/тёмная точка) + выход (золото) — оба видны ВСЕГДА
         devPaint.style = Paint.Style.FILL
         canvas.drawCircle(ax, ay, 4f, devPaint)
-        if (connected && prog > 0.9f) {
-            glowPaint.style = Paint.Style.FILL
-            canvas.drawCircle(bx, by, 4.5f, glowPaint)
-        }
+        glowPaint.style = Paint.Style.FILL
+        val onExit = connected && prog > 0.9f
+        glowPaint.alpha = if (onExit) 255 else 175
+        canvas.drawCircle(bx, by, if (onExit) 5f else 4f, glowPaint)
+        glowPaint.alpha = 255
     }
 
     private val frameTick = object : Runnable {
