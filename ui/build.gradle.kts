@@ -21,9 +21,14 @@ android {
         dataBinding = true
         viewBinding = true
     }
+    // namespace (пакет исходников/R/BuildConfig) остаётся org.amnezia.awg — код на него завязан.
     namespace = pkg
     defaultConfig {
-        applicationId = pkg
+        // applicationId (идентификатор УСТАНОВЛЕННОГО приложения — светится в диалоге VPN и системе)
+        // отвязан от namespace: убираем «amnezia» из видимого пакета (бренд + анти-фингерпринт РКН,
+        // 2026-07-06 по запросу владельца). Код уже поддерживает applicationId ≠ namespace (debug-вариант,
+        // MayakDisguise через context.packageName, FileProvider authority = ${applicationId}).
+        applicationId = providers.gradleProperty("mayakApplicationId").get()
         targetSdk = 35
         // Версия ПРИЛОЖЕНИЯ Маяк (наша, не движка AmneziaWG). См. gradle.properties / CHANGELOG.md.
         versionCode = providers.gradleProperty("mayakVersionCode").get().toInt()
