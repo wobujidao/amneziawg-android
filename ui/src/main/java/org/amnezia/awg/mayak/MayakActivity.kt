@@ -7,6 +7,7 @@ package org.amnezia.awg.mayak
 
 import android.Manifest
 import android.animation.ObjectAnimator
+import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
@@ -414,6 +415,18 @@ class MayakActivity : AppCompatActivity() {
             pressSqueeze(v)
             toggleConnect()
         }
+
+        // Тап по статусу/таймеру (когда подключены) → лист «Подробности подключения» с IP/пингом/
+        // сервером (правка владельца: IP убрали с главного, показываем по запросу в окне).
+        val openDetails = View.OnClickListener {
+            if (connState == ConnState.CONNECTED) {
+                it.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                showConnectionDetails()
+            }
+        }
+        status.setOnClickListener(openDetails)
+        timerView?.setOnClickListener(openDetails)
+        pingView?.setOnClickListener(openDetails)
 
         // Восстанавливаем состояние круга после пересоздания Activity (смена темы/языка, возврат
         // в приложение при живом туннеле). tunnel.isUp() честен — backend процесс-скоупный (GoTunnel),
@@ -1042,6 +1055,71 @@ class MayakActivity : AppCompatActivity() {
     private fun clipboardText(): String? {
         val cm = getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager ?: return null
         return cm.primaryClip?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.text?.toString()
+    }
+
+    private fun copyToClipboard(label: String, text: String) {
+        val cm = getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager ?: return
+        cm.setPrimaryClip(ClipData.newPlainText(label, text))
+        Toast.makeText(this, getString(R.string.mayak_details_copied), Toast.LENGTH_SHORT).show()
+    }
+
+    /**
+     * Лист «Подробности подключения» (тап по статусу/таймеру при активном туннеле). Собирает данные из
+     * GoTunnel (процесс-скоупные: IP/пинг/сервер/момент коннекта переживают пересоздание Activity) —
+     * поэтому окно корректно и после смены темы/переоткрытия. IP-адреса живут здесь (их убрали с главного).
+     */
+    private fun showConnectionDetails() {
+        if (connState != ConnState.CONNECTED) return
+        val view = layoutInflater.inflate(R.layout.sheet_mayak_connection_details, null)
+        val sheet = com.google.android.material.bottomsheet.BottomSheetDialog(this)
+        sheet.setContentView(view)
+
+        // Направление: флаг + название (живого туннеля, иначе выбранного)
+        val d = connectedDir ?: selectedDir
+        val flag = view.findViewById<ImageView>(R.id.mayak_det_flag)
+        val dirText = view.findViewById<TextView>(R.id.mayak_det_direction)
+        if (d != null) {
+            flag.setImageResource(MayakFlags.drawableForCode(d.code)); flag.visibility = View.VISIBLE
+            dirText.text = d.displayLabel()
+        } else {
+            flag.visibility = View.GONE
+            dirText.text = GoTunnel.connectedLabel ?: "—"
+        }
+
+        // Пинг (цвет по порогам, как на главном)
+        val pingText = view.findViewById<TextView>(R.id.mayak_det_ping)
+        val ms = GoTunnel.connectedPingMs
+        if (ms != null) {
+            pingText.text = getString(R.string.mayak_ping_label, ms)
+            pingText.setTextColor(pingColor(ms))
+        } else pingText.text = getString(R.string.mayak_ping_label_na)
+
+        // Время сессии — от фактического момента НАШЕГО коннекта (переживает пересоздание Activity)
+        val since = GoTunnel.connectedSinceElapsed ?: SystemClock.elapsedRealtime()
+        val secs = (SystemClock.elapsedRealtime() - since) / 1000
+        view.findViewById<TextView>(R.id.mayak_det_session).text = formatDuration(secs)
+
+        // IPv4 (+ копирование)
+        val v4 = GoTunnel.egressIpv4
+        view.findViewById<TextView>(R.id.mayak_det_ipv4).text = v4 ?: "—"
+        view.findViewById<View>(R.id.mayak_det_ipv4_copy).apply {
+            if (v4 != null) setOnClickListener { copyToClipboard("IPv4", v4) } else visibility = View.GONE
+        }
+
+        // IPv6 — только когда реально работает через туннель (честно); иначе строку прячем
+        val v6 = GoTunnel.egressIpv6
+        if (v6 != null) {
+            view.findViewById<TextView>(R.id.mayak_det_ipv6).text = v6
+            view.findViewById<View>(R.id.mayak_det_ipv6_copy).setOnClickListener { copyToClipboard("IPv6", v6) }
+        } else {
+            view.findViewById<View>(R.id.mayak_det_ipv6_row).visibility = View.GONE
+            view.findViewById<View>(R.id.mayak_det_ipv6_divider).visibility = View.GONE
+        }
+
+        // Сервер (хост текущего подключения)
+        view.findViewById<TextView>(R.id.mayak_det_server).text = GoTunnel.connectedServerHost ?: "—"
+
+        sheet.show()
     }
 
     private fun setStatus(text: String) = runOnUiThread {

@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Нижний лист «Подробности подключения»: открывается по тапу на статус/таймер, когда подключены.
+     Показывает направление, пинг, выходные IPv4/IPv6 (их убрали с главного экрана — правка владельца),
+     время сессии и сервер. IP-строки можно скопировать. Строки без данных прячутся кодом. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@color/mayak_bg"
+    android:paddingStart="24dp"
+    android:paddingEnd="24dp"
+    android:paddingTop="10dp"
+    android:paddingBottom="28dp">
+
+    <!-- Хваталка листа -->
+    <View
+        android:layout_width="36dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/mayak_sheet_grabber" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:text="@string/mayak_details_title"
+        android:textColor="@color/mayak_on_bg"
+        android:textSize="20sp"
+        android:textStyle="bold" />
+
+    <!-- Направление (флаг + страна) -->
+    <LinearLayout
+        android:id="@+id/mayak_det_direction_row"
+        style="@style/Mayak.DetailRow">
+        <LinearLayout style="@style/Mayak.DetailRow.TextCol">
+            <TextView style="@style/Mayak.DetailRow.Label" android:text="@string/mayak_details_direction" />
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+                <ImageView
+                    android:id="@+id/mayak_det_flag"
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:layout_marginEnd="8dp"
+                    android:importantForAccessibility="no" />
+                <TextView
+                    android:id="@+id/mayak_det_direction"
+                    style="@style/Mayak.DetailRow.Value"
+                    tools:ignore="HardcodedText"
+                    android:text="—" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+
+    <View style="@style/Mayak.DetailRow.Divider" />
+
+    <!-- Пинг -->
+    <LinearLayout android:id="@+id/mayak_det_ping_row" style="@style/Mayak.DetailRow">
+        <LinearLayout style="@style/Mayak.DetailRow.TextCol">
+            <TextView style="@style/Mayak.DetailRow.Label" android:text="@string/mayak_details_ping" />
+            <TextView android:id="@+id/mayak_det_ping" style="@style/Mayak.DetailRow.Value" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <View style="@style/Mayak.DetailRow.Divider" />
+
+    <!-- Время сессии -->
+    <LinearLayout android:id="@+id/mayak_det_session_row" style="@style/Mayak.DetailRow">
+        <LinearLayout style="@style/Mayak.DetailRow.TextCol">
+            <TextView style="@style/Mayak.DetailRow.Label" android:text="@string/mayak_details_session" />
+            <TextView android:id="@+id/mayak_det_session" style="@style/Mayak.DetailRow.Value" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <View style="@style/Mayak.DetailRow.Divider" />
+
+    <!-- IPv4 (с копированием) -->
+    <LinearLayout android:id="@+id/mayak_det_ipv4_row" style="@style/Mayak.DetailRow">
+        <LinearLayout style="@style/Mayak.DetailRow.TextCol">
+            <TextView style="@style/Mayak.DetailRow.Label" android:text="@string/mayak_details_ipv4" />
+            <TextView android:id="@+id/mayak_det_ipv4" style="@style/Mayak.DetailRow.Value.Mono" />
+        </LinearLayout>
+        <ImageButton
+            android:id="@+id/mayak_det_ipv4_copy"
+            style="@style/Mayak.DetailRow.Copy"
+            android:contentDescription="@string/mayak_details_copy" />
+    </LinearLayout>
+
+    <View android:id="@+id/mayak_det_ipv6_divider" style="@style/Mayak.DetailRow.Divider" />
+
+    <!-- IPv6 (только когда реально работает; с копированием) -->
+    <LinearLayout android:id="@+id/mayak_det_ipv6_row" style="@style/Mayak.DetailRow">
+        <LinearLayout style="@style/Mayak.DetailRow.TextCol">
+            <TextView style="@style/Mayak.DetailRow.Label" android:text="@string/mayak_details_ipv6" />
+            <TextView android:id="@+id/mayak_det_ipv6" style="@style/Mayak.DetailRow.Value.Mono" />
+        </LinearLayout>
+        <ImageButton
+            android:id="@+id/mayak_det_ipv6_copy"
+            style="@style/Mayak.DetailRow.Copy"
+            android:contentDescription="@string/mayak_details_copy" />
+    </LinearLayout>
+
+    <View android:id="@+id/mayak_det_server_divider" style="@style/Mayak.DetailRow.Divider" />
+
+    <!-- Сервер -->
+    <LinearLayout android:id="@+id/mayak_det_server_row" style="@style/Mayak.DetailRow">
+        <LinearLayout style="@style/Mayak.DetailRow.TextCol">
+            <TextView style="@style/Mayak.DetailRow.Label" android:text="@string/mayak_details_server" />
+            <TextView android:id="@+id/mayak_det_server" style="@style/Mayak.DetailRow.Value.Mono" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>
