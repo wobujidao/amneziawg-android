@@ -9,6 +9,10 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.kapt)
+    // kotlinx-serialization: нужен, т.к. в :ui есть @Serializable-классы (Paths/PersistedEntry для
+    // offline-кэша конфига). Без плагина serializer НЕ генерится → runtime SerializationException на
+    // старте (краш «не запускается», 2026-07-06). В :core плагин уже есть — здесь добавляем для :ui.
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
