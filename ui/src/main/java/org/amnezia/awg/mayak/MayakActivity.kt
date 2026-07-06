@@ -612,7 +612,15 @@ class MayakActivity : AppCompatActivity() {
                 // Конфиг берём из ПРЕДЗАГРУЖЕННОГО кэша (наполняется при выборе страны), чтобы в момент
                 // подключения НЕ дёргать api.mayakvpn.ru: РФ-DPI (сотовая) палит наш VPN-домен в TLS/DNS
                 // рядом с хендшейком и режет туннель. См. memory mobile-dpi-api-domain-leak-2026-06-28.
-                val paths = session.takeCachedConnect(d.id) ?: session.connect(b, d) // M4: одноразово (нет переиспользования устаревшего)
+                val paths = try {
+                    session.takeCachedConnect(d.id) ?: session.connect(b, d) // M4: одноразово (нет переиспользования устаревшего)
+                } catch (e: NoReachableHostException) {
+                    // Ядро недоступно (SPOF-инцидент 2026-07-05) → поднимаем последний РАБОЧИЙ конфиг с диска.
+                    // Туннель идёт устройство→ЭКЗИТ, ядро лишь ВЫДАЁТ конфиг → при живом экзите сохранённого хватит.
+                    val lastGood = session.lastGoodPaths(d.id) ?: throw e // нет сохранённого → честно «Ядро недоступно»
+                    setStatus(getString(R.string.mayak_status_offline_lastgood, d.name))
+                    lastGood
+                }
                 val direct = paths.directConf
                 val relay = paths.relayConf
                 if (direct == null && relay == null) {
@@ -626,7 +634,7 @@ class MayakActivity : AppCompatActivity() {
                     tunnel.up(prepareConf(direct))
                     setStatus(getString(R.string.mayak_status_probing))
                     val ip = probeWithRetry()
-                    if (ip != null) { onConnected(ip); return@launch }
+                    if (ip != null) { session.rememberWorking(d.id, paths); onConnected(ip); return@launch }
                 }
 
                 if (relay == null) { fail(getString(R.string.mayak_status_no_egress)); return@launch }
@@ -635,7 +643,7 @@ class MayakActivity : AppCompatActivity() {
                 GoTunnel.connectedServerHost = MayakPing.hostOf(paths.relayEndpoint) // сервер для пинга
                 tunnel.up(prepareConf(relay))
                 val ip = probeWithRetry()
-                if (ip != null) onConnected(ip) else fail(getString(R.string.mayak_status_no_egress))
+                if (ip != null) { session.rememberWorking(d.id, paths); onConnected(ip) } else fail(getString(R.string.mayak_status_no_egress))
             } catch (e: kotlinx.coroutines.CancellationException) {
                 // пользователь отменил подключение (тап по кнопке) — гасим туннель, БЕЗ ошибки/инвалидации.
                 runCatching { tunnel.down() }

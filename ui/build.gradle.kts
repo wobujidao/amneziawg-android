@@ -9,6 +9,10 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.kapt)
+    // kotlinx-serialization: нужен, т.к. в :ui есть @Serializable-классы (Paths/PersistedEntry для
+    // offline-кэша конфига). Без плагина serializer НЕ генерится → runtime SerializationException на
+    // старте (краш «не запускается», 2026-07-06). В :core плагин уже есть — здесь добавляем для :ui.
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -17,9 +21,14 @@ android {
         dataBinding = true
         viewBinding = true
     }
+    // namespace (пакет исходников/R/BuildConfig) остаётся org.amnezia.awg — код на него завязан.
     namespace = pkg
     defaultConfig {
-        applicationId = pkg
+        // applicationId (идентификатор УСТАНОВЛЕННОГО приложения — светится в диалоге VPN и системе)
+        // отвязан от namespace: убираем «amnezia» из видимого пакета (бренд + анти-фингерпринт РКН,
+        // 2026-07-06 по запросу владельца). Код уже поддерживает applicationId ≠ namespace (debug-вариант,
+        // MayakDisguise через context.packageName, FileProvider authority = ${applicationId}).
+        applicationId = providers.gradleProperty("mayakApplicationId").get()
         targetSdk = 35
         // Версия ПРИЛОЖЕНИЯ Маяк (наша, не движка AmneziaWG). См. gradle.properties / CHANGELOG.md.
         versionCode = providers.gradleProperty("mayakVersionCode").get().toInt()
@@ -45,9 +54,15 @@ android {
     }
     buildTypes {
         release {
-            isMinifyEnabled = true
-            isShrinkResources = true
-            proguardFiles("proguard-android-optimize.txt")
+            // БЕЗ signingConfig в gradle → assembleRelease даёт unsigned APK, а CI подписывает его
+            // ЗАЩИЩЁННЫМ релиз-ключом из секретов (ANDROID_KEYSTORE_BASE64, не в репозитории — mayak-debug.p12
+            // публичен и утёк в GitGuardian, для релиза больше НЕ используем). См. .github/workflows/build.yml.
+            // minify/shrink ВЫКЛ: текущее прод-приложение не минифицировано; R8 + сериализация в релизе не
+            // проверены — не рискуем на этой сборке (включим minify отдельно после теста). Правила в
+            // proguard-rules.pro оставлены на будущее (при minify=false игнорируются).
+            isMinifyEnabled = false
+            isShrinkResources = false
+            proguardFiles("proguard-android-optimize.txt", "proguard-rules.pro")
             packaging {
                 resources {
                     excludes += "DebugProbesKt.bin"
