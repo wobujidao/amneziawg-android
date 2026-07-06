@@ -144,55 +144,8 @@ class NetworkBackgroundView @JvmOverloads constructor(
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
+        // Только точечная КАРТА МИРА (по правке владельца: линию-маршрут убрали — её не было видно за кнопкой).
         staticLayer?.let { canvas.drawBitmap(it, 0f, 0f, null) }
-        val w = width; val h = height
-        if (w <= 0 || h <= 0) return
-        val ax = dev[0] * w; val ay = mapY(dev[1]) * h
-        val bx = exit[0] * w; val by = mapY(exit[1]) * h
-        val prog = if (connected) routeProg else 0f
-
-        // подсветка точек у выхода (только при подключении)
-        if (connected && prog > 0.9f) {
-            litPaint.style = Paint.Style.FILL
-            for (d in litDots) canvas.drawCircle(d.x, d.y, 2f, litPaint)
-        }
-
-        // дуга-маршрут
-        val mx = (ax + bx) / 2f
-        val my = (ay + by) / 2f - hypot(bx - ax, by - ay) * 0.28f
-        // базовая дуга видна ВСЕГДА (муть-золото), даже без подключения — «вот куда идёт трафик»
-        faintPaint.color = cRoute; faintPaint.alpha = if (connected) 90 else 130; faintPaint.strokeWidth = 3f
-        path.reset(); path.moveTo(ax, ay); path.quadTo(mx, my, bx, by)
-        canvas.drawPath(path, faintPaint)
-        if (prog > 0f) {
-            routePaint.color = cRoute; routePaint.alpha = 235; routePaint.strokeWidth = 3.5f
-            val n = (64 * prog).toInt()
-            path.reset()
-            for (i in 0..n) {
-                val s = i / 64f
-                val u = 1 - s
-                val x = u * u * ax + 2 * u * s * mx + s * s * bx
-                val y = u * u * ay + 2 * u * s * my + s * s * by
-                if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
-            }
-            canvas.drawPath(path, routePaint)
-            // бегущий импульс
-            if (prog >= 1f && !reducedMotion()) {
-                val s = ((SystemClock.uptimeMillis() % 1400) / 1400f)
-                val u = 1 - s
-                val x = u * u * ax + 2 * u * s * mx + s * s * bx
-                val y = u * u * ay + 2 * u * s * my + s * s * by
-                canvas.drawCircle(x, y, 5f, glowPaint)
-            }
-        }
-        // узлы: устройство (светлая/тёмная точка) + выход (золото) — оба видны ВСЕГДА
-        devPaint.style = Paint.Style.FILL
-        canvas.drawCircle(ax, ay, 4f, devPaint)
-        glowPaint.style = Paint.Style.FILL
-        val onExit = connected && prog > 0.9f
-        glowPaint.alpha = if (onExit) 255 else 175
-        canvas.drawCircle(bx, by, if (onExit) 5f else 4f, glowPaint)
-        glowPaint.alpha = 255
     }
 
     private val frameTick = object : Runnable {
@@ -204,11 +157,7 @@ class NetworkBackgroundView @JvmOverloads constructor(
         }
     }
 
-    fun startAnimation() {
-        if (running) return
-        running = true
-        if (!reducedMotion()) postOnAnimation(frameTick) else invalidate()
-    }
+    fun startAnimation() { invalidate() } // карта статична — постоянная перерисовка не нужна
 
     fun stopAnimation() { running = false; removeCallbacks(frameTick) }
 
