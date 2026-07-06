@@ -298,6 +298,7 @@
     <string name="mayak_status_connected_direct">Подключено (прямой). IP: %1$s</string>
     <string name="mayak_status_connected_relay">Подключено (резерв). IP: %1$s</string>
     <string name="mayak_status_relay_switch">Прямой путь заблокирован — переключаюсь на резерв…</string>
+    <string name="mayak_status_offline_lastgood">Ядро недоступно — подключаюсь к %1$s по последнему сохранённому конфигу…</string>
     <string name="mayak_status_no_egress">Оба пути не вышли в интернет</string>
     <string name="mayak_status_disconnected">Отключено</string>
     <string name="mayak_status_cancelled">Подключение отменено</string>

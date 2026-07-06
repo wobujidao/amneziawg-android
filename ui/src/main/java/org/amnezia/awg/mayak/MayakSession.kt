@@ -7,7 +7,9 @@ import android.os.SystemClock
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.serializer
 import org.amnezia.awg.mayak.core.ConfRenderer
 import org.amnezia.awg.mayak.core.Direction
 import org.amnezia.awg.mayak.core.HostProvider
@@ -17,7 +19,9 @@ import org.amnezia.awg.mayak.core.MayakBackend
 import org.amnezia.awg.mayak.core.SecureStore
 
 /** Готовые конфиги на выбранное направление: прямой (обязателен) + резервный (если ядро дало).
- *  *Endpoint — «IP:port» сервера соответствующего пути (после DoH-резолва) для пинга текущего подключения. */
+ *  *Endpoint — «IP:port» сервера соответствующего пути (после DoH-резолва) для пинга текущего подключения.
+ *  @Serializable — чтобы сохранять последний РАБОЧИЙ конфиг на диск (offline-фоллбэк при недоступном ядре). */
+@Serializable
 data class Paths(
     val directionName: String,
     val directConf: String?,
@@ -25,6 +29,10 @@ data class Paths(
     val directEndpoint: String? = null,
     val relayEndpoint: String? = null,
 )
+
+/** Сохранённый на диск конфиг + настенная метка времени сохранения (мс) — для offline-фоллбэка. */
+@Serializable
+private data class PersistedPaths(val paths: Paths, val atWallMs: Long)
 
 class MayakSession(
     private val store: SecureStore,
@@ -38,6 +46,19 @@ class MayakSession(
         private const val K_PUB = "pub_key"
         private const val K_DEVICE = "device_id"
         private const val K_DIRS_CACHE = "dirs_cache"
+
+        // Последний УСПЕШНО подключившийся конфиг на диск (offline-фоллбэк): если ядро недоступно
+        // (NoReachableHostException — инцидент SPOF ядра 2026-07-05), поднимаем сохранённый конфиг
+        // ВМЕСТО «Ядро недоступно». Работает, т.к. туннель идёт устройство→ЭКЗИТ, а ядро — лишь выдаёт
+        // конфиг; при живом экзите сохранённого достаточно. Overlay-IP на устройство стабилен (SPEC-0015)
+        // → старый конфиг почти всегда валиден. Шифруется at-rest тем же SecureStore (в .conf есть priv-ключ,
+        // но он и так лежит в K_PRIV того же хранилища → нового секрета на диск не добавляем).
+        private const val K_LAST_GOOD = "last_good_v1"
+
+        // Потолок возраста сохранённого конфига: 7 дней. Старше → не используем (аренда/топология
+        // могли устареть безнадёжно). Фоллбэк только когда ядро реально недоступно — свежий /connect
+        // всегда приоритетен, диск лишь резерв. Метка — НАСТЕННЫЕ часы (переживает ребут/смерть процесса).
+        private const val LAST_GOOD_TTL_MS = 7L * 24 * 60 * 60 * 1000L
 
         // Процесс-скоупный кэш направлений: живёт, пока жив процесс, и ПЕРЕЖИВАЕТ пересоздание
         // Activity (смена темы/языка) — поэтому смена темы больше не дёргает сеть. MayakSession
@@ -64,6 +85,10 @@ class MayakSession(
         private const val CONNECT_CACHE_TTL_MS = 2 * 60 * 60 * 1000L
 
         private val dirsSerializer = ListSerializer(Direction.serializer())
+
+        // Сохранённый конфиг на диск: карта direction_id → запись, одним ключом в SecureStore
+        // (чистый logout: снять один K_LAST_GOOD). Reified serializer<>() — без ручного MapSerializer/Long.
+        private val lastGoodSerializer = serializer<Map<Long, PersistedPaths>>()
     }
 
     // Сериализатор кэша направлений: переиспользуем Json из :core (он же в MayakBackend).
@@ -78,6 +103,7 @@ class MayakSession(
         store.remove(K_TOKEN)
         store.remove(K_EMAIL)
         store.remove(K_DEVICE)
+        store.remove(K_LAST_GOOD) // сохранённый конфиг прошлого пользователя не должен пережить выход
         invalidateDirections() // чужой кэш не должен пережить выход
         // ключи устройства оставляем — это идентичность устройства; токен/девайс перезаведём при логине
     }
@@ -189,6 +215,34 @@ class MayakSession(
         val c = connectCache.remove(directionId) ?: return null
         if (android.os.SystemClock.elapsedRealtime() - c.atElapsed > CONNECT_CACHE_TTL_MS) return null
         return c.paths
+    }
+
+    /**
+     * Запомнить конфиг, который РЕАЛЬНО подключился (вызывать после успешной пробы egress). Сохраняется
+     * на диск (зашифрованно) как offline-фоллбэк: при недоступном ядре поднимем именно его. Обновление
+     * метки при повторном успехе продлевает жизнь конфига. Протухшие (> TTL) отсеиваем при записи.
+     */
+    fun rememberWorking(directionId: Long, paths: Paths) {
+        val now = System.currentTimeMillis()
+        val map = readLastGood().toMutableMap()
+        map[directionId] = PersistedPaths(paths, now)
+        val pruned = map.filterValues { now - it.atWallMs < LAST_GOOD_TTL_MS }
+        runCatching { store.put(K_LAST_GOOD, json.encodeToString(lastGoodSerializer, pruned)) }
+    }
+
+    /**
+     * Последний РАБОЧИЙ конфиг направления с диска (offline-фоллбэк). null — нет сохранённого или он
+     * старше TTL. Использовать ТОЛЬКО когда ядро недоступно (свежий /connect приоритетен всегда).
+     */
+    fun lastGoodPaths(directionId: Long): Paths? {
+        val e = readLastGood()[directionId] ?: return null
+        if (System.currentTimeMillis() - e.atWallMs > LAST_GOOD_TTL_MS) return null
+        return e.paths
+    }
+
+    private fun readLastGood(): Map<Long, PersistedPaths> {
+        val raw = store.get(K_LAST_GOOD) ?: return emptyMap()
+        return runCatching { json.decodeFromString(lastGoodSerializer, raw) }.getOrDefault(emptyMap())
     }
 
     // Если выдача дала FQDN endpoint — резолвим его через DoH (шифрованно, мимо подмены DNS оператором) и
