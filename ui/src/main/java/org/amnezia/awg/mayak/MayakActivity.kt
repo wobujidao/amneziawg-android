@@ -426,7 +426,7 @@ class MayakActivity : AppCompatActivity() {
             // Значок IPv6 + выходные IP персистятся в GoTunnel (процесс-скоупно) → на реоупене восстанавливаем.
             val v6 = GoTunnel.egressIpv6
             setIpv6Badge(v6 != null)
-            if (GoTunnel.egressIpv4 != null) { renderEgress(); ipView?.visibility = View.VISIBLE }
+            if (GoTunnel.egressIpv4 != null) renderEgress() // IP не на главном (в деталях) — mayak_ip скрыт
             MayakNotification.show(this, GoTunnel.connectedLabel, GoTunnel.connectedPingMs, ipv6 = v6 != null) // персист-метка направления
         } else {
             MayakNotification.clear(this)
@@ -726,11 +726,7 @@ class MayakActivity : AppCompatActivity() {
         renderState(ConnState.CONNECTED)
         GoTunnel.egressIpv4 = ip // персистим выходной IPv4 (показ переживает пересоздание Activity)
         // таймер/IP появляются с лёгким fade (не резким visibility).
-        ipView?.let {
-            renderEgress()
-            it.visibility = View.VISIBLE
-            fadeIn(it)
-        }
+        renderEgress() // IP-адреса теперь НЕ на главном (правка владельца: в детали) — mayak_ip остаётся скрытым
         timerView?.let { fadeIn(it) }
         successHaptic()
         startTimer()

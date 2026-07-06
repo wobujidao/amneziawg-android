@@ -160,46 +160,54 @@
                 android:visibility="gone"
                 android:text="" />
 
-            <!-- Пинг до сервера текущего подключения (виден при подключении) -->
-            <TextView
-                android:id="@+id/mayak_ping"
+            <!-- Компактная строка: пинг + значок IPv6 в ОДНУ линию (правка владельца: меньше строк на главном).
+                 Каждый элемент показывается/прячется кодом независимо; при отключении строка схлопывается. -->
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:gravity="center"
-                android:textColor="@color/mayak_on_bg_muted"
-                android:textSize="13sp"
-                android:visibility="gone"
-                android:text="" />
+                android:layout_marginTop="@dimen/mayak_space_1"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
 
-            <!-- Скорость передачи в туннеле (↓/↑; виден при подключении, если включён в настройках) -->
+                <TextView
+                    android:id="@+id/mayak_ping"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:textColor="@color/mayak_on_bg_muted"
+                    android:textSize="14sp"
+                    android:visibility="gone"
+                    android:text="" />
+
+                <!-- Значок «IPv6» (только когда IPv6 реально работает через туннель — честно) -->
+                <TextView
+                    android:id="@+id/mayak_ipv6_badge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:background="@drawable/mayak_bg_ipv6_badge"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="2dp"
+                    android:gravity="center"
+                    android:textColor="@color/mayak_accent"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:visibility="gone"
+                    tools:ignore="HardcodedText"
+                    android:text="IPv6" />
+            </LinearLayout>
+
+            <!-- Скорость (↓/↑; включается в настройках) — одна мелкая строка -->
             <TextView
                 android:id="@+id/mayak_speed"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
+                android:layout_marginTop="4dp"
                 android:gravity="center"
                 android:textColor="@color/mayak_on_bg_muted"
                 android:textSize="13sp"
                 android:visibility="gone"
                 android:text="" />
-
-            <!-- Значок «IPv6» (виден ТОЛЬКО когда IPv6 реально работает через туннель — честно) -->
-            <TextView
-                android:id="@+id/mayak_ipv6_badge"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/mayak_space_1"
-                android:background="@drawable/mayak_bg_ipv6_badge"
-                android:paddingHorizontal="8dp"
-                android:paddingVertical="2dp"
-                android:gravity="center"
-                android:textColor="@color/mayak_accent"
-                android:textSize="11sp"
-                android:textStyle="bold"
-                android:visibility="gone"
-                tools:ignore="HardcodedText"
-                android:text="IPv6" />
 
             <!-- Список стран -->
             <com.google.android.material.card.MaterialCardView
