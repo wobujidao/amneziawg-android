@@ -1161,6 +1161,33 @@ class MayakActivity : AppCompatActivity() {
         // Сервер (хост текущего подключения)
         view.findViewById<TextView>(R.id.mayak_det_server).text = GoTunnel.connectedServerHost ?: "—"
 
+        // Скорость передачи — показываем ЗДЕСЬ тоже, если включён тумблер (правка владельца 2026-07-06:
+        // «показывать её везде»). Живое обновление раз в секунду, пока лист открыт; глушим на закрытии.
+        val speedRow = view.findViewById<View>(R.id.mayak_det_speed_row)
+        val speedDivider = view.findViewById<View>(R.id.mayak_det_speed_divider)
+        if (MayakPrefs.showSpeed(this)) {
+            val speedText = view.findViewById<TextView>(R.id.mayak_det_speed)
+            var lastRx = -1L
+            var lastTx = -1L
+            val speedJob = lifecycleScope.launch {
+                while (isActive) {
+                    tunnel.transfer()?.let { (rx, tx) ->
+                        if (lastRx >= 0) speedText.text = getString(
+                            R.string.mayak_speed_fmt,
+                            formatSpeed((rx - lastRx).coerceAtLeast(0)),
+                            formatSpeed((tx - lastTx).coerceAtLeast(0)),
+                        )
+                        lastRx = rx; lastTx = tx
+                    }
+                    delay(SPEED_INTERVAL_MS)
+                }
+            }
+            sheet.setOnDismissListener { speedJob.cancel() }
+        } else {
+            speedRow.visibility = View.GONE
+            speedDivider.visibility = View.GONE
+        }
+
         sheet.show()
     }
 

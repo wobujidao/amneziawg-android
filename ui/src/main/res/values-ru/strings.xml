@@ -319,6 +319,7 @@
     <string name="mayak_details_direction">Направление</string>
     <string name="mayak_details_ping">Пинг</string>
     <string name="mayak_details_session">Время сессии</string>
+    <string name="mayak_details_speed">Скорость</string>
     <string name="mayak_details_ipv4">Выходной IPv4</string>
     <string name="mayak_details_ipv6">Выходной IPv6</string>
     <string name="mayak_details_server">Сервер</string>

@@ -68,6 +68,20 @@
 
     <View style="@style/Mayak.DetailRow.Divider" />
 
+    <!-- Скорость (видна только когда включён тумблер «Показывать скорость передачи»; обновляется живо) -->
+    <LinearLayout android:id="@+id/mayak_det_speed_row" style="@style/Mayak.DetailRow">
+        <LinearLayout style="@style/Mayak.DetailRow.TextCol">
+            <TextView style="@style/Mayak.DetailRow.Label" android:text="@string/mayak_details_speed" />
+            <TextView
+                android:id="@+id/mayak_det_speed"
+                style="@style/Mayak.DetailRow.Value"
+                tools:ignore="HardcodedText"
+                android:text="—" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <View android:id="@+id/mayak_det_speed_divider" style="@style/Mayak.DetailRow.Divider" />
+
     <!-- Время сессии -->
     <LinearLayout android:id="@+id/mayak_det_session_row" style="@style/Mayak.DetailRow">
         <LinearLayout style="@style/Mayak.DetailRow.TextCol">
