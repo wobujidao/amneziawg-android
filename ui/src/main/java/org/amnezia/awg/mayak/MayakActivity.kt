@@ -533,6 +533,7 @@ class MayakActivity : AppCompatActivity() {
     private fun selectDir(d: Direction) {
         selectedDir = d
         MayakPrefs.setLastDirectionId(this, d.id)
+        networkBg?.setExitByName(d.name) // дуга-маршрут на карте указывает на выбранную страну
         // ПРЕДЗАГРУЗКА конфига /connect заранее (тёплый кэш к моменту коннекта). M4: отменяем предыдущую
         // предзагрузку — быстрое переключение стран не плодит параллельные /connect. Кэш живёт в session
         // (переживает смену темы) → если он уже тёплый, повторно /connect НЕ гоняем (смена темы молчит).

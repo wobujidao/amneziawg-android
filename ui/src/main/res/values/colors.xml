@@ -129,4 +129,11 @@
     <color name="mayak_text_muted">@color/mayak_on_surface_muted</color>
     <color name="mayak_on_navy">@color/mayak_on_bg</color>
     <color name="mayak_on_navy_muted">@color/mayak_on_bg_muted</color>
+
+    <!-- Карта-фон (маяк): точки континентов, подсветка у выхода, дуга-маршрут -->
+    <color name="mayak_map_dot">#B4C0CD</color>
+    <color name="mayak_map_lit">#CE8E27</color>
+    <color name="mayak_map_route">#CE8E27</color>
+    <color name="mayak_map_glow">#EBB65A</color>
+    <color name="mayak_map_device">#1B2431</color>
 </resources>
