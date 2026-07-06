@@ -139,6 +139,7 @@ jobs:
         
         jarsigner \
           -keystore "${KEYSTORE_PATH}" \
+          -storetype PKCS12 \
           -storepass "${KEYSTORE_PASSWORD}" \
           -signedjar "${SIGNED_AAB}" \
           "${AAB}" \
