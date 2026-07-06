@@ -54,8 +54,15 @@ android {
     }
     buildTypes {
         release {
-            isMinifyEnabled = true
-            isShrinkResources = true
+            // Подпись фиксированным ключом mayak-debug — ровно им подписаны все прошлые релизы на сайт
+            // (стабильная подпись → работает встроенное обновление; проверено: серт сайт-APK == этого ключа).
+            // ⚠️ пароль ключа публичен (в конфиге) → перед ПУБЛИЧНЫМ запуском завести защищённый релиз-ключ.
+            signingConfig = signingConfigs.getByName("mayakdebug")
+            // minify/shrink ВЫКЛ: текущее прод-приложение не минифицировано; R8 + сериализация в релизе не
+            // проверены — не рискуем на этой сборке (включим minify отдельно после теста). Правила в
+            // proguard-rules.pro оставлены на будущее (при minify=false игнорируются).
+            isMinifyEnabled = false
+            isShrinkResources = false
             proguardFiles("proguard-android-optimize.txt", "proguard-rules.pro")
             packaging {
                 resources {
