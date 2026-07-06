@@ -152,36 +152,14 @@ class Application : android.app.Application() {
             return
         }
 
-        coroutineScope.launch {
-            try {
-                val activeTunnels = tunnelManager.getTunnels().filter { 
-                    it.state == org.amnezia.awg.backend.Tunnel.State.UP 
-                }
-
-                if (activeTunnels.isEmpty()) {
-                    Log.d(TAG, "No active tunnels, skipping reconnection")
-                    return@launch
-                }
-
-                Log.i(TAG, "Reconnecting ${activeTunnels.size} tunnel(s) after network change: $oldType -> $newType")
-
-                for (tunnel in activeTunnels) {
-                    try {
-                        Log.d(TAG, "Disconnecting tunnel: ${tunnel.name}")
-                        // Toggle tunnel off and on to reconnect
-                        tunnel.setStateAsync(org.amnezia.awg.backend.Tunnel.State.DOWN)
-                        kotlinx.coroutines.delay(500) // Small delay for cleanup
-                        Log.d(TAG, "Reconnecting tunnel: ${tunnel.name}")
-                        tunnel.setStateAsync(org.amnezia.awg.backend.Tunnel.State.UP)
-                        Log.i(TAG, "Successfully reconnected tunnel: ${tunnel.name}")
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Failed to reconnect tunnel ${tunnel.name}", e)
-                    }
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error during network change handling", e)
-            }
-        }
+        // ⛔ ОТКЛЮЧЕНО (баг владельца 2026-07-06, подтверждён диаг-логом #27): апстримный обработчик смены
+        // сети (PR #53, commit dd8c98db) на КАЖДУЮ смену сети делал туннель DOWN→(delay)→UP через
+        // TunnelManager. У нас коннект идёт через MayakActivity+GoTunnel (конфиг из /connect, его НЕТ в
+        // FileConfigStore/TunnelManager), поэтому DOWN срабатывал, а UP — нет → на ходьбе/хендовере соты VPN
+        // отваливался и не поднимался («жду сообщение в телеге, а VPN отвалился»). AmneziaWG/WireGuard роумит
+        // смену сети САМ (протектнутый сокет + ре-хендшейк + PersistentKeepalive=25), ручной тоггл НЕ нужен и
+        // ВРЕДЕН. Ничего не делаем — туннель переживает смену сети штатно, как в стоке.
+        Log.i(TAG, "Network change ($oldType -> $newType): роуминг штатный, ручной reconnect отключён")
     }
 
     companion object {
