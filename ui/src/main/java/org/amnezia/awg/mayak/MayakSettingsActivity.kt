@@ -73,7 +73,23 @@ class MayakSettingsActivity : AppCompatActivity() {
         // при следующем подключении (кэш конфига v6-полный, стрип на apply) → IPv6 идёт мимо туннеля.
         val speedSwitch = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.mayak_settings_speed)
         speedSwitch.isChecked = MayakPrefs.showSpeed(this)
-        speedSwitch.setOnCheckedChangeListener { _, checked -> MayakPrefs.setShowSpeed(this, checked) }
+        speedSwitch.setOnCheckedChangeListener { _, checked ->
+            MayakPrefs.setShowSpeed(this, checked)
+            // Применяем СРАЗУ, без переподключения (правка владельца 2026-07-06): на главном скорость
+            // подхватит живой цикл (проверяет тумблер каждую секунду), а уведомлению переключаем
+            // спид-нотифаер здесь же. При выключении возвращаем обычное уведомление (без ↓/↑).
+            if (GoTunnel(this).isUp()) {
+                if (checked) {
+                    SpeedNotifier.start(this)
+                } else {
+                    SpeedNotifier.stop()
+                    MayakNotification.show(
+                        this, GoTunnel.connectedLabel, GoTunnel.connectedPingMs,
+                        ipv6 = GoTunnel.egressIpv6 != null,
+                    )
+                }
+            }
+        }
         val ipv6Switch = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.mayak_settings_ipv6)
         ipv6Switch.isChecked = MayakPrefs.useIpv6(this)
         ipv6Switch.setOnCheckedChangeListener { _, checked ->

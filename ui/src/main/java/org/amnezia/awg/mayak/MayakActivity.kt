@@ -1030,24 +1030,32 @@ class MayakActivity : AppCompatActivity() {
         startSpeed()
     }
 
-    /** Показ скорости передачи (↓/↑) раз в секунду по дельте rx/tx. Только если включено в настройках. */
+    /** Показ скорости передачи (↓/↑) раз в секунду по дельте rx/tx. Цикл крутится ВСЕГДА, пока подключены,
+     *  а видимость решает тумблер НА КАЖДОМ тике → включение «Показывать скорость» применяется СРАЗУ, без
+     *  переподключения (правка владельца 2026-07-06). */
     private fun startSpeed() {
         stopSpeed()
-        if (!MayakPrefs.showSpeed(this)) { speedView?.visibility = View.GONE; return }
-        speedView?.visibility = View.VISIBLE
         speedJob = lifecycleScope.launch {
             var lastRx = -1L
             var lastTx = -1L
             while (isActive) {
-                val t = tunnel.transfer()
-                if (t != null) {
-                    val (rx, tx) = t
-                    if (lastRx >= 0) speedView?.text = getString(
-                        R.string.mayak_speed_fmt,
-                        formatSpeed((rx - lastRx).coerceAtLeast(0)),
-                        formatSpeed((tx - lastTx).coerceAtLeast(0)),
-                    )
-                    lastRx = rx; lastTx = tx
+                if (MayakPrefs.showSpeed(this@MayakActivity)) {
+                    val t = tunnel.transfer()
+                    if (t != null) {
+                        val (rx, tx) = t
+                        if (lastRx >= 0) {
+                            speedView?.visibility = View.VISIBLE
+                            speedView?.text = getString(
+                                R.string.mayak_speed_fmt,
+                                formatSpeed((rx - lastRx).coerceAtLeast(0)),
+                                formatSpeed((tx - lastTx).coerceAtLeast(0)),
+                            )
+                        }
+                        lastRx = rx; lastTx = tx
+                    }
+                } else {
+                    speedView?.visibility = View.GONE
+                    lastRx = -1L; lastTx = -1L // сброс дельты — при повторном включении первая цифра корректна
                 }
                 delay(SPEED_INTERVAL_MS)
             }
@@ -1059,11 +1067,15 @@ class MayakActivity : AppCompatActivity() {
         runOnUiThread { speedView?.visibility = View.GONE }
     }
 
-    /** Человекочитаемая скорость (байты/с → Б/КБ/МБ в секунду). */
-    private fun formatSpeed(bytesPerSec: Long): String = when {
-        bytesPerSec >= 1_000_000 -> String.format("%.1f МБ/с", bytesPerSec / 1_000_000.0)
-        bytesPerSec >= 1_000 -> String.format("%.0f КБ/с", bytesPerSec / 1_000.0)
-        else -> "$bytesPerSec Б/с"
+    /** Скорость ВСЕГДА в МБ/с (правка владельца 2026-07-06: «всем нужны мегабайты»). Малые значения — с
+     *  двумя знаками (0.02 МБ/с), покрупнее — с одним (1.5), от 10 — целые (12 МБ/с). */
+    private fun formatSpeed(bytesPerSec: Long): String {
+        val mb = bytesPerSec / 1_000_000.0
+        return when {
+            mb >= 10 -> String.format("%.0f МБ/с", mb)
+            mb >= 1 -> String.format("%.1f МБ/с", mb)
+            else -> String.format("%.2f МБ/с", mb)
+        }
     }
 
     private fun stopPing() {

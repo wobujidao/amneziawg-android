@@ -98,11 +98,14 @@ object MayakNotification {
         NotificationManagerCompat.from(ctx).notify(NOTIF_ID, builder.build())
     }
 
-    /** Человекочитаемая скорость (байты/с → Б/КБ/МБ). Общая с главным экраном. */
-    fun formatSpeed(bytesPerSec: Long): String = when {
-        bytesPerSec >= 1_000_000 -> String.format("%.1f МБ/с", bytesPerSec / 1_000_000.0)
-        bytesPerSec >= 1_000 -> String.format("%.0f КБ/с", bytesPerSec / 1_000.0)
-        else -> "$bytesPerSec Б/с"
+    /** Скорость ВСЕГДА в МБ/с (правка владельца 2026-07-06: «всем нужны мегабайты»). Синхронно с главным. */
+    fun formatSpeed(bytesPerSec: Long): String {
+        val mb = bytesPerSec / 1_000_000.0
+        return when {
+            mb >= 10 -> String.format("%.0f МБ/с", mb)
+            mb >= 1 -> String.format("%.1f МБ/с", mb)
+            else -> String.format("%.2f МБ/с", mb)
+        }
     }
 
     fun clear(ctx: Context) {
