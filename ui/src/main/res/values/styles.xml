@@ -92,8 +92,9 @@
         <item name="strokeWidth">1dp</item>
     </style>
 
-    <!-- Строка листа «Подробности подключения»: слева колонка label/value, справа — опц. кнопка копирования. -->
-    <style name="Mayak.DetailRow">
+    <!-- Строка листа «Подробности подключения»: слева колонка label/value, справа — опц. кнопка копирования.
+         parent="" обязателен: имя с точкой иначе наследует несуществующий стиль «Mayak» (ошибка AAPT). -->
+    <style name="Mayak.DetailRow" parent="">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:orientation">horizontal</item>
@@ -102,7 +103,7 @@
         <item name="android:paddingBottom">12dp</item>
     </style>
 
-    <style name="Mayak.DetailRow.TextCol">
+    <style name="Mayak.DetailRow.TextCol" parent="">
         <item name="android:layout_width">0dp</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:layout_weight">1</item>
