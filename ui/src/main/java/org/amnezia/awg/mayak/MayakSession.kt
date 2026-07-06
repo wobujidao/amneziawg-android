@@ -9,7 +9,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
-import kotlinx.serialization.serializer
 import org.amnezia.awg.mayak.core.ConfRenderer
 import org.amnezia.awg.mayak.core.Direction
 import org.amnezia.awg.mayak.core.HostProvider
@@ -30,9 +29,11 @@ data class Paths(
     val relayEndpoint: String? = null,
 )
 
-/** Сохранённый на диск конфиг + настенная метка времени сохранения (мс) — для offline-фоллбэка. */
+/** Сохранённая на диск запись offline-фоллбэка: конфиг направления + настенная метка сохранения (мс).
+ *  Список таких (а НЕ Map<Long,…>) сериализуем через ListSerializer — проверенный паттерн (как dirs_cache),
+ *  без reified serializer<>()/Long-ключей карты (чтоб гарантированно не падать на старте). */
 @Serializable
-private data class PersistedPaths(val paths: Paths, val atWallMs: Long)
+private data class PersistedEntry(val directionId: Long, val paths: Paths, val atWallMs: Long)
 
 class MayakSession(
     private val store: SecureStore,
@@ -86,9 +87,10 @@ class MayakSession(
 
         private val dirsSerializer = ListSerializer(Direction.serializer())
 
-        // Сохранённый конфиг на диск: карта direction_id → запись, одним ключом в SecureStore
-        // (чистый logout: снять один K_LAST_GOOD). Reified serializer<>() — без ручного MapSerializer/Long.
-        private val lastGoodSerializer = serializer<Map<Long, PersistedPaths>>()
+        // Сохранённые конфиги на диск: список записей, одним ключом в SecureStore (чистый logout: снять
+        // один K_LAST_GOOD). `by lazy` → инициализация НЕ на старте приложения (первый доступ — уже внутри
+        // runCatching в readLastGood), поэтому даже теоретический сбой сериализатора не роняет запуск.
+        private val lastGoodSerializer by lazy { ListSerializer(PersistedEntry.serializer()) }
     }
 
     // Сериализатор кэша направлений: переиспользуем Json из :core (он же в MayakBackend).
@@ -224,10 +226,10 @@ class MayakSession(
      */
     fun rememberWorking(directionId: Long, paths: Paths) {
         val now = System.currentTimeMillis()
-        val map = readLastGood().toMutableMap()
-        map[directionId] = PersistedPaths(paths, now)
-        val pruned = map.filterValues { now - it.atWallMs < LAST_GOOD_TTL_MS }
-        runCatching { store.put(K_LAST_GOOD, json.encodeToString(lastGoodSerializer, pruned)) }
+        // прочие направления сохраняем как есть, это направление перезаписываем, протухшие отсеиваем
+        val kept = readLastGood().filter { it.directionId != directionId && now - it.atWallMs < LAST_GOOD_TTL_MS }
+        val updated = kept + PersistedEntry(directionId, paths, now)
+        runCatching { store.put(K_LAST_GOOD, json.encodeToString(lastGoodSerializer, updated)) }
     }
 
     /**
@@ -235,14 +237,14 @@ class MayakSession(
      * старше TTL. Использовать ТОЛЬКО когда ядро недоступно (свежий /connect приоритетен всегда).
      */
     fun lastGoodPaths(directionId: Long): Paths? {
-        val e = readLastGood()[directionId] ?: return null
+        val e = readLastGood().firstOrNull { it.directionId == directionId } ?: return null
         if (System.currentTimeMillis() - e.atWallMs > LAST_GOOD_TTL_MS) return null
         return e.paths
     }
 
-    private fun readLastGood(): Map<Long, PersistedPaths> {
-        val raw = store.get(K_LAST_GOOD) ?: return emptyMap()
-        return runCatching { json.decodeFromString(lastGoodSerializer, raw) }.getOrDefault(emptyMap())
+    private fun readLastGood(): List<PersistedEntry> {
+        val raw = store.get(K_LAST_GOOD) ?: return emptyList()
+        return runCatching { json.decodeFromString(lastGoodSerializer, raw) }.getOrDefault(emptyList())
     }
 
     // Если выдача дала FQDN endpoint — резолвим его через DoH (шифрованно, мимо подмены DNS оператором) и
