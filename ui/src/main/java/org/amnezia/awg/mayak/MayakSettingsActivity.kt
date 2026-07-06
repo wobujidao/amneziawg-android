@@ -4,13 +4,13 @@ package org.amnezia.awg.mayak
 
 import android.content.Intent
 import android.os.Bundle
-import android.widget.RadioGroup
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.button.MaterialButtonToggleGroup
 import kotlinx.coroutines.launch
 import org.amnezia.awg.R
 import org.amnezia.awg.activity.LogViewerActivity
@@ -87,22 +87,25 @@ class MayakSettingsActivity : AppCompatActivity() {
         // Значок приложения / маскировка (SPEC-0018 F2): диалог выбора пресета иконки+имени.
         findViewById<MaterialButton>(R.id.mayak_settings_disguise).setOnClickListener { showDisguiseDialog() }
 
-        val group = findViewById<RadioGroup>(R.id.mayak_theme_group)
-        // Отметим текущий режим без срабатывания листенера.
-        when (MayakPrefs.themeMode(this)) {
-            MayakPrefs.THEME_LIGHT -> group.check(R.id.mayak_theme_light)
-            MayakPrefs.THEME_DARK -> group.check(R.id.mayak_theme_dark)
-            else -> group.check(R.id.mayak_theme_system)
-        }
-        group.setOnCheckedChangeListener { _, checkedId ->
+        // Тема — сегментированный переключатель (Авто/Светлая/Тёмная). check() при инициализации дёрнет
+        // листенер, но guard `mode != текущий` не даст лишнего setThemeMode/пересоздания.
+        val group = findViewById<MaterialButtonToggleGroup>(R.id.mayak_theme_group)
+        group.check(
+            when (MayakPrefs.themeMode(this)) {
+                MayakPrefs.THEME_LIGHT -> R.id.mayak_theme_light
+                MayakPrefs.THEME_DARK -> R.id.mayak_theme_dark
+                else -> R.id.mayak_theme_system
+            }
+        )
+        group.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (!isChecked) return@addOnButtonCheckedListener
             val mode = when (checkedId) {
                 R.id.mayak_theme_light -> MayakPrefs.THEME_LIGHT
                 R.id.mayak_theme_dark -> MayakPrefs.THEME_DARK
                 else -> MayakPrefs.THEME_SYSTEM
             }
             if (mode != MayakPrefs.themeMode(this)) {
-                MayakPrefs.setThemeMode(this, mode)
-                // setDefaultNightMode пересоздаст активити с новой темой.
+                MayakPrefs.setThemeMode(this, mode) // setDefaultNightMode пересоздаст активити с новой темой
             }
         }
     }
