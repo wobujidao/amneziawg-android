@@ -404,6 +404,11 @@ class MayakActivity : AppCompatActivity() {
         rippleView?.coreRadiusPx = 88f * resources.displayMetrics.density
 
         setupThemeButton()
+        // Переключатель языка на главной (правка владельца 2026-07-06): тот же диалог, что и в настройках.
+        findViewById<MaterialButton>(R.id.mayak_lang_button)?.setOnClickListener {
+            it.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+            MayakLanguages.showDialog(this)
+        }
         findViewById<MaterialButton>(R.id.mayak_settings_button).setOnClickListener {
             startActivity(Intent(this, MayakSettingsActivity::class.java))
             MayakTransitions.applyAxis(this) // плавный переход к настройкам
@@ -841,12 +846,14 @@ class MayakActivity : AppCompatActivity() {
                 pingView?.visibility = View.GONE
                 ipv6Badge?.visibility = View.GONE
                 if (::status.isInitialized) status.text = getString(R.string.mayak_status_disconnected)
+                setStatusInfoIcon(false)
             }
             ConnState.CONNECTING -> {
                 startPulse()
                 setGlow(0.35f)
                 rippleView?.startWaves() // от кнопки расходятся волны (sonar/активация)
                 if (::status.isInitialized) status.text = getString(R.string.mayak_connecting)
+                setStatusInfoIcon(false)
             }
             ConnState.CONNECTED -> {
                 stopPulse()
@@ -856,7 +863,28 @@ class MayakActivity : AppCompatActivity() {
                 networkBg?.setConnected(true) // фон-сеть оживает ярче
                 timerView?.visibility = View.VISIBLE
                 if (::status.isInitialized) status.text = getString(R.string.mayak_connected)
+                setStatusInfoIcon(true) // «ⓘ» рядом с «Подключено» — подсказка: тапни для подробностей
             }
+        }
+    }
+
+    /**
+     * Значок «ⓘ» справа от статуса «Подключено» — визуальная подсказка, что по статусу можно тапнуть и
+     * открыть «Подробности подключения» (правка владельца 2026-07-06: было непонятно, что статус кликабелен).
+     * Рисуем как compound-drawable (сохраняет центрирование текста), масштабируем под 18dp и тинтуем.
+     */
+    private fun setStatusInfoIcon(show: Boolean) {
+        if (!::status.isInitialized) return
+        if (show) {
+            val size = (18 * resources.displayMetrics.density).toInt()
+            val icon = ContextCompat.getDrawable(this, R.drawable.ic_info)?.mutate()?.apply {
+                setBounds(0, 0, size, size)
+                setTint(ContextCompat.getColor(this@MayakActivity, R.color.mayak_on_bg))
+            }
+            status.setCompoundDrawablesRelative(null, null, icon, null)
+            status.compoundDrawablePadding = (6 * resources.displayMetrics.density).toInt()
+        } else {
+            status.setCompoundDrawablesRelative(null, null, null, null)
         }
     }
 

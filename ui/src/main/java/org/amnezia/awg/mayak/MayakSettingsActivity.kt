@@ -6,8 +6,12 @@ import android.content.Intent
 import android.os.Bundle
 import android.widget.TextView
 import android.widget.Toast
+import android.view.View
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.button.MaterialButtonToggleGroup
@@ -25,6 +29,18 @@ class MayakSettingsActivity : AppCompatActivity() {
         MayakPrefs.applyTheme(this)
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_mayak_settings)
+
+        // Edge-to-edge: контент рисуется под системными барами (градиент во всю высоту). Отступаем контент на
+        // высоту статус-бара сверху и НАВИГАЦИОННОЙ панели снизу — иначе кнопка «Выход» уезжала под навбар
+        // (правка владельца 2026-07-06, скриншот). Адаптивно: жест-навигация тоньше, 3-кнопочная толще.
+        val content = findViewById<View>(R.id.mayak_settings_content)
+        val baseTop = content.paddingTop
+        val baseBottom = content.paddingBottom
+        ViewCompat.setOnApplyWindowInsetsListener(content) { v, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            v.updatePadding(top = baseTop + bars.top, bottom = baseBottom + bars.bottom)
+            insets
+        }
 
         findViewById<MaterialButton>(R.id.mayak_settings_back).setOnClickListener {
             finish(); MayakTransitions.applyAxisReverse(this)
