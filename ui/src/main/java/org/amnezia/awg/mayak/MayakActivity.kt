@@ -489,12 +489,12 @@ class MayakActivity : AppCompatActivity() {
                 if (directions.isEmpty() && session.hasCachedDirections()) {
                     renderDirections(session.directions(b, false))
                 }
-                // 2) свежий список с сервера (обновляет кэш) — НО не при простом пересоздании Activity.
-                // Смена темы (recreate) в пределах TTL → кэш свеж → в сеть НЕ идём (баг владельца 06-27:
-                // сеть дёргалась даже на смене темы). Устарел/переоткрытие/явный рефреш → тянем свежий,
-                // новые направления появляются сами без перелогина (баг владельца 06-28).
-                if (forceRefresh || !session.directionsFresh(DIRECTIONS_TTL_MS)) {
+                // 2) свежий список с сервера (обновляет кэш) — раз на процесс ИЛИ по явному рефрешу/логину.
+                // Пересоздание Activity (смена темы) в живом процессе → флаг уже true → в сеть НЕ идём (смена
+                // темы молчит полностью). Перезапуск процесса или кнопка «Обновить» подтянут новые направления.
+                if (forceRefresh || !directionsFetchedThisProcess) {
                     val fresh = session.directions(b, true)
+                    directionsFetchedThisProcess = true // только на успех: ошибка сети оставит флаг false → повтор
                     val changed = fresh.map { it.id } != directions.map { it.id }
                     if (directions.isEmpty() || (changed && connState == ConnState.DISCONNECTED)) {
                         renderDirections(fresh)
@@ -1177,10 +1177,11 @@ class MayakActivity : AppCompatActivity() {
         // при первом входе на главный. Пересоздание Activity (смена темы) уже НЕ греет (баг владельца 2026-07-06).
         @Volatile private var homeWarmedThisProcess = false
 
-        // Свежесть кэша направлений: в пределах TTL пересоздание Activity (смена темы) НЕ рефетчит
-        // список из сети; спустя TTL переоткрытие приложения дотягивает свежий (новые направления
-        // появляются сами). Явный рефреш (кнопка) и логин рефетчат всегда. 5 минут — баланс «не дёргать
-        // сеть на смене темы» ↔ «показать новые направления без перелогина».
-        private const val DIRECTIONS_TTL_MS = 5 * 60 * 1000L
+        // Свежий список направлений тянем из сети РАЗ на запуск процесса (при первом успешном показе главного).
+        // Пересоздание Activity (смена темы/языка) НЕ рефетчит — показываем процесс-скоупный кэш, сеть молчит
+        // (баг владельца 2026-07-06: смена темы после TTL всё равно дёргала GET /directions). Новые направления
+        // подхватываются перезапуском приложения ИЛИ кнопкой «Обновить» (forceRefresh) — она для этого и есть.
+        // Флаг ставим только на УСПЕХ: если холодный старт не достучался — следующий вход/пересоздание повторит.
+        @Volatile private var directionsFetchedThisProcess = false
     }
 }
