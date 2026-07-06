@@ -15,10 +15,15 @@ import org.amnezia.awg.mayak.core.Tunnel as MayakCoreTunnel
 import java.io.BufferedReader
 import java.io.StringReader
 
-/** Имя туннеля в движке + приёмник смены состояния (нам колбэк не нужен — состояние тянем сами). */
+/** Имя туннеля в движке + приёмник смены состояния. На DOWN убираем «Подключено»: туннель может
+ *  погаснуть ВНЕ приложения (другое VPN-приложение перехватило VpnService, ревок, система остановила
+ *  сервис — `GoBackend.VpnService.onDestroy` шлёт `onStateChange(DOWN)`). Раньше колбэк игнорировался
+ *  → уведомление висело «Подключено», хотя VPN уже выключен (баг владельца 2026-07-06). */
 private class NamedTunnel(private val name: String) : Tunnel {
     override fun getName(): String = name
-    override fun onStateChange(newState: Tunnel.State) {}
+    override fun onStateChange(newState: Tunnel.State) {
+        if (newState == Tunnel.State.DOWN) GoTunnel.handleExternalDown()
+    }
 }
 
 class GoTunnel(context: Context, tunnelName: String = "mayak") : MayakCoreTunnel {
@@ -64,10 +69,28 @@ class GoTunnel(context: Context, tunnelName: String = "mayak") : MayakCoreTunnel
         // пересоздание Activity). Сбрасывается в down(). Честный сигнал (SPEC-0014): по факту egress, не по ::/0.
         @Volatile var egressIpv6: String? = null
 
-        private fun obtainBackend(ctx: Context): Backend =
-            sharedBackend ?: synchronized(this) {
+        // Application-контекст (процесс-скоупный) — чтобы убрать уведомление из onStateChange, когда
+        // туннель гаснет ВНЕ приложения и Activity под рукой нет. Ставится при создании GoTunnel.
+        @Volatile private var appContext: Context? = null
+
+        /** Туннель ушёл в DOWN (в т.ч. внешне): сбросить процесс-скоупное состояние коннекта и убрать
+         *  уведомление «Подключено». Идемпотентно с down() — повторный вызов безвреден. */
+        fun handleExternalDown() {
+            connectedSinceElapsed = null
+            connectedLabel = null
+            connectedServerHost = null
+            connectedPingMs = null
+            egressIpv4 = null
+            egressIpv6 = null
+            appContext?.let { MayakNotification.clear(it) }
+        }
+
+        private fun obtainBackend(ctx: Context): Backend {
+            appContext = ctx.applicationContext
+            return sharedBackend ?: synchronized(this) {
                 sharedBackend ?: GoBackend(ctx.applicationContext).also { sharedBackend = it }
             }
+        }
 
         private fun obtainTunnel(name: String): NamedTunnel =
             sharedTunnel ?: synchronized(this) {
