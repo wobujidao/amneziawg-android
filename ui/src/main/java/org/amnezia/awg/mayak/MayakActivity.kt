@@ -760,6 +760,7 @@ class MayakActivity : AppCompatActivity() {
         connectedDir = null
         renderState(ConnState.DISCONNECTED)
         setStatus(message)
+        Toast.makeText(this, message, Toast.LENGTH_LONG).show() // ошибку показываем попапом — её надо заметить
     }
 
     private fun disconnect() {
@@ -1044,8 +1045,9 @@ class MayakActivity : AppCompatActivity() {
     }
 
     private fun setStatus(text: String) = runOnUiThread {
+        // Только текст статуса на экране, БЕЗ Toast (правка владельца: промежуточные попапы «проверяю…/
+        // туннель поднят…» мельтешат и не читаются). Финальный «Подключено» и ОШИБКИ показываем Toast'ом отдельно.
         if (::status.isInitialized) status.text = text
-        Toast.makeText(this, text, Toast.LENGTH_SHORT).show()
     }
 
     private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
