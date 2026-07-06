@@ -56,12 +56,12 @@ jobs:
             echo "needs_signing=true" >> "$GITHUB_OUTPUT"
             ;;
           release_apk)
-            # assembleRelease подписывается gradle'ом ключом mayak-debug (signingConfig в build.gradle) →
-            # внешний keystore-секрет НЕ нужен, пост-подпись не требуется.
+            # assembleRelease даёт UNSIGNED APK → подписываем защищённым релиз-ключом из секретов
+            # (ANDROID_KEYSTORE_BASE64) через zipalign+apksigner. Ключ НЕ в репозитории.
             echo "gradle_task=assembleRelease" >> "$GITHUB_OUTPUT"
             echo "kind=apk_release" >> "$GITHUB_OUTPUT"
             echo "artifact_name=release-apk" >> "$GITHUB_OUTPUT"
-            echo "needs_signing=false" >> "$GITHUB_OUTPUT"
+            echo "needs_signing=true" >> "$GITHUB_OUTPUT"
             ;;
           debug_apk)
             echo "gradle_task=assembleDebug" >> "$GITHUB_OUTPUT"
@@ -105,8 +105,8 @@ jobs:
         case "${{ steps.cfg.outputs.kind }}" in
           aab) FILE="./ui/build/outputs/bundle/release/ui-release.aab" ;;
           apk_release)
-            FILE="./ui/build/outputs/apk/release/ui-release.apk"
-            [[ -f "${FILE}" ]] || FILE="./ui/build/outputs/apk/release/ui-release-unsigned.apk"
+            FILE="./ui/build/outputs/apk/release/ui-release-unsigned.apk"
+            [[ -f "${FILE}" ]] || FILE="./ui/build/outputs/apk/release/ui-release.apk"
             ;;
           *) FILE="./ui/build/outputs/apk/debug/ui-debug.apk" ;;
         esac
@@ -146,9 +146,40 @@ jobs:
         
         echo "final_file=${SIGNED_AAB}" >> "$GITHUB_OUTPUT"
 
+    - name: Sign release APK
+      if: ${{ steps.cfg.outputs.kind == 'apk_release' }}
+      id: signapk
+      shell: bash
+      env:
+        KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      run: |
+        set -euo pipefail
+        if [[ -z "${KEYSTORE_PASSWORD}" || -z "${KEY_ALIAS}" ]]; then
+          echo "Missing one of secrets: ANDROID_KEYSTORE_PASSWORD / ANDROID_KEY_ALIAS" >&2
+          exit 1
+        fi
+        UNSIGNED="${{ steps.locate.outputs.built_file }}"
+        SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+        BT="$(ls -d "${SDK}"/build-tools/* 2>/dev/null | sort -V | tail -1)"
+        if [[ -z "${BT}" ]]; then echo "build-tools not found under ${SDK}" >&2; exit 1; fi
+        echo "Using build-tools: ${BT}"
+        ALIGNED="${UNSIGNED%.apk}-aligned.apk"
+        SIGNED="${PWD}/mayakvpn-release-signed.apk"
+        "${BT}/zipalign" -p -f 4 "${UNSIGNED}" "${ALIGNED}"
+        "${BT}/apksigner" sign \
+          --ks "${KEYSTORE_PATH}" \
+          --ks-pass "pass:${KEYSTORE_PASSWORD}" \
+          --ks-key-alias "${KEY_ALIAS}" \
+          --key-pass "pass:${KEYSTORE_PASSWORD}" \
+          --out "${SIGNED}" \
+          "${ALIGNED}"
+        "${BT}/apksigner" verify --print-certs "${SIGNED}"
+        echo "final_file=${SIGNED}" >> "$GITHUB_OUTPUT"
+
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: ${{ steps.cfg.outputs.artifact_name }}
-        path: ${{ steps.sign.outputs.final_file || steps.locate.outputs.built_file }}
+        path: ${{ steps.sign.outputs.final_file || steps.signapk.outputs.final_file || steps.locate.outputs.built_file }}
         if-no-files-found: error
