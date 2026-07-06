@@ -29,6 +29,7 @@ class MayakSettingsActivity : AppCompatActivity() {
         MayakPrefs.applyTheme(this)
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_mayak_settings)
+        MayakSystemBars.apply(this) // контраст иконок статус-бара/навбара под тему
 
         // Edge-to-edge: контент рисуется под системными барами (градиент во всю высоту). Отступаем контент на
         // высоту статус-бара сверху и НАВИГАЦИОННОЙ панели снизу — иначе кнопка «Выход» уезжала под навбар

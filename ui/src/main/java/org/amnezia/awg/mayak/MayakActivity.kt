@@ -137,6 +137,7 @@ class MayakActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         MayakPrefs.applyTheme(this)
         super.onCreate(savedInstanceState)
+        MayakSystemBars.apply(this) // контраст иконок статус-бара/навбара под тему (свет→тёмные иконки)
         store = KeystoreSecureStore(this)
         session = MayakSession(store, AwgKeyProvider(), AndroidHwidProvider(this, store))
         tunnel = GoTunnel(this)

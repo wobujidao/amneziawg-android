@@ -18,6 +18,7 @@ class MayakAboutActivity : AppCompatActivity() {
         MayakPrefs.applyTheme(this)
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_mayak_about)
+        MayakSystemBars.apply(this) // контраст иконок статус-бара/навбара под тему
 
         findViewById<MaterialButton>(R.id.mayak_about_back).setOnClickListener {
             finish(); MayakTransitions.applyAxisReverse(this)
