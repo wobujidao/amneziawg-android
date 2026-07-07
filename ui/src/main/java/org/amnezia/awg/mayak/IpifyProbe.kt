@@ -35,7 +35,13 @@ class IpifyProbe(
                 conn.disconnect()
             }
         } catch (e: Exception) {
-            Log.i(PROBE_TAG, "проба $url ПРОВАЛ: ${e.javaClass.simpleName}: ${e.message}")
+            // Отдельно резолвим хост: если вернулись адреса (в т.ч. IPv6) — DNS ОК, значит спотыкается
+            // маршрут/выход; если резолв провалился — проблема в DNS (не отдал AAAA/недоступен через туннель).
+            val host = runCatching { URL(url).host }.getOrDefault(url)
+            val resolved = runCatching {
+                java.net.InetAddress.getAllByName(host).joinToString(",") { it.hostAddress ?: "?" }
+            }.getOrElse { "резолв провал: ${it.javaClass.simpleName}" }
+            Log.i(PROBE_TAG, "проба $url ПРОВАЛ: ${e.javaClass.simpleName}: ${e.message}; DNS($host)=$resolved")
             null
         }
     }

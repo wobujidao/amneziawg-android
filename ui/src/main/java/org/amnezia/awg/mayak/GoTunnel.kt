@@ -38,6 +38,8 @@ class GoTunnel(context: Context, tunnelName: String = "mayak") : MayakCoreTunnel
     // для туннеля, поднятого ЧЕРЕЗ наш backend. Если VPN включён другим приложением (Happ и т.п.),
     // Android гасит наш VpnService → onDestroy обнуляет currentTunnel → isUp()=false.
     companion object {
+        // Тег диагностики конфига (содержит «AmneziaWG» → DiagCollector включает в присланный лог).
+        private const val CFG_TAG = "AmneziaWG/mayak-cfg"
         @Volatile private var sharedBackend: Backend? = null
         @Volatile private var sharedTunnel: NamedTunnel? = null
 
@@ -103,9 +105,35 @@ class GoTunnel(context: Context, tunnelName: String = "mayak") : MayakCoreTunnel
 
     override suspend fun up(confText: String) = withContext(Dispatchers.IO) {
         val config = Config.parse(BufferedReader(StringReader(confText)))
+        logConfigSummary(confText) // диагностика: ЧТО применяем (без ключа/обфускации) — виден ли IPv6 в конфиге
         backend.setState(tunnel, Tunnel.State.UP, config)
         connectedSinceElapsed = SystemClock.elapsedRealtime()
+        logTunAddresses() // диагностика: какие адреса РЕАЛЬНО встали на tun (Android применил v4/v6?)
         Unit
+    }
+
+    // Диагностика (тег с «AmneziaWG» → в присланный диаг-лог): сводка применяемого конфига. ТОЛЬКО
+    // Address/DNS/MTU/AllowedIPs/Endpoint — БЕЗ приватного ключа и обфускации. Сразу видно, дали ли клиенту
+    // IPv6 (dual-stack Address + ::/0 в AllowedIPs + IPv6-DNS). Оставлено намеренно (решение владельца 2026-07-07).
+    private fun logConfigSummary(confText: String) {
+        val keys = listOf("Address", "DNS", "MTU", "AllowedIPs", "Endpoint")
+        val summary = confText.lineSequence()
+            .map { it.trim() }
+            .filter { line -> keys.any { line.startsWith("$it ") || line.startsWith("$it=") } }
+            .joinToString(" | ")
+        android.util.Log.i(CFG_TAG, "конфиг туннеля: $summary")
+    }
+
+    // Диагностика: адреса, реально вставшие на tun-интерфейс. Дельта с logConfigSummary («в конфиге v6 есть,
+    // а на tun не встал») = Android не применил IPv6. Best-effort (VPN-интерфейс может назваться tun0/tun1).
+    private fun logTunAddresses() {
+        val addrs = runCatching {
+            java.net.NetworkInterface.getNetworkInterfaces().toList()
+                .filter { it.name.startsWith("tun") }
+                .flatMap { nif -> nif.inetAddresses.toList().map { "${nif.name}:${it.hostAddress}" } }
+                .joinToString(", ").ifBlank { "tun-интерфейс не найден/без адресов" }
+        }.getOrElse { "н/д: ${it.javaClass.simpleName}" }
+        android.util.Log.i(CFG_TAG, "tun-адреса: $addrs")
     }
 
     override suspend fun down() = withContext(Dispatchers.IO) {
