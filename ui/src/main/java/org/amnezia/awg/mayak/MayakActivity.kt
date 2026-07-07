@@ -1080,14 +1080,15 @@ class MayakActivity : AppCompatActivity() {
         runOnUiThread { speedView?.visibility = View.GONE }
     }
 
-    /** Скорость ВСЕГДА в МБ/с (правка владельца 2026-07-06: «всем нужны мегабайты»). Малые значения — с
-     *  двумя знаками (0.02 МБ/с), покрупнее — с одним (1.5), от 10 — целые (12 МБ/с). */
+    /** Скорость в Мбит/с — как во ВСЕХ спидтестах (правка владельца 2026-07-07: раньше показывали МБ/с/
+     *  мегабайты, цифра казалась в ~8× меньше спидтеста; человека волнует скорость в битах). bytesPerSec×8.
+     *  Малые — с двумя знаками (0.20 Мбит/с), покрупнее — с одним (3.4), от 10 — целые (95 Мбит/с). */
     private fun formatSpeed(bytesPerSec: Long): String {
-        val mb = bytesPerSec / 1_000_000.0
+        val mbit = bytesPerSec * 8.0 / 1_000_000.0
         return when {
-            mb >= 10 -> String.format("%.0f МБ/с", mb)
-            mb >= 1 -> String.format("%.1f МБ/с", mb)
-            else -> String.format("%.2f МБ/с", mb)
+            mbit >= 10 -> String.format("%.0f Мбит/с", mbit)
+            mbit >= 1 -> String.format("%.1f Мбит/с", mbit)
+            else -> String.format("%.2f Мбит/с", mbit)
         }
     }
 
