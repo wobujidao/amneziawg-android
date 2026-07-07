@@ -722,12 +722,17 @@ class MayakActivity : AppCompatActivity() {
     private fun startIpv6Probe() {
         GoTunnel.egressIpv6 = null
         setIpv6Badge(false)
-        if (!MayakPrefs.useIpv6(this)) return // пользователь выключил IPv6 — не пробуем и не зажигаем
+        if (!MayakPrefs.useIpv6(this)) {
+            android.util.Log.i(PROBE_TAG, "IPv6-проба ПРОПУЩЕНА: тумблер «Использовать IPv6» ВЫКЛючен") // диаг
+            return // пользователь выключил IPv6 — не пробуем и не зажигаем
+        }
         lifecycleScope.launch {
             // РЕТРАИМ (как v4-пробу): v6-выход МОЖЕТ не пройти с первого раза даже когда IPv6 реально работает —
             // AAAA-резолв через туннель, прогрев conntrack NAT66 на экзите, лаг соты. Одиночная проба давала
             // ЛОЖНОЕ «нет IPv6» на всю сессию (баг 2026-07-07: диаг-лог #30 v6 есть, #31 нет; на ноде IPv6 жив).
             val v6 = probeWithRetry(probe6, IPV6_PROBE_ATTEMPTS) // api6-only host: успех = реальный IPv6-выход
+            android.util.Log.i(PROBE_TAG, // диаг: итог v6-пробы (причины провала каждой попытки — в IpifyProbe)
+                if (v6 != null) "IPv6-проба OK: $v6" else "IPv6-проба НЕ прошла ($IPV6_PROBE_ATTEMPTS попыток)")
             if (v6 != null && connState == ConnState.CONNECTED) {
                 GoTunnel.egressIpv6 = v6
                 setIpv6Badge(true)
@@ -1248,6 +1253,8 @@ class MayakActivity : AppCompatActivity() {
         // v6-проба фоновая (не блокирует коннект, v4 уже подтверждён) → меньше попыток, чтобы не долбить
         // api6.ipify.org минуту, если IPv6 честно не работает. 4×(таймаут 8с + пауза 4с) ≈ до ~44с.
         private const val IPV6_PROBE_ATTEMPTS = 4
+        // Тег диагностики v6-пробы (содержит «AmneziaWG» → DiagCollector включает в присланный лог).
+        private const val PROBE_TAG = "AmneziaWG/mayak-probe"
 
         // Период пинга сервера текущего подключения (обновление показателя на главном экране).
         private const val PING_INTERVAL_MS = 5_000L
