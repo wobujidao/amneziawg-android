@@ -36,10 +36,12 @@ import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.amnezia.awg.BuildConfig
 import org.amnezia.awg.R
 import org.amnezia.awg.backend.GoBackend
@@ -1079,7 +1081,7 @@ class MayakActivity : AppCompatActivity() {
             var lastTx = -1L
             while (isActive) {
                 if (MayakPrefs.showSpeed(this@MayakActivity)) {
-                    val t = tunnel.transfer()
+                    val t = withContext(Dispatchers.IO) { tunnel.transfer() } // JNI getStatistics — не на UI-потоке
                     if (t != null) {
                         val (rx, tx) = t
                         if (lastRx >= 0) {
@@ -1223,7 +1225,7 @@ class MayakActivity : AppCompatActivity() {
             var lastTx = -1L
             val speedJob = lifecycleScope.launch {
                 while (isActive) {
-                    tunnel.transfer()?.let { (rx, tx) ->
+                    withContext(Dispatchers.IO) { tunnel.transfer() }?.let { (rx, tx) -> // JNI не на UI-потоке
                         if (lastRx >= 0) speedText.text = getString(
                             R.string.mayak_speed_fmt,
                             formatSpeed((rx - lastRx).coerceAtLeast(0)),
@@ -1268,9 +1270,10 @@ class MayakActivity : AppCompatActivity() {
         const val PRIVACY_URL = "https://cabinet.mayakvpn.ru/#/privacy"
         const val TERMS_URL = "https://cabinet.mayakvpn.ru/#/terms"
 
-        // Сервер добавляет пира sync-таймером (~15с) → повторяем egress-пробу до ~24с.
+        // Сервер добавляет пира sync-таймером нод (теперь 5с, было 15с — перф-2026-07-07) → пробуем плотнее:
+        // таймаут пробы 4с + пауза 2с ловят пир около t≈5с (было 8+4 → первый ретрай лишь t≈12с). 6 попыток.
         private const val PROBE_ATTEMPTS = 6
-        private const val PROBE_DELAY_MS = 4_000L
+        private const val PROBE_DELAY_MS = 2_000L
         // v6-проба фоновая (не блокирует коннект, v4 уже подтверждён) → меньше попыток, чтобы не долбить
         // api6.ipify.org минуту, если IPv6 честно не работает. 4×(таймаут 8с + пауза 4с) ≈ до ~44с.
         private const val IPV6_PROBE_ATTEMPTS = 4

@@ -13,7 +13,9 @@ import java.net.URL
 
 class IpifyProbe(
     private val url: String = "https://api.ipify.org?format=json",
-    private val timeoutMs: Int = 8_000,
+    // перф-2026-07-07: 8с→4с — быстрее ловим появление пира (синхронизация нод теперь 5с), ложные фейлы
+    // страхуются ретраями (probeWithRetry). 4с хватает на HTTP-GET через живой туннель даже на сотовой.
+    private val timeoutMs: Int = 4_000,
 ) : EgressProbe {
     override suspend fun externalIp(): String? = withContext(Dispatchers.IO) {
         // Диагностика (тег содержит «AmneziaWG» → попадает в диаг-лог DiagCollector): при провале пробы
