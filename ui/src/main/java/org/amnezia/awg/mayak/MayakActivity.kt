@@ -702,13 +702,26 @@ class MayakActivity : AppCompatActivity() {
                     if (ip != null) { session.rememberWorking(d.id, paths); onConnected(ip); return@launch }
                 }
 
-                if (relay == null) { fail(getString(R.string.mayak_status_no_egress)); return@launch }
+                if (relay == null) {
+                    // ФИКС (ревью 2026-07-07): прямой туннель UP, но релея нет и проба не прошла → гасим туннель.
+                    // Иначе UI показывает «отключено», а VpnService держит туннель с AllowedIPs 0.0.0.0/0 =
+                    // ЧЁРНАЯ ДЫРА: весь трафик уходит в мёртвый туннель, у юзера нет интернета (ровно в
+                    // сценарии блокировки, ради которого приложение существует). catch-ветки это уже делают.
+                    runCatching { tunnel.down() }
+                    fail(getString(R.string.mayak_status_no_egress)); return@launch
+                }
                 // Резерв: прямого не было вовсе или он не прошёл пробу.
                 if (direct != null) setStatus(getString(R.string.mayak_status_relay_switch))
                 GoTunnel.connectedServerHost = MayakPing.hostOf(paths.relayEndpoint) // сервер для пинга
                 tunnel.up(prepareConf(relay))
                 val ip = probeWithRetry()
-                if (ip != null) { session.rememberWorking(d.id, paths); onConnected(ip) } else fail(getString(R.string.mayak_status_no_egress))
+                if (ip != null) {
+                    session.rememberWorking(d.id, paths); onConnected(ip)
+                } else {
+                    // ФИКС (ревью 2026-07-07): релей-туннель UP, но проба выхода не прошла → гасим (иначе чёрная дыра).
+                    runCatching { tunnel.down() }
+                    fail(getString(R.string.mayak_status_no_egress))
+                }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 // пользователь отменил подключение (тап по кнопке) — гасим туннель, БЕЗ ошибки/инвалидации.
                 runCatching { tunnel.down() }
