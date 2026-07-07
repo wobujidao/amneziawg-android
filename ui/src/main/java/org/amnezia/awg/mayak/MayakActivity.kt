@@ -271,7 +271,9 @@ class MayakActivity : AppCompatActivity() {
     }
 
     override fun onStop() {
-        MayakLock.noteBackground() // отметить уход в фон: при возврате дольше GRACE запросим разблокировку
+        // Отметить уход в фон — но НЕ когда сверху наш же экран блокировки (это не «фон»: иначе долгая
+        // аутентификация >GRACE тут же пере-заперла бы после успешной разблокировки → бесконечный цикл).
+        if (!MayakLock.lockShowing) MayakLock.noteBackground()
         super.onStop()
     }
 

@@ -41,6 +41,12 @@ object MayakLock {
         backgroundedAt = SystemClock.elapsedRealtime()
     }
 
+    /** Пометить разблокированным и СБРОСИТЬ метку фона (иначе долгая аутентификация > GRACE пере-заперла бы). */
+    private fun markUnlocked() {
+        unlocked = true
+        backgroundedAt = 0L
+    }
+
     private fun maybeRelock() {
         if (backgroundedAt != 0L && SystemClock.elapsedRealtime() - backgroundedAt > GRACE_MS) {
             unlocked = false
@@ -58,18 +64,18 @@ object MayakLock {
     /** Системный BiometricPrompt (из MayakLockActivity). onResult(true) = разблокировано (успех ИЛИ fail-open);
      *  onResult(false) = отмена/ошибка (остаёмся на экране блокировки — кнопка «Разблокировать»/«Выйти»). */
     fun authenticate(activity: FragmentActivity, onResult: (Boolean) -> Unit) {
-        if (!canAuthenticate(activity)) { unlocked = true; onResult(true); return } // fail-open
+        if (!canAuthenticate(activity)) { markUnlocked(); onResult(true); return } // fail-open
         val executor = java.util.concurrent.Executor { r -> Handler(Looper.getMainLooper()).post(r) }
         val cb = object : BiometricPrompt.AuthenticationCallback() {
             override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                unlocked = true; onResult(true)
+                markUnlocked(); onResult(true)
             }
             override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
                 when (errorCode) {
                     // Нечем проверить (сняли биометрию/экран-блок на лету) → fail-open.
                     BiometricPrompt.ERROR_HW_NOT_PRESENT, BiometricPrompt.ERROR_HW_UNAVAILABLE,
                     BiometricPrompt.ERROR_NO_BIOMETRICS, BiometricPrompt.ERROR_NO_DEVICE_CREDENTIAL ->
-                        { unlocked = true; onResult(true) }
+                        { markUnlocked(); onResult(true) }
                     else -> onResult(false) // отмена/лочаут — остаёмся заперты
                 }
             }
