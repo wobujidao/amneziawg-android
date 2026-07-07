@@ -335,6 +335,17 @@ class MayakActivity : AppCompatActivity() {
             setStatus(getString(R.string.mayak_err_bad_link)); return
         }
         doSignIn(email, password, serverOverride = server?.takeIf { it.isNotBlank() })
+        clearRegLinkFromClipboard() // в ссылке был пароль — убираем из буфера, чтобы чужие приложения не прочли (ревью 07-07)
+    }
+
+    /** Стирает mayak://-ссылку из буфера обмена (в ней пароль). Чистим ТОЛЬКО если там наша ссылка,
+     *  чтобы не затирать чужой контент буфера. */
+    private fun clearRegLinkFromClipboard() {
+        val cm = getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager ?: return
+        val cur = runCatching { cm.primaryClip?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.text?.toString() }.getOrNull()
+        if (cur != null && cur.startsWith("mayak://")) {
+            runCatching { cm.setPrimaryClip(android.content.ClipData.newPlainText("", "")) }
+        }
     }
 
     private fun showPasteLinkDialog() {
