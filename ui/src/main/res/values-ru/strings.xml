@@ -366,6 +366,12 @@
     <string name="mayak_settings_split_count">Split-туннель (%1$d)</string>
     <string name="mayak_settings_split_hint">Выберите приложения, которые пойдут МИМО VPN по вашему реальному IP (напр. банки, Госуслуги — они режут заграничные IP). Остальной трафик остаётся под защитой. Выбранные приложения сознательно вне туннеля — добавляйте только нужное.</string>
     <string name="mayak_settings_split_applied">Применится при следующем подключении</string>
+    <string name="mayak_settings_protection">Защита</string>
+    <string name="mayak_settings_autoconnect">Автоподключение</string>
+    <string name="mayak_settings_autoconnect_hint">Автоматически поднимает последнее рабочее подключение при загрузке телефона или когда систему запускает VPN — из конфига, сохранённого на устройстве, без обращения к сети. Один раз подключитесь вручную, чтобы было что восстанавливать.</string>
+    <string name="mayak_settings_killswitch">Kill-switch (блокировать интернет без VPN)</string>
+    <string name="mayak_settings_killswitch_hint">Блокировка интернета без VPN — системная настройка. Кнопка открывает настройки VPN Android: включите для «Маяка» «Always-on VPN» и «Блокировать соединения без VPN». Вместе с автоподключением выше трафик никогда не уходит без защиты.</string>
+    <string name="mayak_settings_killswitch_unavailable">Не удалось открыть системные настройки VPN на этом устройстве. Откройте Настройки → Сеть → VPN вручную.</string>
     <string name="mayak_settings_disguise">Значок приложения</string>
     <string name="mayak_disguise_weather">Погода</string>
     <string name="mayak_disguise_notes">Заметки</string>

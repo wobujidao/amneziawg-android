@@ -16,7 +16,17 @@ class BootShutdownReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val action = intent.action ?: return
         applicationScope.launch {
-            if (Application.getBackend() !is AwgQuickBackend) return@launch
+            if (Application.getBackend() !is AwgQuickBackend) {
+                // «Маяк» использует GoBackend: апстримный TunnelManager/restoreState неприменим (конфиги
+                // приходят из /connect, а не из FileConfigStore). На буте пробуем F3-автоподключение из
+                // сохранённого рабочего конфига. Best-effort: на Android O+ фон-старт VpnService может не
+                // пройти вне Always-On — основной путь автоподъёма всё равно системный Always-On VPN, который
+                // сам стартует наш VpnService (см. Application.setAlwaysOnCallback). Гейт — MayakPrefs.autoConnect.
+                if (Intent.ACTION_BOOT_COMPLETED == action) {
+                    org.amnezia.awg.mayak.MayakAutoConnect.bringUpIfEnabled(context)
+                }
+                return@launch
+            }
             val tunnelManager = Application.getTunnelManager()
             if (Intent.ACTION_BOOT_COMPLETED == action) {
                 Log.i(TAG, "Broadcast receiver restoring state (boot)")

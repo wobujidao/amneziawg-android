@@ -80,7 +80,14 @@ class Application : android.app.Application() {
         }
         if (backend == null) {
             backend = GoBackend(applicationContext)
-            GoBackend.setAlwaysOnCallback { get().applicationScope.launch { get().tunnelManager.restoreState(true) } }
+            // Always-On VPN: система стартует наш VpnService (в т.ч. на буте) → поднимаем туннель «Маяка».
+            // Апстримный restoreState(true) для нас no-op (конфиги в /connect, не в FileConfigStore) — вместо
+            // него F3-автоподключение из сохранённого на диске конфига (без сети). Гейт — MayakPrefs.autoConnect.
+            GoBackend.setAlwaysOnCallback {
+                get().applicationScope.launch {
+                    org.amnezia.awg.mayak.MayakAutoConnect.bringUpIfEnabled(get())
+                }
+            }
         }
         return backend
     }

@@ -158,6 +158,12 @@
     <string name="mayak_settings_split_count">Split tunneling (%1$d)</string>
     <string name="mayak_settings_split_hint">Choose apps that go around the VPN over your real IP (e.g. banking, government apps that block foreign IPs). Everything else stays protected. Selected apps are intentionally outside the tunnel — add only what you need.</string>
     <string name="mayak_settings_split_applied">Applies on the next connection</string>
+    <string name="mayak_settings_protection">Protection</string>
+    <string name="mayak_settings_autoconnect">Auto-connect</string>
+    <string name="mayak_settings_autoconnect_hint">Automatically brings up your last working connection when the phone starts or the system launches the VPN — from the config saved on the device, no network needed. Connect once manually first so there is something to restore.</string>
+    <string name="mayak_settings_killswitch">Kill-switch (block internet without VPN)</string>
+    <string name="mayak_settings_killswitch_hint">Blocking the internet when the VPN is off is a system setting. Opens Android VPN settings — enable “Always-on VPN” and “Block connections without VPN” for Mayak. Together with Auto-connect above, your traffic never leaves unprotected.</string>
+    <string name="mayak_settings_killswitch_unavailable">Couldn\'t open system VPN settings on this device. Open Settings → Network → VPN manually.</string>
     <string name="mayak_settings_disguise">App icon</string>
     <string name="mayak_disguise_weather">Weather</string>
     <string name="mayak_disguise_notes">Notes</string>

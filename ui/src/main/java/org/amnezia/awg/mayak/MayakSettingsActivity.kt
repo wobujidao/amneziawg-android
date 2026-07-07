@@ -120,6 +120,26 @@ class MayakSettingsActivity : AppCompatActivity() {
         // Значок приложения / маскировка (SPEC-0018 F2): диалог выбора пресета иконки+имени.
         findViewById<MaterialButton>(R.id.mayak_settings_disguise).setOnClickListener { showDisguiseDialog() }
 
+        // Автоподключение (SPEC-0018 F3): при вкл поднимаем последний РАБОЧИЙ туннель, когда система стартует
+        // наш VpnService по Always-On VPN и после загрузки устройства (из сохранённого конфига, без сети).
+        // По умолчанию ВЫКЛ. Текущий туннель не трогаем — только будущие старты.
+        val autoConnectSwitch = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.mayak_settings_autoconnect)
+        autoConnectSwitch.isChecked = MayakPrefs.autoConnect(this)
+        autoConnectSwitch.setOnCheckedChangeListener { _, checked ->
+            MayakPrefs.setAutoConnect(this, checked)
+        }
+
+        // Kill-switch (SPEC-0018 F3): «блокировать интернет без VPN» задаётся в СИСТЕМНЫХ настройках VPN
+        // (Always-On VPN + «Блокировать соединения без VPN») — приложение НЕ может включить это само, поэтому
+        // ведём пользователя в системный экран. Вместе с автоподключением выше даёт полный kill-switch: нет
+        // туннеля → нет интернета, а туннель поднимается сам. ACTION_VPN_SETTINGS есть не на всех прошивках → фолбэк.
+        findViewById<MaterialButton>(R.id.mayak_settings_killswitch).setOnClickListener {
+            val opened = runCatching {
+                startActivity(Intent(android.provider.Settings.ACTION_VPN_SETTINGS)); true
+            }.getOrDefault(false)
+            if (!opened) Toast.makeText(this, R.string.mayak_settings_killswitch_unavailable, Toast.LENGTH_LONG).show()
+        }
+
         // Тема — сегментированный переключатель (Авто/Светлая/Тёмная). check() при инициализации дёрнет
         // листенер, но guard `mode != текущий` не даст лишнего setThemeMode/пересоздания.
         val group = findViewById<MaterialButtonToggleGroup>(R.id.mayak_theme_group)
