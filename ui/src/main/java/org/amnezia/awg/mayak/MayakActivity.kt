@@ -724,7 +724,10 @@ class MayakActivity : AppCompatActivity() {
         setIpv6Badge(false)
         if (!MayakPrefs.useIpv6(this)) return // пользователь выключил IPv6 — не пробуем и не зажигаем
         lifecycleScope.launch {
-            val v6 = probe6.externalIp() // api6-only host: успех = реальный IPv6-выход через туннель
+            // РЕТРАИМ (как v4-пробу): v6-выход МОЖЕТ не пройти с первого раза даже когда IPv6 реально работает —
+            // AAAA-резолв через туннель, прогрев conntrack NAT66 на экзите, лаг соты. Одиночная проба давала
+            // ЛОЖНОЕ «нет IPv6» на всю сессию (баг 2026-07-07: диаг-лог #30 v6 есть, #31 нет; на ноде IPv6 жив).
+            val v6 = probeWithRetry(probe6, IPV6_PROBE_ATTEMPTS) // api6-only host: успех = реальный IPv6-выход
             if (v6 != null && connState == ConnState.CONNECTED) {
                 GoTunnel.egressIpv6 = v6
                 setIpv6Badge(true)
@@ -752,12 +755,13 @@ class MayakActivity : AppCompatActivity() {
         }
     }
 
-    /** Несколько попыток egress-пробы (пир появляется на сервере не сразу). */
-    private suspend fun probeWithRetry(): String? {
-        repeat(PROBE_ATTEMPTS) { attempt ->
-            val ip = probe.externalIp()
+    /** Несколько попыток egress-пробы (пир появляется на сервере не сразу; v6-выход может «прогреться» позже).
+     *  По умолчанию v4-проба (probe, PROBE_ATTEMPTS); v6-проба зовёт с probe6 и IPV6_PROBE_ATTEMPTS. */
+    private suspend fun probeWithRetry(p: IpifyProbe = probe, attempts: Int = PROBE_ATTEMPTS): String? {
+        repeat(attempts) { attempt ->
+            val ip = p.externalIp()
             if (ip != null) return ip
-            if (attempt < PROBE_ATTEMPTS - 1) delay(PROBE_DELAY_MS)
+            if (attempt < attempts - 1) delay(PROBE_DELAY_MS)
         }
         return null
     }
@@ -1240,6 +1244,9 @@ class MayakActivity : AppCompatActivity() {
         // Сервер добавляет пира sync-таймером (~15с) → повторяем egress-пробу до ~24с.
         private const val PROBE_ATTEMPTS = 6
         private const val PROBE_DELAY_MS = 4_000L
+        // v6-проба фоновая (не блокирует коннект, v4 уже подтверждён) → меньше попыток, чтобы не долбить
+        // api6.ipify.org минуту, если IPv6 честно не работает. 4×(таймаут 8с + пауза 4с) ≈ до ~44с.
+        private const val IPV6_PROBE_ATTEMPTS = 4
 
         // Период пинга сервера текущего подключения (обновление показателя на главном экране).
         private const val PING_INTERVAL_MS = 5_000L
