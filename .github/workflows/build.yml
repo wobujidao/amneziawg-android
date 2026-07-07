@@ -14,9 +14,12 @@ on:
         - release_apk
         - debug_apk
       ref:
-        description: "Git ref (branch/tag/sha)"
+        # ПУСТО по умолчанию: checkout использует `ref: ${{ inputs.ref }}`, а пустой ref в actions/checkout
+        # означает «ветка/SHA, запустившие workflow» (при dispatch — ветка, на которой запущен). Раньше
+        # default="master" ЖЁСТКО собирал master даже при dispatch на фиче. Явный ref по-прежнему уважается.
+        description: "Git ref (branch/tag/sha). Пусто = ветка, на которой запущен workflow."
         required: false
-        default: "master"
+        default: ""
 
 jobs:
   build:
