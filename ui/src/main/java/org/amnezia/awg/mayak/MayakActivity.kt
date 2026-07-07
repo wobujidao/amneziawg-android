@@ -1253,6 +1253,7 @@ class MayakActivity : AppCompatActivity() {
         // v6-проба фоновая (не блокирует коннект, v4 уже подтверждён) → меньше попыток, чтобы не долбить
         // api6.ipify.org минуту, если IPv6 честно не работает. 4×(таймаут 8с + пауза 4с) ≈ до ~44с.
         private const val IPV6_PROBE_ATTEMPTS = 4
+        // TODO(prod): ВРЕМЕННАЯ диагностика (0.3.15) — СНЯТЬ/загейтить перед прод-релизом (см. docs/APP-BACKLOG.md).
         // Тег диагностики v6-пробы (содержит «AmneziaWG» → DiagCollector включает в присланный лог).
         private const val PROBE_TAG = "AmneziaWG/mayak-probe"
 

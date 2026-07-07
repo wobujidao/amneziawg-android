@@ -41,6 +41,8 @@ class IpifyProbe(
     }
 
     private companion object {
+        // TODO(prod): ВРЕМЕННАЯ диагностика (0.3.15) — СНЯТЬ или спрятать за скрытый тумблер перед прод-
+        // релизом (см. docs/APP-BACKLOG.md «диагностика IPv6-пробы»). Держим, пока ловим баг значка IPv6.
         // Тег содержит «AmneziaWG» → DiagCollector.logcat включает эти строки в присланный лог.
         const val PROBE_TAG = "AmneziaWG/mayak-probe"
     }
