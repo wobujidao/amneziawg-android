@@ -164,6 +164,13 @@
     <string name="mayak_settings_killswitch">Kill-switch (block internet without VPN)</string>
     <string name="mayak_settings_killswitch_hint">Blocking the internet when the VPN is off is a system setting. Opens Android VPN settings — enable “Always-on VPN” and “Block connections without VPN” for Mayak. Together with Auto-connect above, your traffic never leaves unprotected.</string>
     <string name="mayak_settings_killswitch_unavailable">Couldn\'t open system VPN settings on this device. Open Settings → Network → VPN manually.</string>
+    <string name="mayak_settings_applock">Lock the app</string>
+    <string name="mayak_settings_applock_hint">Ask for your fingerprint, face or device PIN when opening the app. Protects your account, settings and config if the phone is unlocked in someone else\'s hands. Doesn\'t affect the VPN. Applies from the next time you open the app.</string>
+    <string name="mayak_settings_applock_no_credential">Set up a screen lock (PIN/fingerprint) in your phone settings — otherwise there is nothing to check and the lock won\'t work.</string>
+    <string name="mayak_lock_title">Mayak is locked</string>
+    <string name="mayak_lock_subtitle">Confirm it\'s you to continue</string>
+    <string name="mayak_lock_unlock">Unlock</string>
+    <string name="mayak_lock_exit">Exit</string>
     <string name="mayak_settings_disguise">App icon</string>
     <string name="mayak_disguise_weather">Weather</string>
     <string name="mayak_disguise_notes">Notes</string>

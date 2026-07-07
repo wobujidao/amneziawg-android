@@ -131,6 +131,14 @@
             android:label="@string/mayak_about"
             android:theme="@style/MayakTheme" />
 
+        <!-- Экран блокировки приложения (биометрия/PIN): показывается ПОВЕРХ главной. excludeFromRecents —
+             не мелькает отдельной задачей в превью; FLAG_SECURE ставится в коде (скрывает превью/скриншот). -->
+        <activity
+            android:name="org.amnezia.awg.mayak.MayakLockActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:theme="@style/MayakTheme" />
+
         <!-- Стоковый экран amnezia оставлен (импорт/диагностика), но не лаунчер -->
         <activity
             android:name=".activity.MainActivity"

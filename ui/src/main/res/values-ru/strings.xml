@@ -372,6 +372,13 @@
     <string name="mayak_settings_killswitch">Kill-switch (блокировать интернет без VPN)</string>
     <string name="mayak_settings_killswitch_hint">Блокировка интернета без VPN — системная настройка. Кнопка открывает настройки VPN Android: включите для «Маяка» «Always-on VPN» и «Блокировать соединения без VPN». Вместе с автоподключением выше трафик никогда не уходит без защиты.</string>
     <string name="mayak_settings_killswitch_unavailable">Не удалось открыть системные настройки VPN на этом устройстве. Откройте Настройки → Сеть → VPN вручную.</string>
+    <string name="mayak_settings_applock">Блокировка приложения</string>
+    <string name="mayak_settings_applock_hint">Спрашивать отпечаток, лицо или PIN устройства при открытии приложения. Защищает кабинет, настройки и конфиг, если телефон разблокирован и попал в чужие руки. VPN не затрагивает. Применяется со следующего открытия приложения.</string>
+    <string name="mayak_settings_applock_no_credential">Задайте блокировку экрана (PIN/отпечаток) в настройках телефона — иначе проверять нечем и блокировка не сработает.</string>
+    <string name="mayak_lock_title">Маяк заблокирован</string>
+    <string name="mayak_lock_subtitle">Подтвердите, что это вы</string>
+    <string name="mayak_lock_unlock">Разблокировать</string>
+    <string name="mayak_lock_exit">Выйти</string>
     <string name="mayak_settings_disguise">Значок приложения</string>
     <string name="mayak_disguise_weather">Погода</string>
     <string name="mayak_disguise_notes">Заметки</string>

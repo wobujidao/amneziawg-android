@@ -19,6 +19,7 @@ object MayakPrefs {
     private const val KEY_SPLIT_APPS = "split_apps" // split-туннель: package-имена приложений (StringSet)
     private const val KEY_SPLIT_EXCLUDED = "split_excluded" // split-туннель: true=исключить эти, false=только эти
     private const val KEY_AUTOCONNECT = "autoconnect" // F3: автоподнятие последнего рабочего туннеля (по умолч. ВЫКЛ)
+    private const val KEY_APP_LOCK = "app_lock" // блокировка приложения по биометрии/PIN устройства (по умолч. ВЫКЛ)
 
     /** Автоподключение (SPEC-0018 F3): поднимать последний РАБОЧИЙ туннель при системном Always-On VPN и
      *  после загрузки устройства (из сохранённого на диске конфига, без сети). По умолчанию ВЫКЛ —
@@ -28,6 +29,16 @@ object MayakPrefs {
 
     fun setAutoConnect(context: Context, enabled: Boolean) {
         prefs(context).edit().putBoolean(KEY_AUTOCONNECT, enabled).apply()
+    }
+
+    /** Блокировка приложения (запрос владельца 2026-07-06): при открытии/возврате спрашивать биометрию или
+     *  системный PIN/паттерн (BiometricPrompt с DEVICE_CREDENTIAL). По умолчанию ВЫКЛ. Только UI-гейт — VPN
+     *  не трогает. Свой PIN НЕ храним — используем системный (fallback DEVICE_CREDENTIAL). */
+    fun appLock(context: Context): Boolean =
+        prefs(context).getBoolean(KEY_APP_LOCK, false)
+
+    fun setAppLock(context: Context, enabled: Boolean) {
+        prefs(context).edit().putBoolean(KEY_APP_LOCK, enabled).apply()
     }
 
     /** Использовать ли IPv6 в туннеле (SPEC-0014). По умолчанию ВКЛ — польза; выключается в настройках

@@ -140,6 +140,18 @@ class MayakSettingsActivity : AppCompatActivity() {
             if (!opened) Toast.makeText(this, R.string.mayak_settings_killswitch_unavailable, Toast.LENGTH_LONG).show()
         }
 
+        // Блокировка приложения по биометрии/PIN (запрос владельца 2026-07-06). Применяется при следующем
+        // возврате из фона/открытии — текущий сеанс не запираем сразу. Если на устройстве нет ни биометрии,
+        // ни экран-блокировки — предупреждаем (fail-open: без них блокировка просто не сработает).
+        val appLockSwitch = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.mayak_settings_applock)
+        appLockSwitch.isChecked = MayakPrefs.appLock(this)
+        appLockSwitch.setOnCheckedChangeListener { _, checked ->
+            MayakPrefs.setAppLock(this, checked)
+            if (checked && !MayakLock.canAuthenticate(this)) {
+                Toast.makeText(this, R.string.mayak_settings_applock_no_credential, Toast.LENGTH_LONG).show()
+            }
+        }
+
         // Тема — сегментированный переключатель (Авто/Светлая/Тёмная). check() при инициализации дёрнет
         // листенер, но guard `mode != текущий` не даст лишнего setThemeMode/пересоздания.
         val group = findViewById<MaterialButtonToggleGroup>(R.id.mayak_theme_group)

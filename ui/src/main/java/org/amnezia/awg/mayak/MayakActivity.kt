@@ -231,6 +231,20 @@ class MayakActivity : AppCompatActivity() {
         }
     }
 
+    override fun onStart() {
+        super.onStart()
+        // Блокировка приложения (запрос владельца 2026-07-06): при появлении на переднем плане (cold-start И
+        // возврат из фона дольше GRACE) требуем биометрию/системный PIN, если включено в настройках. Экран
+        // блокировки — отдельная MayakLockActivity ПОВЕРХ (контент главной скрыт под ней). Fail-open: выкл или
+        // нечем проверить → shouldLock=false. VPN/туннель НЕ трогаем — это чисто UI-гейт.
+        if (MayakLock.shouldLock(this)) {
+            MayakLock.lockShowing = true
+            startActivity(Intent(this, MayakLockActivity::class.java))
+            @Suppress("DEPRECATION")
+            overridePendingTransition(0, 0) // без анимации — чтобы контент главной не мелькнул
+        }
+    }
+
     override fun onResume() {
         super.onResume()
         networkBg?.startAnimation() // фон оживает, только пока экран виден
@@ -254,6 +268,11 @@ class MayakActivity : AppCompatActivity() {
         // Туннель/таймер/уведомление это не трогает — рвётся лишь UI-индикатор пинга, он и не виден в фоне.
         stopPing()
         super.onPause()
+    }
+
+    override fun onStop() {
+        MayakLock.noteBackground() // отметить уход в фон: при возврате дольше GRACE запросим разблокировку
+        super.onStop()
     }
 
     /**
