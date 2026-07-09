@@ -3,7 +3,9 @@
 // устройстве и НИКОГДА не уходит в ядро (ADR-0004) — в connect/devices летит только pubkey.
 package org.amnezia.awg.mayak
 
+import android.os.Build
 import android.os.SystemClock
+import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -288,8 +290,23 @@ class MayakSession(
         val pub = store.get(K_PUB) ?: throw IllegalStateException("нет публичного ключа")
         // hwid стабилен на устройстве после переустановки → ядро апсертит устройство по (user, hwid)
         // и переиспользует слот (не плодит новые устройства, не упирается в лимит).
-        val resp = backend.registerDevice(token, pub, label = "android", hwid = hwids.hwid())
+        val resp = backend.registerDevice(token, pub, label = deviceName(), hwid = hwids.hwid())
         store.put(K_DEVICE, resp.deviceId.toString())
         return resp.deviceId
+    }
+
+    /** Человекочитаемое имя устройства для кабинета: «Производитель Модель · Android N»
+     *  (напр. «Samsung SM-G991B · Android 14»). Модель у нас и так собирается для диаг-логов
+     *  (DiagCollector). Без ПДн сверх модели и версии ОС. Раньше слали захардкоженное "android". */
+    private fun deviceName(): String {
+        val manu = (Build.MANUFACTURER ?: "").trim()
+        val model = (Build.MODEL ?: "").trim()
+        val base = when {
+            model.isEmpty() && manu.isEmpty() -> "Android"
+            manu.isEmpty() || model.startsWith(manu, ignoreCase = true) -> model.ifEmpty { manu }
+            else -> "$manu $model"
+        }.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+        val ver = (Build.VERSION.RELEASE ?: "").trim()
+        return if (ver.isEmpty()) base else "$base · Android $ver"
     }
 }
