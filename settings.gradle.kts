@@ -18,7 +18,9 @@ dependencyResolutionManagement {
 }
 
 plugins {
-    id("com.android.settings") version "8.3.0"
+    // Версия ДОЛЖНА совпадать с AGP модулей (libs.versions.toml agp), иначе рассинхрон
+    // SettingsExtension → NoSuchMethodError compileSdk(Function1) при apply AGP-плагина.
+    id("com.android.settings") version "9.2.1"
 }
 
 rootProject.name = "amneziawg-android"
@@ -28,7 +30,7 @@ include(":ui")
 include(":core")
 
 configure<SettingsExtension> {
-    buildToolsVersion = "35.0.0"
+    buildToolsVersion = "36.0.0"
     compileSdk = 36
     minSdk = 24
     ndkVersion = "26.1.10909125"
