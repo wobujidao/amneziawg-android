@@ -149,8 +149,21 @@ class MayakActivity : AppCompatActivity() {
             backend = MayakBackend(hostProvider())
             showHome(); loadDirections()
             checkAppUpdate() // мягкий нудж, если вышла новая версия (Вариант А)
+            refreshRuDirect() // OTA-подтяжка РФ-списка split-туннеля (в фоне, best-effort)
         } else {
             showLogin()
+        }
+    }
+
+    /** OTA-подтяжка списка РФ-приложений для split-туннеля «Открывать российские сервисы напрямую»
+     *  (BlancVPN-parity). Раз на процесс, в фоне, best-effort (ошибка → молча остаётся кэш/зашитый ассет).
+     *  НЕ во время коннекта (DPI палит домен рядом с хендшейком — см. MayakSession), а на старте/после логина. */
+    private fun refreshRuDirect() {
+        if (ruDirectRefreshedThisProcess) return
+        ruDirectRefreshedThisProcess = true
+        val b = backend ?: return
+        lifecycleScope.launch {
+            runCatching { MayakRuDirect.refresh(this@MayakActivity, b) }
         }
     }
 
@@ -382,6 +395,7 @@ class MayakActivity : AppCompatActivity() {
             try {
                 session.login(backend!!, email, password)
                 showHome(); loadDirections(forceRefresh = true)
+                refreshRuDirect() // OTA-подтяжка РФ-списка split-туннеля после входа
             } catch (e: MayakApiException) {
                 when (e.status) {
                     403 -> showEmailNotVerified()
@@ -1287,6 +1301,7 @@ class MayakActivity : AppCompatActivity() {
 
         // Проверку обновления делаем раз на запуск процесса (пересоздание Activity — смена темы — не дёргает).
         @Volatile private var updateCheckedThisProcess = false
+        @Volatile private var ruDirectRefreshedThisProcess = false // OTA-подтяжка РФ-списка split-туннеля — раз на процесс
 
         // Тёплый /connect-кэш (DPI: не дёргать api.mayakvpn.ru рядом с хендшейком) греем один раз за процесс
         // при первом входе на главный. Пересоздание Activity (смена темы) уже НЕ греет (баг владельца 2026-07-06).

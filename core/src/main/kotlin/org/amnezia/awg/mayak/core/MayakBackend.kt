@@ -117,6 +117,14 @@ class MayakBackend(
             json.decodeFromString(AppVersionInfo.serializer(), resp)
         }.getOrNull()
 
+    /** OTA-список РФ-приложений для split-туннеля (BlancVPN-parity): публичный /v1/client/ru-direct
+     *  через тот же фейловер доменов, БЕЗ токена. Не критично: любая ошибка → null (клиент оставит кэш/ассет). */
+    suspend fun ruDirect(): RuDirectList? =
+        runCatching {
+            val resp = call("GET", "/v1/client/ru-direct", token = null, body = null)
+            json.decodeFromString(RuDirectList.serializer(), resp)
+        }.getOrNull()
+
     /**
      * Один HTTP-вызов с фейловером по доменам. На сетевой ошибке (домен недоступен/заблокирован)
      * крутим HostProvider и повторяем; на HTTP-ответе (в т.ч. 4xx/5xx) — НЕ переключаемся, а

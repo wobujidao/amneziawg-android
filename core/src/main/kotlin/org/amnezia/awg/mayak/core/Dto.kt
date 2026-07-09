@@ -139,3 +139,14 @@ data class AppVersionInfo(
     @SerialName("min_version_code") val minVersionCode: Int = 0, // ниже этого — жёсткий апдейт (на будущее)
     val changelog: String = "",
 )
+
+/** OTA-список РФ-приложений для split-туннеля «Открывать российские сервисы напрямую» (BlancVPN-parity
+ *  2026-07-09). Клиент тянет /v1/client/ru-direct, кэширует локально; фолбэк — зашитый в APK ассет.
+ *  version = хэш enabled-набора (клиент по нему решает, обновлять ли кэш). Правится в админке. */
+@Serializable
+data class RuDirectList(
+    val version: String = "",
+    val regex: List<String> = emptyList(),
+    val exceptions: List<String> = emptyList(),
+    val apps: List<String> = emptyList(),
+)

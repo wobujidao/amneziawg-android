@@ -8,24 +8,31 @@ package org.amnezia.awg.mayak
 import android.Manifest
 import android.content.Context
 import android.util.Log
+import org.amnezia.awg.mayak.core.MayakBackend
+import org.json.JSONArray
 import org.json.JSONObject
+import java.io.File
 
 object MayakRuDirect {
     private const val TAG = "AmneziaWG/RuDirect"
     private const val ASSET = "mayak_ru_direct.json"
+    private const val CACHE = "ru_direct_cache.json" // OTA-кэш (свежее ассета); пишется в filesDir
 
     private data class Rules(val regexes: List<Regex>, val exceptions: Set<String>, val explicit: Set<String>)
 
     @Volatile private var cache: Rules? = null
 
+    private fun cacheFile(ctx: Context) = File(ctx.applicationContext.filesDir, CACHE)
+
+    /** Правила: сначала OTA-кэш (если есть/валиден), иначе зашитый ассет. Парсит {regex,exceptions,apps}. */
     private fun rules(ctx: Context): Rules {
         cache?.let { return it }
         return synchronized(this) {
             cache ?: run {
-                val text = ctx.applicationContext.assets.open(ASSET).bufferedReader().use { it.readText() }
+                val text = readCacheOrAsset(ctx)
                 val o = JSONObject(text)
                 val rx = ArrayList<Regex>()
-                o.optJSONArray("regex")?.let { arr -> for (i in 0 until arr.length()) rx.add(Regex(arr.getString(i))) }
+                o.optJSONArray("regex")?.let { arr -> for (i in 0 until arr.length()) runCatching { rx.add(Regex(arr.getString(i))) } }
                 val exc = HashSet<String>()
                 o.optJSONArray("exceptions")?.let { arr -> for (i in 0 until arr.length()) exc.add(arr.getString(i)) }
                 val exp = HashSet<String>()
@@ -33,6 +40,40 @@ object MayakRuDirect {
                 Rules(rx, exc, exp).also { cache = it }
             }
         }
+    }
+
+    private fun readCacheOrAsset(ctx: Context): String {
+        val f = cacheFile(ctx)
+        if (f.exists() && f.length() > 0) {
+            runCatching { return f.readText() }.onFailure { Log.w(TAG, "битый OTA-кэш, беру ассет: ${it.message}") }
+        }
+        return ctx.applicationContext.assets.open(ASSET).bufferedReader().use { it.readText() }
+    }
+
+    /** OTA-подтяжка списка с ядра (BlancVPN-parity): тянет /v1/client/ru-direct, при смене version
+     *  атомарно пишет кэш и сбрасывает in-memory правила. Best-effort — любая ошибка молча оставляет
+     *  прежний кэш/ассет. ВАЖНО: вызывать НЕ во время коннекта (DPI палит домен рядом с хендшейком —
+     *  см. MayakSession), а на старте приложения / в фоне. */
+    suspend fun refresh(ctx: Context, backend: MayakBackend) {
+        val list = backend.ruDirect() ?: return
+        // защита от вырождения: пустой список не затираем (оставляем кэш/ассет).
+        if (list.regex.isEmpty() && list.apps.isEmpty()) return
+        val cur = MayakPrefs.ruDirectVersion(ctx)
+        if (list.version.isNotEmpty() && list.version == cur && cacheFile(ctx).exists()) return // без изменений
+        val obj = JSONObject().apply {
+            put("version", list.version)
+            put("regex", JSONArray(list.regex))
+            put("exceptions", JSONArray(list.exceptions))
+            put("apps", JSONArray(list.apps))
+        }
+        runCatching {
+            val tmp = File(ctx.applicationContext.filesDir, "$CACHE.tmp")
+            tmp.writeText(obj.toString())
+            if (!tmp.renameTo(cacheFile(ctx))) { tmp.copyTo(cacheFile(ctx), overwrite = true); tmp.delete() }
+            MayakPrefs.setRuDirectVersion(ctx, list.version)
+            synchronized(this) { cache = null } // следующий rules() перечитает свежий кэш
+            Log.i(TAG, "OTA-список обновлён: version=${list.version}, apps=${list.apps.size}")
+        }.onFailure { Log.w(TAG, "не смог записать OTA-кэш: ${it.message}") }
     }
 
     /** Установленные РФ-приложения (держащие INTERNET, как в AppListDialogFragment), которые по правилам

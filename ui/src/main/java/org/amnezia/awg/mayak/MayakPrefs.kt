@@ -19,6 +19,7 @@ object MayakPrefs {
     private const val KEY_SPLIT_APPS = "split_apps" // split-туннель: package-имена приложений (StringSet)
     private const val KEY_SPLIT_EXCLUDED = "split_excluded" // split-туннель: true=исключить эти, false=только эти
     private const val KEY_SPLIT_RU_PRESET = "split_ru_preset" // RU-пресет: РФ-приложения мимо VPN одной кнопкой (по умолч. ВЫКЛ)
+    private const val KEY_SPLIT_RU_VERSION = "split_ru_version" // version (хэш) последнего OTA-списка РФ-приложений
     private const val KEY_AUTOCONNECT = "autoconnect" // F3: автоподнятие последнего рабочего туннеля (по умолч. ВЫКЛ)
     private const val KEY_APP_LOCK = "app_lock" // блокировка приложения по биометрии/PIN устройства (по умолч. ВЫКЛ)
 
@@ -86,6 +87,14 @@ object MayakPrefs {
 
     fun setRuDirect(context: Context, enabled: Boolean) {
         prefs(context).edit().putBoolean(KEY_SPLIT_RU_PRESET, enabled).apply()
+    }
+
+    /** version (хэш) последнего OTA-списка РФ-приложений в кэше — чтобы не перезаписывать без изменений. */
+    fun ruDirectVersion(context: Context): String =
+        prefs(context).getString(KEY_SPLIT_RU_VERSION, "") ?: ""
+
+    fun setRuDirectVersion(context: Context, version: String) {
+        prefs(context).edit().putString(KEY_SPLIT_RU_VERSION, version).apply()
     }
 
     /** versionCode, обновление до которого пользователь отклонил («Позже») — чтобы не долбить каждый запуск. */
