@@ -36,6 +36,9 @@ object DiagCollector {
                 meta = buildMap {
                     put("abi", Build.SUPPORTED_ABIS.firstOrNull() ?: "?")
                     put("vpn_transport_present", net.vpnActive.toString())
+                    // Источник установки (для статистики Play vs сайт): play | sideload | unknown | <installer>.
+                    // Агрегируется на бэкенде через meta->>'install_source' (колонка jsonb, миграция не нужна).
+                    put("install_source", installSource(context))
                     // Выходные IP нашего подключения (SPEC-0014) — чтобы инженер по логу видел, под каким
                     // IPv4/IPv6 экзита сидел клиент (диагностика «не работает направление / блок IP»).
                     // Процесс-скоупно в GoTunnel: заполнены, если в момент сбора туннель поднят нами.
@@ -45,6 +48,21 @@ object DiagCollector {
                 log = captureLog(),
             )
         }
+
+    /** Источник установки приложения (для статистики): «play» (Google Play), «sideload» (прямой APK
+     *  с сайта / пакет-инсталлер), «unknown» (adb/не определено) или имя installer-пакета (др. стор). */
+    private fun installSource(context: Context): String = try {
+        val pm = context.packageManager
+        val installer = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
+            pm.getInstallSourceInfo(context.packageName).installingPackageName
+        else @Suppress("DEPRECATION") pm.getInstallerPackageName(context.packageName)
+        when (installer) {
+            null -> "sideload"
+            "com.android.vending" -> "play"
+            "com.google.android.packageinstaller", "com.android.packageinstaller" -> "sideload"
+            else -> installer
+        }
+    } catch (e: Exception) { "unknown" }
 
     private data class Net(val type: String, val vpnActive: Boolean)
 

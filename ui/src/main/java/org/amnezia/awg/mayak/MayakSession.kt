@@ -286,13 +286,19 @@ class MayakSession(
     }
 
     private suspend fun ensureDevice(backend: MayakBackend, token: String): Long {
-        store.get(K_DEVICE)?.toLongOrNull()?.let { return it }
+        val cached = store.get(K_DEVICE)?.toLongOrNull()
         val pub = store.get(K_PUB) ?: throw IllegalStateException("нет публичного ключа")
-        // hwid стабилен на устройстве после переустановки → ядро апсертит устройство по (user, hwid)
-        // и переиспользует слот (не плодит новые устройства, не упирается в лимит).
-        val resp = backend.registerDevice(token, pub, label = deviceName(), hwid = hwids.hwid())
-        store.put(K_DEVICE, resp.deviceId.toString())
-        return resp.deviceId
+        // Регистрируем при КАЖДОМ старте сессии: ядро апсертит устройство по (user, hwid) — слот
+        // переиспользуется (не плодит устройства, не упирается в лимит), зато имя (модель телефона)
+        // и last_seen обновляются БЕЗ переустановки. Если ядро недоступно — берём закэшированный id,
+        // чтобы офлайн-подключение (last-good conf) не сломалось.
+        return try {
+            val resp = backend.registerDevice(token, pub, label = deviceName(), hwid = hwids.hwid())
+            store.put(K_DEVICE, resp.deviceId.toString())
+            resp.deviceId
+        } catch (e: Exception) {
+            cached ?: throw e
+        }
     }
 
     /** Человекочитаемое имя устройства для кабинета: «Производитель Модель · Android N»
