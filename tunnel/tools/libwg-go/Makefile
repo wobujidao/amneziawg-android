@@ -20,12 +20,13 @@ export GOARCH := $(NDK_GO_ARCH_MAP_$(ANDROID_ARCH_NAME))
 export GOOS := android
 export CGO_ENABLED := 1
 
-GO_VERSION := 1.24.2
+# Правило владельца: всегда свежайший стек. Бэкенд Маяка тоже на go1.26.5 (см. go.mod/CI).
+GO_VERSION := 1.26.5
 GO_PLATFORM := $(shell uname -s | tr '[:upper:]' '[:lower:]')-$(NDK_GO_ARCH_MAP_$(shell uname -m))
 GO_TARBALL := go$(GO_VERSION).$(GO_PLATFORM).tar.gz
-GO_HASH_darwin-amd64 := 238d9c065d09ff6af229d2e3b8b5e85e688318d69f4006fb85a96e41c216ea83
-GO_HASH_darwin-arm64 := b70f8b3c5b4ccb0ad4ffa5ee91cd38075df20fdbd953a1daedd47f50fbcff47a
-GO_HASH_linux-amd64 := 68097bd680839cbc9d464a0edce4f7c333975e27a90246890e9f1078c7e702ad
+GO_HASH_darwin-amd64 := 6231d8d3b8f5552ec6cbf6d685bdd5482e1e703214b120e89b3bf0d7bf1ef725
+GO_HASH_darwin-arm64 := efb87ff28af9a188d0536ef5d42e63dd52ba8263cd7344a993cc48dd11dedb6a
+GO_HASH_linux-amd64 := 5c2c3b16caefa1d968a94c1daca04a7ca301a496d9b086e17ad77bb81393f053
 
 default: $(DESTDIR)/libwg-go.so
 
