@@ -228,6 +228,26 @@
                         android:textColor="@color/mayak_on_surface"
                         android:alpha="0.8"
                         android:textAppearance="@style/Mayak.Tagline" />
+
+                    <!-- RU-пресет (BlancVPN-parity, 2026-07-09): одной кнопкой пускает РФ-приложения
+                         мимо VPN. Список — ui/assets/mayak_ru_direct.json, применяется при коннекте. -->
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/mayak_settings_rudirect"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:minHeight="48dp"
+                        android:textColor="@color/mayak_on_surface"
+                        android:text="@string/mayak_settings_rudirect" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="@string/mayak_settings_rudirect_hint"
+                        android:textColor="@color/mayak_on_surface"
+                        android:alpha="0.8"
+                        android:textAppearance="@style/Mayak.Tagline" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

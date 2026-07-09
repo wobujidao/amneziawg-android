@@ -74,10 +74,8 @@ object MayakAutoConnect {
      *  туннель (SPEC-0018 F1). Оба — трансформы строки из настроек пользователя; пустой split — no-op. */
     private fun prepareConf(ctx: Context, conf: String): String {
         val stripped = if (MayakPrefs.useIpv6(ctx)) conf else ConfRenderer.stripIpv6(conf)
-        return ConfRenderer.withSplitTunnel(
-            stripped,
-            MayakPrefs.splitApps(ctx).toList(),
-            MayakPrefs.splitExcluded(ctx),
-        )
+        // split-туннель: ручной (SPEC-0018 F1) ∪ RU-пресет «российские сервисы напрямую» (2026-07-09).
+        val (apps, excluded) = MayakRuDirect.effectiveSplit(ctx)
+        return ConfRenderer.withSplitTunnel(stripped, apps, excluded)
     }
 }

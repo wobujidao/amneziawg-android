@@ -733,12 +733,11 @@ class MayakActivity : AppCompatActivity() {
     /** Готовит .conf к подъёму туннеля: сначала IPv6-тумблер (SPEC-0014), затем split-туннель
      *  (SPEC-0018 F1 — выбранные приложения мимо/только-в туннель). Оба — трансформы строки конфига
      *  из настроек пользователя; применяются к обоим плечам (direct/relay). Пустой список split — no-op. */
-    private fun prepareConf(conf: String): String =
-        org.amnezia.awg.mayak.core.ConfRenderer.withSplitTunnel(
-            maybeStripIpv6(conf),
-            MayakPrefs.splitApps(this).toList(),
-            MayakPrefs.splitExcluded(this),
-        )
+    private fun prepareConf(conf: String): String {
+        // split-туннель: ручной (SPEC-0018 F1) ∪ RU-пресет «российские сервисы напрямую» (2026-07-09).
+        val (apps, excluded) = org.amnezia.awg.mayak.MayakRuDirect.effectiveSplit(this)
+        return org.amnezia.awg.mayak.core.ConfRenderer.withSplitTunnel(maybeStripIpv6(conf), apps, excluded)
+    }
 
     /** Фоновая IPv6-проба выхода после коннекта: значок «IPv6» зажигаем ТОЛЬКО при реальном egress
      *  (api6.ipify.org вернул адрес). Не блокирует коннект (v4 уже подтверждён). Честно (SPEC-0014). */

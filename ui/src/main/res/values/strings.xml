@@ -158,6 +158,9 @@
     <string name="mayak_settings_split_count">Split tunneling (%1$d)</string>
     <string name="mayak_settings_split_hint">Choose apps that go around the VPN over your real IP (e.g. banking, government apps that block foreign IPs). Everything else stays protected. Selected apps are intentionally outside the tunnel — add only what you need.</string>
     <string name="mayak_settings_split_applied">Applies on the next connection</string>
+    <string name="mayak_settings_rudirect">Russian services direct (no VPN)</string>
+    <string name="mayak_settings_rudirect_hint">One tap: Russian apps (banks, government services, marketplaces, streaming) go directly over your real IP, so they work as if you were at home. Everything else stays protected by the VPN. Applies on the next connection.</string>
+    <string name="mayak_settings_rudirect_applied">Russian services will go direct on the next connection</string>
     <string name="mayak_settings_protection">Protection</string>
     <string name="mayak_settings_autoconnect">Auto-connect</string>
     <string name="mayak_settings_autoconnect_hint">Automatically brings up your last working connection when the phone starts or the system launches the VPN — from the config saved on the device, no network needed. Connect once manually first so there is something to restore.</string>

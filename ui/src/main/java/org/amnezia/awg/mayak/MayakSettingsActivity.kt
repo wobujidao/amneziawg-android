@@ -117,6 +117,17 @@ class MayakSettingsActivity : AppCompatActivity() {
                 .show(supportFragmentManager, null)
         }
 
+        // RU-пресет (BlancVPN-parity 2026-07-09): одной кнопкой пускает установленные РФ-приложения
+        // (банки/госуслуги/маркетплейсы — по ui/assets/mayak_ru_direct.json) МИМО VPN. Совмещается с
+        // ручным split (MayakRuDirect.effectiveSplit). Применяется при следующем коннекте — текущий
+        // туннель не рвём молча (как ipv6/split-кнопка).
+        val ruDirectSwitch = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.mayak_settings_rudirect)
+        ruDirectSwitch.isChecked = MayakPrefs.ruDirect(this)
+        ruDirectSwitch.setOnCheckedChangeListener { _, checked ->
+            MayakPrefs.setRuDirect(this, checked)
+            Toast.makeText(this, R.string.mayak_settings_rudirect_applied, Toast.LENGTH_SHORT).show()
+        }
+
         // Значок приложения / маскировка (SPEC-0018 F2): диалог выбора пресета иконки+имени.
         findViewById<MaterialButton>(R.id.mayak_settings_disguise).setOnClickListener { showDisguiseDialog() }
 
