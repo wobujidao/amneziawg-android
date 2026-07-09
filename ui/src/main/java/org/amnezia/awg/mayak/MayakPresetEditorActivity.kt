@@ -261,7 +261,7 @@ class MayakPresetEditorActivity : AppCompatActivity() {
 
             init {
                 view.setOnClickListener {
-                    val pos = bindingAdapterPosition
+                    val pos = adapterPosition
                     if (pos == RecyclerView.NO_POSITION) return@setOnClickListener
                     val app = shownApps[pos]
                     app.checked = !app.checked
