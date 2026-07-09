@@ -20,6 +20,10 @@ object MayakPrefs {
     private const val KEY_SPLIT_EXCLUDED = "split_excluded" // split-туннель: true=исключить эти, false=только эти
     private const val KEY_SPLIT_RU_PRESET = "split_ru_preset" // RU-пресет: РФ-приложения мимо VPN одной кнопкой (по умолч. ВЫКЛ)
     private const val KEY_SPLIT_RU_VERSION = "split_ru_version" // version (хэш) последнего OTA-списка РФ-приложений
+    // Пресеты split-туннеля (SPEC-0028):
+    private const val KEY_PRESET_ACTIVE = "preset_active_id"   // id активного пресета (0 = нет)
+    private const val KEY_PRESET_ENABLED = "preset_enabled"    // тумблер «применять активный пресет» (по умолч. ВЫКЛ)
+    private const val KEY_PRESET_SHOW = "preset_show_on_home"   // показывать селектор пресетов на главном (по умолч. ВКЛ)
     private const val KEY_AUTOCONNECT = "autoconnect" // F3: автоподнятие последнего рабочего туннеля (по умолч. ВЫКЛ)
     private const val KEY_APP_LOCK = "app_lock" // блокировка приложения по биометрии/PIN устройства (по умолч. ВЫКЛ)
 
@@ -95,6 +99,33 @@ object MayakPrefs {
 
     fun setRuDirectVersion(context: Context, version: String) {
         prefs(context).edit().putString(KEY_SPLIT_RU_VERSION, version).apply()
+    }
+
+    /** Пресеты split-туннеля (SPEC-0028). Активный пресет — один за раз; тумблер решает, применять ли его. */
+    fun activePresetId(context: Context): Long = prefs(context).getLong(KEY_PRESET_ACTIVE, 0L)
+
+    fun setActivePresetId(context: Context, id: Long) {
+        prefs(context).edit().putLong(KEY_PRESET_ACTIVE, id).apply()
+    }
+
+    /** Применять активный пресет при подключении (тумблер у кнопки VPN). По умолчанию ВЫКЛ. */
+    fun presetEnabled(context: Context): Boolean = prefs(context).getBoolean(KEY_PRESET_ENABLED, false)
+
+    fun setPresetEnabled(context: Context, enabled: Boolean) {
+        prefs(context).edit().putBoolean(KEY_PRESET_ENABLED, enabled).apply()
+    }
+
+    /** Показывать селектор пресетов на главном экране (настройка). По умолчанию ВКЛ. */
+    fun showPresetsOnHome(context: Context): Boolean = prefs(context).getBoolean(KEY_PRESET_SHOW, true)
+
+    fun setShowPresetsOnHome(context: Context, show: Boolean) {
+        prefs(context).edit().putBoolean(KEY_PRESET_SHOW, show).apply()
+    }
+
+    /** Сброс ВСЕХ настроек «Маяка» к дефолтам (кнопка в Настройках). Тему/язык appcompat перечитает при
+     *  следующем старте. Не трогает токен/сессию (это не «настройки»). */
+    fun resetAll(context: Context) {
+        prefs(context).edit().clear().apply()
     }
 
     /** versionCode, обновление до которого пользователь отклонил («Позже») — чтобы не долбить каждый запуск. */

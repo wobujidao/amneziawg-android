@@ -125,6 +125,30 @@ class MayakBackend(
             json.decodeFromString(RuDirectList.serializer(), resp)
         }.getOrNull()
 
+    /** Пресеты split-туннеля (SPEC-0028): системные + пользователя (авторизованный). */
+    suspend fun listPresets(token: String): List<Preset> {
+        val resp = call("GET", "/v1/client/presets", token = token, body = null)
+        return json.decodeFromString(PresetsResponse.serializer(), resp).presets
+    }
+
+    /** Создать свой пресет; возвращает id. */
+    suspend fun createPreset(token: String, w: PresetWrite): Long {
+        val body = json.encodeToString(PresetWrite.serializer(), w)
+        val resp = call("POST", "/v1/client/presets", token = token, body = body)
+        return json.decodeFromString(IdResponse.serializer(), resp).id
+    }
+
+    /** Обновить свой пресет. */
+    suspend fun updatePreset(token: String, id: Long, w: PresetWrite) {
+        val body = json.encodeToString(PresetWrite.serializer(), w)
+        call("PUT", "/v1/client/presets/$id", token = token, body = body)
+    }
+
+    /** Удалить свой пресет. */
+    suspend fun deletePreset(token: String, id: Long) {
+        call("DELETE", "/v1/client/presets/$id", token = token, body = null)
+    }
+
     /**
      * Один HTTP-вызов с фейловером по доменам. На сетевой ошибке (домен недоступен/заблокирован)
      * крутим HostProvider и повторяем; на HTTP-ответе (в т.ч. 4xx/5xx) — НЕ переключаемся, а

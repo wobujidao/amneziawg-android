@@ -261,6 +261,21 @@ class MayakSession(
     suspend fun sendDiagLog(backend: MayakBackend, req: org.amnezia.awg.mayak.core.DiagLogRequest) =
         backend.sendDiagLog(requireToken(), req)
 
+    /** Пресеты split-туннеля (SPEC-0028): синхрон с ядра (кэш в MayakPresets) + CRUD своих. Токен —
+     *  внутри session (не светим наружу). */
+    suspend fun syncPresets(context: android.content.Context, backend: MayakBackend) {
+        MayakPresets.sync(context, backend, requireToken())
+    }
+
+    suspend fun createPreset(backend: MayakBackend, w: org.amnezia.awg.mayak.core.PresetWrite): Long =
+        backend.createPreset(requireToken(), w)
+
+    suspend fun updatePreset(backend: MayakBackend, id: Long, w: org.amnezia.awg.mayak.core.PresetWrite) =
+        backend.updatePreset(requireToken(), id, w)
+
+    suspend fun deletePreset(backend: MayakBackend, id: Long) =
+        backend.deletePreset(requireToken(), id)
+
     /** id устройства из хранилища (0 — ещё не зарегистрировано); для контекста диаг-лога. */
     fun deviceId(): Long = store.get(K_DEVICE)?.toLongOrNull() ?: 0L
 

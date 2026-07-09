@@ -155,15 +155,18 @@ class MayakActivity : AppCompatActivity() {
         }
     }
 
-    /** OTA-подтяжка списка РФ-приложений для split-туннеля «Открывать российские сервисы напрямую»
-     *  (BlancVPN-parity). Раз на процесс, в фоне, best-effort (ошибка → молча остаётся кэш/зашитый ассет).
-     *  НЕ во время коннекта (DPI палит домен рядом с хендшейком — см. MayakSession), а на старте/после логина. */
+    /** Синхрон пресетов split-туннеля с ядра (SPEC-0028): системные «РФ напрямую» + пользовательские.
+     *  Раз на процесс, в фоне, best-effort (ошибка → молча остаётся кэш/зашитый ассет). НЕ во время
+     *  коннекта (DPI палит домен рядом с хендшейком — см. MayakSession), а на старте/после логина.
+     *  После синхрона обновляем селектор пресетов на главном (если показан). */
     private fun refreshRuDirect() {
         if (ruDirectRefreshedThisProcess) return
         ruDirectRefreshedThisProcess = true
         val b = backend ?: return
         lifecycleScope.launch {
-            runCatching { MayakRuDirect.refresh(this@MayakActivity, b) }
+            runCatching { session.syncPresets(this@MayakActivity, b) }
+            MayakPresets.invalidate()
+            runCatching { updatePresetSelector() }
         }
     }
 
@@ -423,6 +426,126 @@ class MayakActivity : AppCompatActivity() {
         }.onFailure { setStatus(getString(R.string.mayak_err_bad_link)) }
     }
 
+    // --- Пресеты split-туннеля (SPEC-0028): селектор на главном + редактор ---
+    private var presetBar: View? = null
+    private var presetNameBtn: com.google.android.material.button.MaterialButton? = null
+    private var presetSwitch: com.google.android.material.materialswitch.MaterialSwitch? = null
+    private var editingPresetId: Long = 0L // id правимого пресета (0 = создаём новый/форк)
+
+    private val presetEditorLauncher =
+        registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()) { res ->
+            if (res.resultCode != RESULT_OK) return@registerForActivityResult
+            val data = res.data ?: return@registerForActivityResult
+            val name = data.getStringExtra(MayakPresetEditorActivity.EXTRA_NAME)?.takeIf { it.isNotBlank() } ?: return@registerForActivityResult
+            val mode = data.getStringExtra(MayakPresetEditorActivity.EXTRA_MODE) ?: MayakPresetEditorActivity.MODE_EXCLUDE
+            val apps = data.getStringArrayListExtra(MayakPresetEditorActivity.EXTRA_APPS) ?: arrayListOf()
+            savePreset(editingPresetId, name, mode, apps)
+        }
+
+    private fun setupPresetSelector() {
+        presetBar = findViewById(R.id.mayak_preset_bar)
+        presetNameBtn = findViewById(R.id.mayak_preset_name)
+        presetSwitch = findViewById(R.id.mayak_preset_switch)
+        presetNameBtn?.setOnClickListener { showPresetChooser() }
+        presetNameBtn?.setOnLongClickListener { confirmDeleteActivePreset(); true }
+        presetSwitch?.setOnCheckedChangeListener { _, checked ->
+            MayakPrefs.setPresetEnabled(this, checked)
+            // применится при следующем подключении; текущий туннель не рвём молча.
+            if (::status.isInitialized) { /* без тоста-спама */ }
+        }
+        updatePresetSelector()
+    }
+
+    /** Обновить селектор пресета: видимость (настройка), имя активного, состояние тумблера. */
+    private fun updatePresetSelector() {
+        val bar = presetBar ?: return
+        if (!MayakPrefs.showPresetsOnHome(this)) { bar.visibility = View.GONE; return }
+        bar.visibility = View.VISIBLE
+        val active = MayakPresets.activePreset(this)
+        presetNameBtn?.text = active?.name ?: getString(R.string.app_name)
+        presetSwitch?.isChecked = MayakPrefs.presetEnabled(this)
+    }
+
+    /** Диалог выбора пресета: выбрать активный / изменить (свой) или форкнуть (системный) / создать новый. */
+    private fun showPresetChooser() {
+        val presets = MayakPresets.cached(this)
+        if (presets.isEmpty()) { openPresetEditor(null); return }
+        val names = presets.map { it.name + if (it.source == "system") " ·" else "" }.toTypedArray()
+        val activeId = MayakPrefs.activePresetId(this)
+        var sel = presets.indexOfFirst { it.id == activeId }.let { if (it < 0) 0 else it }
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle(getString(R.string.mayak_settings_split))
+            .setSingleChoiceItems(names, sel) { _, which -> sel = which }
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                MayakPrefs.setActivePresetId(this, presets[sel].id)
+                updatePresetSelector()
+            }
+            .setNeutralButton("＋") { _, _ -> openPresetEditor(null) }
+            .setNegativeButton(android.R.string.cancel, null)
+            // «Изменить/форкнуть» выбранный — долгий тап по имени открывает редактор активного; тут вторая кнопка занята.
+            .create().apply {
+                setOnShowListener {
+                    getButton(android.app.AlertDialog.BUTTON_NEUTRAL)?.setOnLongClickListener {
+                        dismiss(); openPresetEditor(presets[sel]); true
+                    }
+                }
+            }.show()
+    }
+
+    /** Открыть редактор: preset=null → новый; свой → правка; системный → форк (копия с предвыбранными приложениями). */
+    private fun openPresetEditor(preset: org.amnezia.awg.mayak.core.Preset?) {
+        editingPresetId = if (preset != null && preset.owned) preset.id else 0L
+        val name = preset?.name ?: getString(R.string.app_name)
+        val mode = preset?.mode ?: MayakPresetEditorActivity.MODE_EXCLUDE
+        // приложения раскрываем в конкретные установленные пакеты (системный rule-based → отмеченные РФ-приложения).
+        val apps = if (preset != null) MayakPresets.resolveApps(this, preset).toList() else emptyList()
+        val editable = preset == null || preset.owned
+        presetEditorLauncher.launch(MayakPresetEditorActivity.intent(this, editingPresetId, name, mode, apps, editable))
+    }
+
+    /** Сохранить пресет на сервер (создать/обновить), пересинхронить, обновить селектор. */
+    private fun savePreset(id: Long, name: String, mode: String, apps: List<String>) {
+        val b = backend ?: return
+        lifecycleScope.launch {
+            val ok = runCatching {
+                if (id > 0) {
+                    session.updatePreset(b, id, org.amnezia.awg.mayak.core.PresetWrite(name, mode, apps))
+                } else {
+                    val newId = session.createPreset(b, org.amnezia.awg.mayak.core.PresetWrite(name, mode, apps))
+                    MayakPrefs.setActivePresetId(this@MayakActivity, newId)
+                }
+                session.syncPresets(this@MayakActivity, b)
+                MayakPresets.invalidate()
+            }.isSuccess
+            updatePresetSelector()
+            Toast.makeText(this@MayakActivity,
+                if (ok) R.string.mayak_settings_split_applied else R.string.mayak_update_check_failed,
+                Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    /** Удалить активный пресет (только свой) — по долгому тапу на имени. */
+    private fun confirmDeleteActivePreset() {
+        val active = MayakPresets.activePreset(this) ?: return
+        if (!active.owned) return // системный удалить нельзя
+        val b = backend ?: return
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setMessage("Удалить пресет «${active.name}»?")
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                lifecycleScope.launch {
+                    runCatching {
+                        session.deletePreset(b, active.id)
+                        session.syncPresets(this@MayakActivity, b)
+                        MayakPresets.invalidate()
+                    }
+                    MayakPrefs.setActivePresetId(this@MayakActivity, 0L)
+                    updatePresetSelector()
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
     // --- главный экран (Happ-стиль): круг-подключение + список стран с флагами ---
 
     private fun showHome() {
@@ -459,6 +582,8 @@ class MayakActivity : AppCompatActivity() {
             startActivity(Intent(this, MayakSettingsActivity::class.java))
             MayakTransitions.applyAxis(this) // плавный переход к настройкам
         }
+
+        setupPresetSelector() // селектор пресета split-туннеля над кнопкой VPN (SPEC-0028)
 
         // Тап с press-feedback: лёгкое сжатие 0.96 + haptic-tick, затем toggle.
         connectCircle?.setOnClickListener { v ->
@@ -748,8 +873,9 @@ class MayakActivity : AppCompatActivity() {
      *  (SPEC-0018 F1 — выбранные приложения мимо/только-в туннель). Оба — трансформы строки конфига
      *  из настроек пользователя; применяются к обоим плечам (direct/relay). Пустой список split — no-op. */
     private fun prepareConf(conf: String): String {
-        // split-туннель: ручной (SPEC-0018 F1) ∪ RU-пресет «российские сервисы напрямую» (2026-07-09).
-        val (apps, excluded) = org.amnezia.awg.mayak.MayakRuDirect.effectiveSplit(this)
+        // split-туннель по АКТИВНОМУ пресету (SPEC-0028): тумблер пресета ВКЛ → режим+приложения пресета,
+        // иначе весь трафик в VPN. Пресеты синхронизируются с ядра (системные+свои).
+        val (apps, excluded) = org.amnezia.awg.mayak.MayakPresets.effectiveSplit(this)
         return org.amnezia.awg.mayak.core.ConfRenderer.withSplitTunnel(maybeStripIpv6(conf), apps, excluded)
     }
 

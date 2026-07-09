@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPEC-0028: строка списка приложений в редакторе пресета сплит-туннеля.
+     Иконка приложения + название + галочка. Без databinding — заполняется из адаптера
+     (MayakPresetEditorActivity.AppAdapter) через findViewById. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?attr/selectableItemBackground"
+    android:gravity="center_vertical"
+    android:minHeight="56dp"
+    android:orientation="horizontal"
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp">
+
+    <ImageView
+        android:id="@+id/app_icon"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:layout_marginStart="4dp"
+        android:contentDescription="@null"
+        tools:src="@tools:sample/avatars" />
+
+    <TextView
+        android:id="@+id/app_name"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="12dp"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textColor="@color/mayak_on_surface"
+        android:textAppearance="@style/Mayak.Tagline"
+        tools:text="@tools:sample/full_names" />
+
+    <com.google.android.material.checkbox.MaterialCheckBox
+        android:id="@+id/app_check"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:clickable="false"
+        android:focusable="false"
+        tools:checked="true" />
+
+</LinearLayout>

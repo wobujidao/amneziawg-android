@@ -207,44 +207,22 @@
                         android:alpha="0.8"
                         android:textAppearance="@style/Mayak.Tagline" />
 
-                    <!-- Split-туннель (SPEC-0018 F1): выбор приложений мимо VPN. Текст кнопки со счётчиком
-                         выбранных ставится в коде (MayakSettingsActivity). -->
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/mayak_settings_split"
-                        style="@style/Mayak.Button.Outlined"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="14dp"
-                        app:icon="@drawable/ic_settings"
-                        app:iconGravity="textStart"
-                        app:iconTint="@color/mayak_outline"
-                        android:text="@string/mayak_settings_split" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:text="@string/mayak_settings_split_hint"
-                        android:textColor="@color/mayak_on_surface"
-                        android:alpha="0.8"
-                        android:textAppearance="@style/Mayak.Tagline" />
-
-                    <!-- RU-пресет (BlancVPN-parity, 2026-07-09): одной кнопкой пускает РФ-приложения
-                         мимо VPN. Список — ui/assets/mayak_ru_direct.json, применяется при коннекте. -->
+                    <!-- Пресеты split-туннеля (SPEC-0028): само управление — на ГЛАВНОМ экране (селектор
+                         пресета + тумблер у кнопки VPN). Здесь — только показывать ли этот селектор. -->
                     <com.google.android.material.materialswitch.MaterialSwitch
-                        android:id="@+id/mayak_settings_rudirect"
+                        android:id="@+id/mayak_settings_show_presets"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="14dp"
                         android:minHeight="48dp"
                         android:textColor="@color/mayak_on_surface"
-                        android:text="@string/mayak_settings_rudirect" />
+                        android:text="@string/mayak_settings_show_presets" />
 
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-                        android:text="@string/mayak_settings_rudirect_hint"
+                        android:text="@string/mayak_settings_show_presets_hint"
                         android:textColor="@color/mayak_on_surface"
                         android:alpha="0.8"
                         android:textAppearance="@style/Mayak.Tagline" />
@@ -389,6 +367,15 @@
                         android:text="@string/mayak_about" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
+
+            <!-- Сбросить все настройки к дефолтам (SPEC-0028): настроек много — быстрый сброс. -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/mayak_settings_reset"
+                style="@style/Mayak.Button.Outlined"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:text="@string/mayak_settings_reset" />
 
             <!-- Аккаунт + выход: вынесены выше (компактнее, не у самого низа экрана — правка владельца 07-06) -->
             <TextView

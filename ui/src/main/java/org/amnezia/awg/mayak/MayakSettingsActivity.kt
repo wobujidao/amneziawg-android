@@ -99,33 +99,25 @@ class MayakSettingsActivity : AppCompatActivity() {
             Toast.makeText(this, R.string.mayak_settings_ipv6_applied, Toast.LENGTH_SHORT).show()
         }
 
-        // Split-туннель (SPEC-0018 F1): кнопка открывает диалог выбора приложений. Переиспользуем
-        // upstream AppListDialogFragment (список интернет-приложений + вкладки исключить/включить),
-        // результат сохраняем в MayakPrefs — применится при следующем коннекте (prepareConf).
-        val splitButton = findViewById<MaterialButton>(R.id.mayak_settings_split)
-        updateSplitButton(splitButton)
-        supportFragmentManager.setFragmentResultListener(AppListDialogFragment.REQUEST_SELECTION, this) { _, bundle ->
-            val apps = bundle.getStringArray(AppListDialogFragment.KEY_SELECTED_APPS)?.toSet() ?: emptySet()
-            val excluded = bundle.getBoolean(AppListDialogFragment.KEY_IS_EXCLUDED, true)
-            MayakPrefs.setSplitApps(this, apps, excluded)
-            updateSplitButton(splitButton)
-            Toast.makeText(this, R.string.mayak_settings_split_applied, Toast.LENGTH_SHORT).show()
-        }
-        splitButton.setOnClickListener {
-            val current = ArrayList<String?>(MayakPrefs.splitApps(this))
-            AppListDialogFragment.newInstance(current, MayakPrefs.splitExcluded(this))
-                .show(supportFragmentManager, null)
+        // Пресеты split-туннеля (SPEC-0028): само управление (выбор/создание/правка) — на ГЛАВНОМ экране
+        // (селектор пресета + тумблер у кнопки VPN). Здесь — только показывать ли этот селектор. По умолч. ВКЛ.
+        val showPresets = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.mayak_settings_show_presets)
+        showPresets.isChecked = MayakPrefs.showPresetsOnHome(this)
+        showPresets.setOnCheckedChangeListener { _, checked ->
+            MayakPrefs.setShowPresetsOnHome(this, checked)
         }
 
-        // RU-пресет (BlancVPN-parity 2026-07-09): одной кнопкой пускает установленные РФ-приложения
-        // (банки/госуслуги/маркетплейсы — по ui/assets/mayak_ru_direct.json) МИМО VPN. Совмещается с
-        // ручным split (MayakRuDirect.effectiveSplit). Применяется при следующем коннекте — текущий
-        // туннель не рвём молча (как ipv6/split-кнопка).
-        val ruDirectSwitch = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.mayak_settings_rudirect)
-        ruDirectSwitch.isChecked = MayakPrefs.ruDirect(this)
-        ruDirectSwitch.setOnCheckedChangeListener { _, checked ->
-            MayakPrefs.setRuDirect(this, checked)
-            Toast.makeText(this, R.string.mayak_settings_rudirect_applied, Toast.LENGTH_SHORT).show()
+        // Сбросить все настройки к дефолтам (SPEC-0028): настроек много — быстрый сброс с подтверждением.
+        findViewById<MaterialButton>(R.id.mayak_settings_reset).setOnClickListener {
+            com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                .setMessage(R.string.mayak_settings_reset_confirm)
+                .setPositiveButton(android.R.string.ok) { _, _ ->
+                    MayakPrefs.resetAll(this)
+                    Toast.makeText(this, R.string.mayak_settings_reset_done, Toast.LENGTH_SHORT).show()
+                    recreate()
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
         }
 
         // Значок приложения / маскировка (SPEC-0018 F2): диалог выбора пресета иконки+имени.
@@ -184,13 +176,6 @@ class MayakSettingsActivity : AppCompatActivity() {
                 MayakPrefs.setThemeMode(this, mode) // setDefaultNightMode пересоздаст активити с новой темой
             }
         }
-    }
-
-    /** Текст кнопки split-туннеля: без выбора — общее название, иначе со счётчиком выбранных приложений. */
-    private fun updateSplitButton(button: MaterialButton) {
-        val n = MayakPrefs.splitApps(this).size
-        button.text = if (n == 0) getString(R.string.mayak_settings_split)
-        else getString(R.string.mayak_settings_split_count, n)
     }
 
     /** Диалог маскировки (SPEC-0018 F2): выбор пресета иконки+имени. Применение — MayakDisguise.apply

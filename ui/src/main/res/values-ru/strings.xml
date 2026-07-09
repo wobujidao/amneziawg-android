@@ -369,6 +369,11 @@
     <string name="mayak_settings_rudirect">Открывать российские сервисы напрямую</string>
     <string name="mayak_settings_rudirect_hint">Одной кнопкой: российские приложения (банки, Госуслуги, маркетплейсы, стриминги) идут напрямую по вашему реальному IP — работают как дома. Остальной трафик остаётся под защитой VPN. Применится при следующем подключении.</string>
     <string name="mayak_settings_rudirect_applied">Российские сервисы пойдут напрямую при следующем подключении</string>
+    <string name="mayak_settings_show_presets">Показывать пресеты на главном экране</string>
+    <string name="mayak_settings_show_presets_hint">Селектор пресета и тумблер появляются над кнопкой подключения. Выключите, если не пользуетесь пресетами split-туннеля.</string>
+    <string name="mayak_settings_reset">Сбросить все настройки</string>
+    <string name="mayak_settings_reset_confirm">Сбросить все настройки приложения к значениям по умолчанию? Из аккаунта не выйдете.</string>
+    <string name="mayak_settings_reset_done">Настройки сброшены</string>
     <string name="mayak_settings_protection">Защита</string>
     <string name="mayak_settings_autoconnect">Автоподключение</string>
     <string name="mayak_settings_autoconnect_hint">Автоматически поднимает последнее рабочее подключение при загрузке телефона или когда систему запускает VPN — из конфига, сохранённого на устройстве, без обращения к сети. Один раз подключитесь вручную, чтобы было что восстанавливать.</string>
@@ -410,4 +415,19 @@
     <string name="mayak_privacy_policy">Политика конфиденциальности</string>
     <string name="mayak_terms">Условия использования</string>
     <string name="mayak_soon">Скоро</string>
+
+    <!-- SPEC-0028: редактор пресета сплит-туннеля (полноэкранный) -->
+    <string name="mayak_preset_editor_title">Режим VPN для приложений</string>
+    <string name="mayak_preset_editor_name_hint">Название пресета</string>
+    <string name="mayak_preset_editor_mode_all">Все приложения</string>
+    <string name="mayak_preset_editor_mode_all_sub">VPN работает для всех приложений</string>
+    <string name="mayak_preset_editor_mode_exclude">Все, кроме выбранных</string>
+    <string name="mayak_preset_editor_mode_exclude_sub">VPN выключен для выбранных приложений</string>
+    <string name="mayak_preset_editor_mode_include">Только выбранные</string>
+    <string name="mayak_preset_editor_mode_include_sub">VPN работает только для выбранных приложений</string>
+    <string name="mayak_preset_editor_counter">Выбрано %1$d из %2$d</string>
+    <string name="mayak_preset_editor_search_hint">Поиск</string>
+    <string name="mayak_preset_editor_all_hint">Все приложения идут через VPN — выбирать ничего не нужно.</string>
+    <string name="mayak_preset_editor_save">Сохранить</string>
+    <string name="mayak_preset_editor_save_copy">Сохранить как свою копию</string>
 </resources>

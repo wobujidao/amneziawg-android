@@ -150,3 +150,31 @@ data class RuDirectList(
     val exceptions: List<String> = emptyList(),
     val apps: List<String> = emptyList(),
 )
+
+/** Пресет split-туннеля (SPEC-0028). mode: all|exclude|include. source: system|user. owned — можно править.
+ *  Системный «РФ напрямую» — rule-based (regex/exceptions/apps); пользовательские — только apps (галочки). */
+@Serializable
+data class Preset(
+    val id: Long = 0,
+    val name: String = "",
+    val mode: String = "exclude",
+    val source: String = "user",
+    val owned: Boolean = false,
+    val regex: List<String> = emptyList(),
+    val exceptions: List<String> = emptyList(),
+    val apps: List<String> = emptyList(),
+)
+
+@Serializable
+data class PresetsResponse(val presets: List<Preset> = emptyList())
+
+/** Тело создания/обновления пользовательского пресета. */
+@Serializable
+data class PresetWrite(
+    val name: String,
+    val mode: String,
+    val apps: List<String>,
+)
+
+@Serializable
+data class IdResponse(val id: Long = 0)

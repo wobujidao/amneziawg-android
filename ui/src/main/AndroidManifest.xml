@@ -131,6 +131,14 @@
             android:label="@string/mayak_about"
             android:theme="@style/MayakTheme" />
 
+        <!-- Редактор пресета сплит-туннеля (SPEC-0028): полноэкранный, имя+режим+список приложений -->
+        <activity
+            android:name="org.amnezia.awg.mayak.MayakPresetEditorActivity"
+            android:exported="false"
+            android:label="@string/mayak_preset_editor_title"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/MayakTheme" />
+
         <!-- Экран блокировки приложения (биометрия/PIN): показывается ПОВЕРХ главной. excludeFromRecents —
              не мелькает отдельной задачей в превью; FLAG_SECURE ставится в коде (скрывает превью/скриншот). -->
         <activity

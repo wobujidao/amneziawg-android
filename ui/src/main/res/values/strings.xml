@@ -161,6 +161,11 @@
     <string name="mayak_settings_rudirect">Russian services direct (no VPN)</string>
     <string name="mayak_settings_rudirect_hint">One tap: Russian apps (banks, government services, marketplaces, streaming) go directly over your real IP, so they work as if you were at home. Everything else stays protected by the VPN. Applies on the next connection.</string>
     <string name="mayak_settings_rudirect_applied">Russian services will go direct on the next connection</string>
+    <string name="mayak_settings_show_presets">Show presets on the home screen</string>
+    <string name="mayak_settings_show_presets_hint">The preset selector and toggle appear above the connect button. Turn off if you don\'t use split-tunnel presets.</string>
+    <string name="mayak_settings_reset">Reset all settings</string>
+    <string name="mayak_settings_reset_confirm">Reset all app settings to defaults? This does not sign you out.</string>
+    <string name="mayak_settings_reset_done">Settings reset</string>
     <string name="mayak_settings_protection">Protection</string>
     <string name="mayak_settings_autoconnect">Auto-connect</string>
     <string name="mayak_settings_autoconnect_hint">Automatically brings up your last working connection when the phone starts or the system launches the VPN — from the config saved on the device, no network needed. Connect once manually first so there is something to restore.</string>
@@ -401,4 +406,19 @@
     <string name="import_disclaimer">Ensure that you obtained the configuration file from a trusted source.\n\nOfficial Amnezia services are available only at <a href="https://amnezia.org">amnezia.org</a>\n</string>
     <string name="tunnel_status_connected">Connected</string>
     <string name="tunnel_status_connecting">Connecting…</string>
+
+    <!-- SPEC-0028: редактор пресета сплит-туннеля (полноэкранный) -->
+    <string name="mayak_preset_editor_title">App VPN mode</string>
+    <string name="mayak_preset_editor_name_hint">Preset name</string>
+    <string name="mayak_preset_editor_mode_all">All apps</string>
+    <string name="mayak_preset_editor_mode_all_sub">VPN works for every app</string>
+    <string name="mayak_preset_editor_mode_exclude">All except selected</string>
+    <string name="mayak_preset_editor_mode_exclude_sub">VPN is off for the selected apps</string>
+    <string name="mayak_preset_editor_mode_include">Only selected</string>
+    <string name="mayak_preset_editor_mode_include_sub">VPN works only for the selected apps</string>
+    <string name="mayak_preset_editor_counter">Selected %1$d of %2$d</string>
+    <string name="mayak_preset_editor_search_hint">Search</string>
+    <string name="mayak_preset_editor_all_hint">All apps go through the VPN — nothing to select.</string>
+    <string name="mayak_preset_editor_save">Save</string>
+    <string name="mayak_preset_editor_save_copy">Save as my copy</string>
 </resources>

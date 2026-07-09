@@ -94,6 +94,39 @@
                     android:text="" />
             </LinearLayout>
 
+            <!-- Селектор пресета split-туннеля (SPEC-0028): над кнопкой VPN, по центру. Имя активного
+                 пресета (тап → выбор/создание/правка) + тумблер «применять пресет». Видимость — настройка
+                 «Показывать пресеты на главном» (по умолч. ВКЛ). Текст имени ставится в коде. -->
+            <LinearLayout
+                android:id="@+id/mayak_preset_bar"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="@dimen/mayak_space_2"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/mayak_preset_name"
+                    style="@style/Mayak.Button.Outlined"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:minHeight="40dp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    app:icon="@drawable/ic_settings"
+                    app:iconGravity="textStart"
+                    app:iconSize="18dp"
+                    app:iconTint="@color/mayak_outline"
+                    android:text="РФ напрямую" />
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/mayak_preset_switch"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp" />
+            </LinearLayout>
+
             <!-- Центр: волны (ripple) + внешний ореол (glow) + круглая кнопка подключения.
                  marginTop уменьшен (space_5→space_2) — кнопка выше на экране (правка владельца 2026-07-02). -->
             <FrameLayout
