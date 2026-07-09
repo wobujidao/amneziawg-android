@@ -29,7 +29,7 @@ include(":core")
 
 configure<SettingsExtension> {
     buildToolsVersion = "35.0.0"
-    compileSdk = 35
+    compileSdk = 36
     minSdk = 24
     ndkVersion = "26.1.10909125"
 }
