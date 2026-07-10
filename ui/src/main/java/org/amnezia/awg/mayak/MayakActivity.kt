@@ -344,13 +344,15 @@ class MayakActivity : AppCompatActivity() {
      */
     private fun handleRegLink(raw: String) {
         val uri = runCatching { Uri.parse(raw.trim()) }.getOrNull()
-        val server = uri?.getQueryParameter("server")?.trimEnd('/')
+        // server принимаем ТОЛЬКО как валидный https://-URL (RegLink.sanitizeServer): иначе злая ссылка
+        // (server=http://evil / мусор) сохранилась бы как приоритетный адрес ядра → токен plaintext/подмена.
+        val server = org.amnezia.awg.mayak.core.RegLink.sanitizeServer(uri?.getQueryParameter("server"))
         val email = uri?.getQueryParameter("email") ?: uri?.getQueryParameter("login")
         val password = uri?.getQueryParameter("password")
         if (uri?.scheme != "mayak" || email.isNullOrBlank() || password.isNullOrBlank()) {
             setStatus(getString(R.string.mayak_err_bad_link)); return
         }
-        doSignIn(email, password, serverOverride = server?.takeIf { it.isNotBlank() })
+        doSignIn(email, password, serverOverride = server)
     }
 
     private fun showPasteLinkDialog() {
