@@ -2,15 +2,20 @@ name: core (build + test)
 run-name: "core • ${{ github.ref_name }}"
 
 # Сборка и юнит-тесты переносимого модуля :core (чистый Kotlin/JVM, без Android-эмулятора).
+# БЕЗ фильтра веток: реальная работа идёт на ветках mayak/* (ru-ota, фичи), а прежний фильтр
+# [mayak-core, main, master] не совпадал ни с одной → core-тесты в CI фактически не гонялись.
+# Теперь любой push, трогающий core/, тестируется (path-фильтр не даёт гонять на несвязанных пушах).
 on:
   push:
-    branches: [ "mayak-core", "main", "master" ]
     paths:
       - "core/**"
       - "gradle/libs.versions.toml"
       - "settings.gradle.kts"
       - "build.gradle.kts"
       - ".github/workflows/core.yml"
+  pull_request:
+    paths:
+      - "core/**"
   workflow_dispatch: {}
 
 jobs:
