@@ -186,8 +186,10 @@ class MayakSession(
         val deviceId = ensureDevice(backend, token)
         val res = backend.connect(token, deviceId, direction.id)
         // DoH-резолв endpoint делаем ОДИН раз на путь (и для .conf, и для пинг-хоста).
-        val directCfg = res.direct?.let { dohEndpoint(it) }
-        val relayCfg = res.relay?.let { dohEndpoint(it) }
+        // Port-hopping (SPEC-0029): если ядро прислало диапазон — выбираем dst-порт из него ПЕРЕД рендером,
+        // чтобы .conf и пинг-хост (directEndpoint) использовали один порт. Нет диапазона → без изменений.
+        val directCfg = res.direct?.let { dohEndpoint(it) }?.let { ConfRenderer.applyPortHop(it) }
+        val relayCfg = res.relay?.let { dohEndpoint(it) }?.let { ConfRenderer.applyPortHop(it) }
         Paths(
             directionName = res.direction,
             directConf = directCfg?.let { ConfRenderer.render(it, priv) },

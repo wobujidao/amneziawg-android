@@ -214,6 +214,51 @@ class ConfRendererTest {
     }
 
     @Test
+    fun applyPortHop_replacesEndpointPortWithinRange() {
+        // SPEC-0029: при заданном диапазоне порт endpoint (и fqdn) меняется на выбранный из [lo,hi].
+        val cfg = ClientConfig(
+            address = "10.8.0.2", obfuscation = null,
+            serverPubkey = "c2VydmVyLXB1YmtleS1mYWtlLTQ0LWNoYXJzLTAwMDAwMDA=",
+            endpoint = "203.0.113.7:30500", endpointFqdn = "nl.example:30500",
+            portHopLo = 30000, portHopHi = 31000, allowedIps = "0.0.0.0/0",
+        )
+        val hopped = ConfRenderer.applyPortHop(cfg) { lo, hi ->
+            assertEquals(30000, lo); assertEquals(31000, hi); 30777
+        }
+        assertEquals("203.0.113.7:30777", hopped.endpoint)
+        assertEquals("nl.example:30777", hopped.endpointFqdn)
+    }
+
+    @Test
+    fun applyPortHop_disabledLeavesConfigUnchanged() {
+        // 0/0 (старые выдачи) → тот же объект, поведение не меняется.
+        val cfg = ClientConfig(
+            address = "10.8.0.2", obfuscation = null,
+            serverPubkey = "c2VydmVyLXB1YmtleS1mYWtlLTQ0LWNoYXJzLTAwMDAwMDA=",
+            endpoint = "203.0.113.7:51820", allowedIps = "0.0.0.0/0",
+        )
+        assertEquals(cfg, ConfRenderer.applyPortHop(cfg) { _, _ -> 40000 })
+    }
+
+    @Test
+    fun replaceEndpointPort_handlesIpv4AndIpv6AndBadInput() {
+        assertEquals("1.2.3.4:40000", ConfRenderer.replaceEndpointPort("1.2.3.4:51820", 40000))
+        assertEquals("[2001:db8::1]:40000", ConfRenderer.replaceEndpointPort("[2001:db8::1]:51820", 40000))
+        assertEquals("nl.example:40000", ConfRenderer.replaceEndpointPort("nl.example:51820", 40000))
+        // нет распознаваемого порта — не трогаем (fail-safe)
+        assertEquals("noport", ConfRenderer.replaceEndpointPort("noport", 40000))
+    }
+
+    @Test
+    fun clientConfig_deserializesPortHopFields() {
+        val payload = """{"address":"10.8.0.2/32","server_pubkey":"c2VydmVy","endpoint":"1.2.3.4:30500",
+            "port_hop_lo":30000,"port_hop_hi":31000,"allowed_ips":"0.0.0.0/0"}""".trimIndent()
+        val cfg = Json { ignoreUnknownKeys = true }.decodeFromString(ClientConfig.serializer(), payload)
+        assertEquals(30000, cfg.portHopLo)
+        assertEquals(31000, cfg.portHopHi)
+    }
+
+    @Test
     fun hostProvider_rotatesAndIsSticky() {
         val hp = HostProvider(listOf("https://a.example/", "https://b.example"))
         assertEquals("https://a.example", hp.current())

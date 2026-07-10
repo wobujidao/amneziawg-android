@@ -75,6 +75,11 @@ data class ClientConfig(
     @SerialName("server_pubkey") val serverPubkey: String,
     val endpoint: String, // IP:port — рабочий путь без DNS
     @SerialName("endpoint_fqdn") val endpointFqdn: String = "", // fqdn:port — резолвим через DoH, фоллбэк на endpoint
+    // SPEC-0029: диапазон UDP port-hopping. Если задан (lo>0), клиент выбирает dst-порт внутри [lo,hi]
+    // (сервер DNAT'ит весь диапазон → любой порт валиден). 0/0 = выкл (старое поведение). Поля omitempty
+    // на сервере — у старых выдач их нет (дефолт 0), фича неактивна.
+    @SerialName("port_hop_lo") val portHopLo: Int = 0,
+    @SerialName("port_hop_hi") val portHopHi: Int = 0,
     @SerialName("allowed_ips") val allowedIps: String,
     @SerialName("persistent_keepalive") val persistentKeepalive: Int = 0,
 )

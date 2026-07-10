@@ -65,6 +65,40 @@ object ConfRenderer {
     }
 
     /**
+     * Port-hopping (SPEC-0029): если у конфига задан диапазон [portHopLo, portHopHi] (lo>0, hi>=lo),
+     * возвращает КОПИЮ с dst-портом endpoint (и endpointFqdn), заменённым на выбранный из диапазона.
+     * Сервер DNAT'ит весь диапазон → любой порт валиден; так у соединения нет единственного IP:port для
+     * блока. Диапазон не задан (0/0, старые выдачи) → конфиг БЕЗ изменений (обратная совместимость).
+     * Чистая функция: выбор порта инъектируется (`pick`) — по умолчанию равномерно случайный.
+     * Замечание: это выбор порта НА КОННЕКТ (не смена порта посреди сессии — та требует рантайм-мутации
+     * туннеля, отдельная задача). Уже даёт разброс IP:port по переподключениям.
+     */
+    fun applyPortHop(
+        cfg: ClientConfig,
+        pick: (Int, Int) -> Int = { lo, hi -> lo + kotlin.random.Random.nextInt(hi - lo + 1) },
+    ): ClientConfig {
+        if (cfg.portHopLo <= 0 || cfg.portHopHi < cfg.portHopLo) return cfg
+        val port = pick(cfg.portHopLo, cfg.portHopHi)
+        return cfg.copy(
+            endpoint = replaceEndpointPort(cfg.endpoint, port),
+            endpointFqdn = if (cfg.endpointFqdn.isNotBlank()) replaceEndpointPort(cfg.endpointFqdn, port) else cfg.endpointFqdn,
+        )
+    }
+
+    /**
+     * Заменяет порт в endpoint вида `host:port`. Поддерживает IPv4/hostname (`1.2.3.4:51820`) и
+     * IPv6 в скобках (`[2001:db8::1]:51820`). Если порт не распознан — строку не трогаем (fail-safe).
+     */
+    fun replaceEndpointPort(endpoint: String, port: Int): String {
+        val colon = endpoint.lastIndexOf(':')
+        if (colon <= 0 || colon == endpoint.length - 1) return endpoint
+        // порт — только цифры после последнего ':' (у IPv6 в скобках последний ':' идёт после ']')
+        val portPart = endpoint.substring(colon + 1)
+        if (portPart.toIntOrNull() == null) return endpoint
+        return endpoint.substring(0, colon + 1) + port
+    }
+
+    /**
      * Убирает IPv6 из готового .conf — для тумблера настроек «Не использовать IPv6» (SPEC-0014 T5).
      * Из строк Address/DNS/AllowedIPs выкидывает токены с ':' (IPv6-адреса/подсети), в т.ч. `::/0`.
      * Транспорт (Endpoint) не трогаем — он по IPv4. Строку целиком выкидываем, если после чистки
