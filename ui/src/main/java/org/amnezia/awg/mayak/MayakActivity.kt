@@ -38,6 +38,8 @@ import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -685,21 +687,31 @@ class MayakActivity : AppCompatActivity() {
     }
 
     /** Перерисовать список стран + восстановить выбор (последняя выбранная, иначе первая). */
-    /** Ранг живости для сортировки (меньше = выше/лучше): ok/неизвестно=0, degraded=1, down=2. */
-    private fun healthRank(health: String): Int = when (health) {
-        "down" -> 2
-        "degraded" -> 1
-        else -> 0
+    /** Уровень полосок 0..3 по КЛИЕНТСКОМУ RTT (мс), или null если пинг не мерян/провалился. */
+    private fun rttLevel(rttMs: Int?): Int? = when {
+        rttMs == null -> null
+        rttMs < 60 -> 3
+        rttMs < 120 -> 2
+        rttMs < 220 -> 1
+        else -> 1
+    }
+
+    /** Уровень полосок для строки: КЛИЕНТСКИЙ пинг (главное) если измерен, иначе серверный хинт (заглушка). */
+    private fun levelFor(d: Direction): Int = rttLevel(MayakPingCache.rtt(d.id)) ?: d.signalLevel()
+
+    /** Ключ сортировки «быстрейший вверху» (меньше = выше): реальный RTT если измерен; иначе псевдо-RTT из
+     *  серверного хинта (чтобы неспингованные шли разумно); мёртвые (health=down) — в самый низ. */
+    private fun sortRtt(d: Direction): Int {
+        if (d.health == "down") return Int.MAX_VALUE
+        MayakPingCache.rtt(d.id)?.let { return it }
+        return when (d.signalLevel()) { 3 -> 50; 2 -> 150; 1 -> 300; else -> 100000 }
     }
 
     private fun renderDirections(dirsIn: List<Direction>) {
-        // SPEC-0031 «быстрейший вверху»: рекомендованное сверху → по живости (ok<degraded<down) → по уровню
-        // сигнала (больше полосок выше) → алфавит. Сортировка по СЕРВЕРНОМУ хинту (клиентский RTT уточнит позже).
+        // SPEC-0031 «быстрейший вверху»: сортируем по КЛИЕНТСКОМУ пингу (телефон→сервер) по возрастанию —
+        // наименьший вверху. Пока пинг не измерен — по серверному хинту (заглушка). Мёртвые — вниз. Тай-брейк алфавит.
         val dirs = dirsIn.sortedWith(
-            compareByDescending<Direction> { it.recommended }
-                .thenBy { healthRank(it.health) }
-                .thenByDescending { it.signalLevel() }
-                .thenBy { it.displayLabel().lowercase() }
+            compareBy<Direction> { sortRtt(it) }.thenBy { it.displayLabel().lowercase() }
         )
         directions = dirs
         val container = dirsContainer ?: return
@@ -723,6 +735,30 @@ class MayakActivity : AppCompatActivity() {
         if (connState == ConnState.DISCONNECTED) {
             setStatus(getString(R.string.mayak_status_disconnected))
         }
+        pingDirectionsOnce(dirs) // замер RTT по открытию списка (кэш → без спама), затем пере-сортировка
+    }
+
+    private var pingPassJob: Job? = null
+
+    /**
+     * Замерить RTT «телефон→сервер» для направлений и пере-отрисовать список (сортировка+полоски по пингу).
+     * Пингуем ТОЛЬКО те, у кого нет свежего замера (кэш TTL) → куча клиентов не спамит серверы. Пинги идут
+     * параллельно, фоном (IO), UI не блокируется. Не таймер — вызывается лишь из renderDirections (по открытию
+     * списка/загрузке данных). Провалы кэшируются, чтобы не долбить сеть; повторный вызов найдёт всё свежим → без цикла.
+     */
+    private fun pingDirectionsOnce(dirs: List<Direction>) {
+        val need = dirs.filter { it.poolHost.isNotBlank() && !MayakPingCache.isFresh(it.id) }
+        if (need.isEmpty()) return
+        pingPassJob?.cancel()
+        pingPassJob = lifecycleScope.launch {
+            val results = need.map { d ->
+                async(Dispatchers.IO) { d.id to MayakPing.ping(d.poolHost) }
+            }.awaitAll()
+            results.forEach { (id, rtt) -> MayakPingCache.put(id, rtt) }
+            // получили новые пинги → пересобрать список по свежим RTT. Кэш теперь свежий → повторный
+            // pingDirectionsOnce ничего не найдёт → без бесконечного цикла.
+            if (results.any { it.second != null }) renderDirections(directions)
+        }
     }
 
     /** Строка-страна: ВЕКТОРНЫЙ флаг + название + индикатор сигнала; тап = выбор (без подключения). */
@@ -730,8 +766,8 @@ class MayakActivity : AppCompatActivity() {
         val container = dirsContainer
         val row = LayoutInflater.from(this).inflate(R.layout.mayak_country_row, container, false)
         row.findViewById<ImageView>(R.id.mayak_row_flag).setImageResource(MayakFlags.drawableForCode(d.code))
-        // SPEC-0031: полоски «сигнала» из серверного хинта (без клиентского пинга — не спамим серверы).
-        row.findViewById<SignalBarsView>(R.id.mayak_row_signal).setLevel(d.signalLevel())
+        // SPEC-0031: полоски «сигнала» — по клиентскому пингу (если измерен), иначе серверный хинт-заглушка.
+        row.findViewById<SignalBarsView>(R.id.mayak_row_signal).setLevel(levelFor(d))
         row.findViewById<TextView>(R.id.mayak_row_name).text = d.displayLabel()
         row.tag = d.id
         row.setOnClickListener {

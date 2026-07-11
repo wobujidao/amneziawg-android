@@ -40,6 +40,9 @@ data class Direction(
     val code: String,
     val name: String,
     val p2p: Boolean = false,
+    // pool_host — GeoDNS-имя направления (резолвится в живые IP линий). Пингуем его для замера RTT
+    // «телефон→сервер» (SPEC-0031). Пусто → пингуем по серверному хинту-фолбэку.
+    @SerialName("pool_host") val poolHost: String = "",
     // SPEC-0031: серверный хинт ранжирования (омитемпти на ядре → дефолты, если поля нет).
     // health: "ok" | "degraded" | "down" (пусто = неизвестно). loadHint: 0..100 (0 = нет свежих метрик).
     // recommended: сервер помечает одно живое направление с наим. загрузкой.
