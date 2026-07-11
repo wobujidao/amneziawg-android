@@ -38,10 +38,14 @@
         android:ellipsize="end"
         android:text="—" />
 
-    <!-- SPEC-0031: индикатор «сигнала» (полоски) вместо шеврона — уровень из серверного хинта. -->
-    <org.amnezia.awg.mayak.SignalBarsView
-        android:id="@+id/mayak_row_signal"
-        android:layout_width="22dp"
-        android:layout_height="18dp"
+    <!-- SPEC-0031 / запрос владельца 2026-07-11: ЦИФРА пинга (мс) телефон→сервер вместо полосок. -->
+    <TextView
+        android:id="@+id/mayak_row_ping"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:minWidth="54dp"
+        android:gravity="end"
+        android:textSize="13sp"
+        android:textStyle="bold"
         android:importantForAccessibility="no" />
 </LinearLayout>

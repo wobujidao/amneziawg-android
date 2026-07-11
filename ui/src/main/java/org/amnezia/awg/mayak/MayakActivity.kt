@@ -785,7 +785,9 @@ class MayakActivity : AppCompatActivity() {
         if (connState == ConnState.DISCONNECTED) {
             setStatus(getString(R.string.mayak_status_disconnected))
         }
-        if (mode == SORT_PING) pingDirectionsOnce(dirs) // замер RTT только в режиме «пинг» (кэш → без спама)
+        // Меряем RTT во ВСЕХ режимах (не только «пинг»), чтобы ЦИФРА пинга показывалась всегда (запрос
+        // владельца 2026-07-11: цифры вместо полосок). Кэш (TTL) не даёт спамить серверы повторно.
+        pingDirectionsOnce(dirs)
     }
 
     private var pingPassJob: Job? = null
@@ -816,8 +818,18 @@ class MayakActivity : AppCompatActivity() {
         val container = dirsContainer
         val row = LayoutInflater.from(this).inflate(R.layout.mayak_country_row, container, false)
         row.findViewById<ImageView>(R.id.mayak_row_flag).setImageResource(MayakFlags.drawableForCode(d.flagCode()))
-        // SPEC-0031: полоски «сигнала» — по клиентскому пингу (если измерен), иначе серверный хинт-заглушка.
-        row.findViewById<SignalBarsView>(R.id.mayak_row_signal).setLevel(levelFor(d))
+        // SPEC-0031 / запрос владельца 2026-07-11: ЦИФРА клиентского пинга (мс), а не полоски. Цвет —
+        // по качеству (зелёный→оранжевый). Не измерен/провалился → «—» серым. Сортировка «Пинг» — по нему.
+        row.findViewById<TextView>(R.id.mayak_row_ping).apply {
+            val rtt = MayakPingCache.rtt(d.id)
+            if (rtt != null) {
+                text = "$rtt мс"
+                setTextColor(pingColor(rtt))
+            } else {
+                text = "—"
+                setTextColor(0xFF8A929C.toInt())
+            }
+        }
         row.findViewById<TextView>(R.id.mayak_row_name).text = d.displayLabel()
         row.tag = d.id
         row.setOnClickListener {
