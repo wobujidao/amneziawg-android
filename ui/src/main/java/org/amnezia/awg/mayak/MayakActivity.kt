@@ -685,7 +685,22 @@ class MayakActivity : AppCompatActivity() {
     }
 
     /** Перерисовать список стран + восстановить выбор (последняя выбранная, иначе первая). */
-    private fun renderDirections(dirs: List<Direction>) {
+    /** Ранг живости для сортировки (меньше = выше/лучше): ok/неизвестно=0, degraded=1, down=2. */
+    private fun healthRank(health: String): Int = when (health) {
+        "down" -> 2
+        "degraded" -> 1
+        else -> 0
+    }
+
+    private fun renderDirections(dirsIn: List<Direction>) {
+        // SPEC-0031 «быстрейший вверху»: рекомендованное сверху → по живости (ok<degraded<down) → по уровню
+        // сигнала (больше полосок выше) → алфавит. Сортировка по СЕРВЕРНОМУ хинту (клиентский RTT уточнит позже).
+        val dirs = dirsIn.sortedWith(
+            compareByDescending<Direction> { it.recommended }
+                .thenBy { healthRank(it.health) }
+                .thenByDescending { it.signalLevel() }
+                .thenBy { it.displayLabel().lowercase() }
+        )
         directions = dirs
         val container = dirsContainer ?: return
         container.removeAllViews()
@@ -710,11 +725,13 @@ class MayakActivity : AppCompatActivity() {
         }
     }
 
-    /** Строка-страна: ВЕКТОРНЫЙ флаг + название + шеврон; тап = выбор (без подключения). */
+    /** Строка-страна: ВЕКТОРНЫЙ флаг + название + индикатор сигнала; тап = выбор (без подключения). */
     private fun countryRow(d: Direction): View {
         val container = dirsContainer
         val row = LayoutInflater.from(this).inflate(R.layout.mayak_country_row, container, false)
         row.findViewById<ImageView>(R.id.mayak_row_flag).setImageResource(MayakFlags.drawableForCode(d.code))
+        // SPEC-0031: полоски «сигнала» из серверного хинта (без клиентского пинга — не спамим серверы).
+        row.findViewById<SignalBarsView>(R.id.mayak_row_signal).setLevel(d.signalLevel())
         row.findViewById<TextView>(R.id.mayak_row_name).text = d.displayLabel()
         row.tag = d.id
         row.setOnClickListener {

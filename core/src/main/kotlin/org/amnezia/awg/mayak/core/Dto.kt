@@ -40,7 +40,28 @@ data class Direction(
     val code: String,
     val name: String,
     val p2p: Boolean = false,
-)
+    // SPEC-0031: серверный хинт ранжирования (омитемпти на ядре → дефолты, если поля нет).
+    // health: "ok" | "degraded" | "down" (пусто = неизвестно). loadHint: 0..100 (0 = нет свежих метрик).
+    // recommended: сервер помечает одно живое направление с наим. загрузкой.
+    val health: String = "",
+    @SerialName("load_hint") val loadHint: Int = 0,
+    val recommended: Boolean = false,
+) {
+    /** Уровень «сигнала» 0..3 для полосок из СЕРВЕРНОГО хинта (без клиентского пинга → без нагрузки на
+     *  серверы при масштабе). down → 0; иначе базовый уровень по загрузке (Proton-пороги: ≤75%→3, ≤90%→2,
+     *  >90%→1; нет метрик→3 оптимистично), затем degraded ограничивает максимум 2 полосками. Клиентский
+     *  RTT (позже, разреженно) сможет уточнить. */
+    fun signalLevel(): Int {
+        if (health == "down") return 0
+        val byLoad = when {
+            loadHint in 1..75 -> 3
+            loadHint in 76..90 -> 2
+            loadHint > 90 -> 1
+            else -> 3 // нет свежих метрик — оптимистично
+        }
+        return if (health == "degraded") minOf(byLoad, 2) else byLoad
+    }
+}
 
 @Serializable
 data class ConnectRequest(

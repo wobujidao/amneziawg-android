@@ -38,11 +38,10 @@
         android:ellipsize="end"
         android:text="—" />
 
-    <ImageView
-        android:id="@+id/mayak_row_chevron"
+    <!-- SPEC-0031: индикатор «сигнала» (полоски) вместо шеврона — уровень из серверного хинта. -->
+    <org.amnezia.awg.mayak.SignalBarsView
+        android:id="@+id/mayak_row_signal"
         android:layout_width="22dp"
-        android:layout_height="22dp"
-        android:importantForAccessibility="no"
-        android:src="@drawable/ic_chevron_right"
-        app:tint="@color/mayak_on_surface_muted" />
+        android:layout_height="18dp"
+        android:importantForAccessibility="no" />
 </LinearLayout>
