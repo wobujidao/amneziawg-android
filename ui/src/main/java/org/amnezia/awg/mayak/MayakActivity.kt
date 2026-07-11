@@ -815,7 +815,7 @@ class MayakActivity : AppCompatActivity() {
     private fun countryRow(d: Direction): View {
         val container = dirsContainer
         val row = LayoutInflater.from(this).inflate(R.layout.mayak_country_row, container, false)
-        row.findViewById<ImageView>(R.id.mayak_row_flag).setImageResource(MayakFlags.drawableForCode(d.code))
+        row.findViewById<ImageView>(R.id.mayak_row_flag).setImageResource(MayakFlags.drawableForCode(d.flagCode()))
         // SPEC-0031: полоски «сигнала» — по клиентскому пингу (если измерен), иначе серверный хинт-заглушка.
         row.findViewById<SignalBarsView>(R.id.mayak_row_signal).setLevel(levelFor(d))
         row.findViewById<TextView>(R.id.mayak_row_name).text = d.displayLabel()
@@ -1465,7 +1465,7 @@ class MayakActivity : AppCompatActivity() {
         val flag = view.findViewById<ImageView>(R.id.mayak_det_flag)
         val dirText = view.findViewById<TextView>(R.id.mayak_det_direction)
         if (d != null) {
-            flag.setImageResource(MayakFlags.drawableForCode(d.code)); flag.visibility = View.VISIBLE
+            flag.setImageResource(MayakFlags.drawableForCode(d.flagCode())); flag.visibility = View.VISIBLE
             dirText.text = d.displayLabel()
         } else {
             flag.visibility = View.GONE

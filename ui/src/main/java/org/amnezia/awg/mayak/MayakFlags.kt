@@ -11,6 +11,10 @@ import org.amnezia.awg.mayak.core.Direction
  *  Единый источник — чтобы уведомление показывало то же, что видно в списке (директива владельца 2026-07-02). */
 fun Direction.displayLabel(): String = if (code.isNotBlank()) "$name ($code)" else name
 
+/** Код для ФЛАГА направления: явный country_code (SPEC-0033), иначе — code направления. Так направление
+ *  с произвольным кодом («almaty», «kz-adblock») показывает верный флаг, если задан country_code. */
+fun Direction.flagCode(): String = countryCode.ifBlank { code }
+
 object MayakFlags {
     // Векторные флаги по двухбуквенному коду (есть для имеющихся направлений).
     private val VECTORS: Map<String, Int> = mapOf(

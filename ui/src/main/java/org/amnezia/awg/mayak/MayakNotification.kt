@@ -29,7 +29,7 @@ object MayakNotification {
      *  ("🇳🇱 Нидерланды (nl)"), либо дефолт. Текст берём из displayLabel() — один источник со списком. */
     fun labelFor(ctx: Context, dir: Direction?): String {
         if (dir == null) return ctx.getString(R.string.mayak_connected)
-        return "${MayakFlags.emojiForCode(dir.code)} ${dir.displayLabel()}"
+        return "${MayakFlags.emojiForCode(dir.flagCode())} ${dir.displayLabel()}"
     }
 
     private fun ensureChannel(ctx: Context) {

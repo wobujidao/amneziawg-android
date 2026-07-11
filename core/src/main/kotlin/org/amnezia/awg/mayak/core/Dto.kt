@@ -40,6 +40,9 @@ data class Direction(
     val code: String,
     val name: String,
     val p2p: Boolean = false,
+    // country_code — явный ISO-код страны для флага (SPEC-0033 §2.6). Приложение рисует флаг по нему,
+    // а если пусто — по code. Позволяет назвать направление любым кодом и всё равно показать верный флаг.
+    @SerialName("country_code") val countryCode: String = "",
     // pool_host — GeoDNS-имя направления (резолвится в живые IP линий). Пингуем его для замера RTT
     // «телефон→сервер» (SPEC-0031). Пусто → пингуем по серверному хинту-фолбэку.
     @SerialName("pool_host") val poolHost: String = "",
