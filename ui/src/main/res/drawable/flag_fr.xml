@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Флаг Франции: синий/белый/красный (вертикально). Конвертирован из flag-icons. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="28dp"
+    android:height="20dp"
+    android:viewportWidth="640"
+    android:viewportHeight="480">
+    <path android:fillColor="#FF000091" android:pathData="M0 0h213.3v480H0z" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M213.3 0h213.4v480H213.3z" />
+    <path android:fillColor="#FFE1000F" android:pathData="M426.7 0H640v480H426.7z" />
+</vector>

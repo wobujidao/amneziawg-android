@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Флаг Беларуси (упрощённый вектор): красное поле, зелёная нижняя полоса,
+     белая орнаментальная полоса у древка с красным узором. Оригинал flag-icons
+     использует clipPath + matrix-трансформ, которые svg2vectordrawable искажает,
+     поэтому узор нарисован упрощённо вручную. Вектор (не эмодзи). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="28dp"
+    android:height="20dp"
+    android:viewportWidth="640"
+    android:viewportHeight="480">
+    <path android:fillColor="#FFD22730" android:pathData="M0 0h640v480H0z" />
+    <path android:fillColor="#FF007C30" android:pathData="M0 320h640v160H0z" />
+    <!-- орнаментальная полоса у древка -->
+    <path android:fillColor="#FFFFFFFF" android:pathData="M0 0h71v480H0z" />
+    <path android:fillColor="#FFD22730"
+        android:pathData="M35.5 10L55.5 34 35.5 58 15.5 34ZM35.5 78L55.5 102 35.5 126 15.5 102ZM35.5 146L55.5 170 35.5 194 15.5 170ZM35.5 214L55.5 238 35.5 262 15.5 238ZM35.5 282L55.5 306 35.5 330 15.5 306ZM35.5 350L55.5 374 35.5 398 15.5 374ZM35.5 418L55.5 442 35.5 466 15.5 442Z" />
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M35.5 24L44.5 34 35.5 44 26.5 34ZM35.5 92L44.5 102 35.5 112 26.5 102ZM35.5 160L44.5 170 35.5 180 26.5 170ZM35.5 228L44.5 238 35.5 248 26.5 238ZM35.5 296L44.5 306 35.5 316 26.5 306ZM35.5 364L44.5 374 35.5 384 26.5 374ZM35.5 432L44.5 442 35.5 452 26.5 442Z" />
+</vector>

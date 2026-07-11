@@ -16,6 +16,16 @@ object MayakFlags {
     private val VECTORS: Map<String, Int> = mapOf(
         "ru" to R.drawable.flag_ru,
         "nl" to R.drawable.flag_nl,
+        "kz" to R.drawable.flag_kz,
+        "de" to R.drawable.flag_de,
+        "us" to R.drawable.flag_us,
+        "gb" to R.drawable.flag_gb,
+        "uk" to R.drawable.flag_gb, // альтернативный код Великобритании → тот же флаг
+        "fr" to R.drawable.flag_fr,
+        "fi" to R.drawable.flag_fi,
+        "se" to R.drawable.flag_se,
+        "by" to R.drawable.flag_by,
+        "uz" to R.drawable.flag_uz,
     )
 
     // Эмодзи-фолбэк (только если нужен текст и нет вектора).

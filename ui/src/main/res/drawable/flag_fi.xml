@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Флаг Финляндии: белое поле, синий скандинавский крест. Конвертирован из flag-icons. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="28dp"
+    android:height="20dp"
+    android:viewportWidth="640"
+    android:viewportHeight="480">
+    <path android:fillColor="#FFFFFFFF" android:pathData="M0 0h640v480H0z" />
+    <path android:fillColor="#FF002F6C" android:pathData="M0 174.5h640v131H0z" />
+    <path android:fillColor="#FF002F6C" android:pathData="M175.5 0h130.9v480h-131z" />
+</vector>
