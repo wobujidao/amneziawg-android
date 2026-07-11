@@ -26,6 +26,22 @@ object MayakPrefs {
     private const val KEY_PRESET_SHOW = "preset_show_on_home"   // показывать селектор пресетов на главном (по умолч. ВКЛ)
     private const val KEY_AUTOCONNECT = "autoconnect" // F3: автоподнятие последнего рабочего туннеля (по умолч. ВЫКЛ)
     private const val KEY_APP_LOCK = "app_lock" // блокировка приложения по биометрии/PIN устройства (по умолч. ВЫКЛ)
+    private const val KEY_SORT_MODE = "dir_sort_mode" // SPEC-0031: 0=авто(сервер), 1=пинг, 2=свои (по умолч. 0)
+    private const val KEY_CUSTOM_ORDER = "dir_custom_order" // SPEC-0031: пользовательский порядок направлений (CSV id)
+
+    // Режим сортировки списка стран (SPEC-0031): 0 — как отдал сервер (авто), 1 — по клиентскому пингу,
+    // 2 — пользовательский (свой порядок перетаскиванием). По умолчанию 0.
+    fun sortMode(context: Context): Int = prefs(context).getInt(KEY_SORT_MODE, 0)
+    fun setSortMode(context: Context, mode: Int) {
+        prefs(context).edit().putInt(KEY_SORT_MODE, mode).apply()
+    }
+
+    // Пользовательский порядок направлений (список id). Пусто → нет своего порядка.
+    fun customOrder(context: Context): List<Long> =
+        prefs(context).getString(KEY_CUSTOM_ORDER, "")?.split(",")?.mapNotNull { it.trim().toLongOrNull() } ?: emptyList()
+    fun setCustomOrder(context: Context, ids: List<Long>) {
+        prefs(context).edit().putString(KEY_CUSTOM_ORDER, ids.joinToString(",")).apply()
+    }
 
     /** Автоподключение (SPEC-0018 F3): поднимать последний РАБОЧИЙ туннель при системном Always-On VPN и
      *  после загрузки устройства (из сохранённого на диске конфига, без сети). По умолчанию ВЫКЛ —

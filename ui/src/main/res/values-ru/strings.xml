@@ -288,6 +288,10 @@
     <string name="mayak_paste_link_hint">mayak://reg?…</string>
     <string name="mayak_pick_country">Выберите страну:</string>
     <string name="mayak_refresh">Обновить</string>
+    <string name="mayak_sort_auto">Авто</string>
+    <string name="mayak_sort_ping">Пинг</string>
+    <string name="mayak_sort_custom">Свои</string>
+    <string name="mayak_sort_custom_hint">Зажмите и перетащите страну, чтобы изменить порядок — он сохранится</string>
     <string name="mayak_disconnect">Отключить</string>
     <string name="mayak_logout">Выйти</string>
     <string name="mayak_status_ready">Готов</string>

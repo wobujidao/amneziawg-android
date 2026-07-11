@@ -284,6 +284,18 @@
                             android:text="@string/mayak_pick_country"
                             android:textAppearance="@style/Mayak.CardTitle" />
 
+                        <!-- SPEC-0031: режим сортировки (Авто/Пинг/Свои) — циклический переключатель. -->
+                        <TextView
+                            android:id="@+id/mayak_sort_mode"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:padding="8dp"
+                            android:text="@string/mayak_sort_auto"
+                            android:textColor="?attr/colorPrimary"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:clickable="true"
+                            android:focusable="true" />
+
                         <TextView
                             android:id="@+id/mayak_refresh_dirs"
                             android:layout_width="wrap_content"

@@ -557,11 +557,25 @@ class MayakActivity : AppCompatActivity() {
         setContentView(R.layout.activity_mayak_home)
         status = findViewById(R.id.mayak_status)
         dirsContainer = findViewById(R.id.mayak_dirs_container)
+        // SPEC-0031: перетаскивание строк в режиме «свои» (long-press на строке стартует drag).
+        dirsContainer?.setOnDragListener { _, event -> handleRowDrag(event) }
         // Кнопка «Обновить» — явно перетянуть список стран с сервера (новые направления без перелогина).
         findViewById<View?>(R.id.mayak_refresh_dirs)?.setOnClickListener {
             it.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
             loadDirections(forceRefresh = true)
             checkAppUpdate(force = true) // «Обновить» проверяет и список стран, И версию приложения
+        }
+        // SPEC-0031: циклический переключатель режима сортировки (Авто → Пинг → Свои).
+        findViewById<android.widget.TextView?>(R.id.mayak_sort_mode)?.let { btn ->
+            updateSortModeLabel(btn)
+            btn.setOnClickListener {
+                it.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                val next = (MayakPrefs.sortMode(this) + 1) % 3
+                MayakPrefs.setSortMode(this, next)
+                updateSortModeLabel(btn)
+                if (next == SORT_CUSTOM) Toast.makeText(this, R.string.mayak_sort_custom_hint, Toast.LENGTH_LONG).show()
+                applyOrderAndRender()
+            }
         }
         connectCircle = findViewById(R.id.mayak_connect_circle)
         connectIcon = findViewById(R.id.mayak_connect_icon)
@@ -707,12 +721,48 @@ class MayakActivity : AppCompatActivity() {
         return when (d.signalLevel()) { 3 -> 50; 2 -> 150; 1 -> 300; else -> 100000 }
     }
 
-    private fun renderDirections(dirsIn: List<Direction>) {
-        // SPEC-0031 «быстрейший вверху»: сортируем по КЛИЕНТСКОМУ пингу (телефон→сервер) по возрастанию —
-        // наименьший вверху. Пока пинг не измерен — по серверному хинту (заглушка). Мёртвые — вниз. Тай-брейк алфавит.
-        val dirs = dirsIn.sortedWith(
-            compareBy<Direction> { sortRtt(it) }.thenBy { it.displayLabel().lowercase() }
+    /** Пользовательский порядок (SPEC-0031, режим «свои»): сначала направления в сохранённом порядке (по id),
+     *  затем новые (не в сохранённом списке) — в порядке сервера. Сохранённые id, которых больше нет, игнор. */
+    private fun applyCustomOrder(dirsIn: List<Direction>): List<Direction> {
+        val order = MayakPrefs.customOrder(this)
+        if (order.isEmpty()) return dirsIn
+        val byId = dirsIn.associateBy { it.id }
+        val ordered = order.mapNotNull { byId[it] }
+        val orderSet = order.toSet()
+        val rest = dirsIn.filter { it.id !in orderSet }
+        return ordered + rest
+    }
+
+    /** Ярлык кнопки режима сортировки (Авто/Пинг/Свои) по текущему режиму. */
+    private fun updateSortModeLabel(btn: android.widget.TextView) {
+        btn.setText(
+            when (MayakPrefs.sortMode(this)) {
+                SORT_PING -> R.string.mayak_sort_ping
+                SORT_CUSTOM -> R.string.mayak_sort_custom
+                else -> R.string.mayak_sort_auto
+            }
         )
+    }
+
+    private var serverDirections: List<Direction> = emptyList()
+
+    /** Вход при НОВЫХ данных сервера: запоминаем СЫРОЙ порядок сервера и рисуем по текущему режиму. */
+    private fun renderDirections(dirsIn: List<Direction>) {
+        serverDirections = dirsIn
+        applyOrderAndRender()
+    }
+
+    /** Применить выбранный режим к сырому серверному списку и перерисовать (авто-режим не теряет порядок сервера). */
+    private fun applyOrderAndRender() {
+        val dirsIn = serverDirections
+        // SPEC-0031: порядок по выбранному режиму. 0 авто — как отдал сервер; 1 пинг — по клиентскому RTT
+        // (быстрейший вверху); 2 свои — пользовательский порядок (перетаскивание). Пинг гоняем ТОЛЬКО в режиме «пинг».
+        val mode = MayakPrefs.sortMode(this)
+        val dirs = when (mode) {
+            SORT_PING -> dirsIn.sortedWith(compareBy<Direction> { sortRtt(it) }.thenBy { it.displayLabel().lowercase() })
+            SORT_CUSTOM -> applyCustomOrder(dirsIn)
+            else -> dirsIn // SORT_AUTO: порядок сервера как есть
+        }
         directions = dirs
         val container = dirsContainer ?: return
         container.removeAllViews()
@@ -735,7 +785,7 @@ class MayakActivity : AppCompatActivity() {
         if (connState == ConnState.DISCONNECTED) {
             setStatus(getString(R.string.mayak_status_disconnected))
         }
-        pingDirectionsOnce(dirs) // замер RTT по открытию списка (кэш → без спама), затем пере-сортировка
+        if (mode == SORT_PING) pingDirectionsOnce(dirs) // замер RTT только в режиме «пинг» (кэш → без спама)
     }
 
     private var pingPassJob: Job? = null
@@ -757,7 +807,7 @@ class MayakActivity : AppCompatActivity() {
             results.forEach { (id, rtt) -> MayakPingCache.put(id, rtt) }
             // получили новые пинги → пересобрать список по свежим RTT. Кэш теперь свежий → повторный
             // pingDirectionsOnce ничего не найдёт → без бесконечного цикла.
-            if (results.any { it.second != null }) renderDirections(directions)
+            if (results.any { it.second != null }) applyOrderAndRender()
         }
     }
 
@@ -774,7 +824,53 @@ class MayakActivity : AppCompatActivity() {
             it.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
             selectDir(d)
         }
+        // SPEC-0031, режим «свои»: зажать и перетащить строку → изменить порядок (сохраняется).
+        if (MayakPrefs.sortMode(this) == SORT_CUSTOM) {
+            row.setOnLongClickListener { v ->
+                v.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                val data = ClipData.newPlainText("dirId", d.id.toString())
+                v.startDragAndDrop(data, View.DragShadowBuilder(v), v, 0)
+                true
+            }
+        }
         return row
+    }
+
+    private var draggedDirId: Long = -1L
+
+    /** Перетаскивание строки в режиме «свои»: на дропе вычисляем целевой индекс по Y и сохраняем порядок. */
+    private fun handleRowDrag(event: android.view.DragEvent): Boolean {
+        when (event.action) {
+            android.view.DragEvent.ACTION_DRAG_STARTED -> {
+                draggedDirId = ((event.localState as? View)?.tag as? Long) ?: -1L
+                return true
+            }
+            android.view.DragEvent.ACTION_DROP -> {
+                val container = dirsContainer ?: return false
+                val y = event.y
+                var target = container.childCount - 1
+                for (i in 0 until container.childCount) {
+                    val c = container.getChildAt(i)
+                    if (y < c.y + c.height / 2f) { target = i; break }
+                }
+                reorderCustom(draggedDirId, target)
+                return true
+            }
+            android.view.DragEvent.ACTION_DRAG_ENDED -> { draggedDirId = -1L; return true }
+            else -> return true
+        }
+    }
+
+    /** Переставить направление id на позицию targetIndex в пользовательском порядке и сохранить. */
+    private fun reorderCustom(id: Long, targetIndex: Int) {
+        if (id < 0L) return
+        val cur = directions.map { it.id }.toMutableList()
+        val from = cur.indexOf(id)
+        if (from < 0) return
+        cur.removeAt(from)
+        cur.add(targetIndex.coerceIn(0, cur.size), id)
+        MayakPrefs.setCustomOrder(this, cur)
+        applyOrderAndRender()
     }
 
     /**
@@ -1449,6 +1545,11 @@ class MayakActivity : AppCompatActivity() {
 
     companion object {
         const val KEY_SERVER = "server_url" // доступен из настроек для сборки того же HostProvider (диаг-лог)
+
+        // SPEC-0031: режимы сортировки списка стран.
+        private const val SORT_AUTO = 0   // как отдал сервер
+        private const val SORT_PING = 1   // по клиентскому пингу (быстрейший вверху)
+        private const val SORT_CUSTOM = 2 // пользовательский порядок (перетаскивание)
 
         // Адреса ядра по умолчанию: публичный домен (LE-серт, система доверия) ПЕРВЫМ,
         // затем IP-фолбэк (наш CA, см. network_security_config + res/raw/mayak_ca.pem).

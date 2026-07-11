@@ -80,6 +80,10 @@
     <string name="mayak_paste_link_hint">mayak://reg?…</string>
     <string name="mayak_pick_country">Pick a country:</string>
     <string name="mayak_refresh">Refresh</string>
+    <string name="mayak_sort_auto">Auto</string>
+    <string name="mayak_sort_ping">Ping</string>
+    <string name="mayak_sort_custom">Custom</string>
+    <string name="mayak_sort_custom_hint">Long-press and drag a country to reorder; the order is saved</string>
     <string name="mayak_disconnect">Disconnect</string>
     <string name="mayak_logout">Log out</string>
     <string name="mayak_status_ready">Ready</string>
