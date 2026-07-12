@@ -77,7 +77,13 @@ object MayakPresets {
         val p = activePreset(ctx) ?: return emptyList<String>() to true
         return when (p.mode) {
             "all" -> emptyList<String>() to true                 // весь трафик в VPN
-            "include" -> resolveApps(ctx, p).toList() to false   // только выбранные — В VPN
+            "include" -> {
+                val apps = resolveApps(ctx, p).toList()          // только выбранные — В VPN
+                // include с ПУСТЫМ набором (выбранные приложения не установлены) → sentinel «только сам VPN-апп»:
+                // иначе withSplitTunnel не пишет IncludedApplications и в туннель уходит ВЕСЬ трафик (обратно
+                // намерению «только эти приложения»). Так реального трафика в туннель не попадает.
+                (if (apps.isEmpty()) listOf(ctx.packageName) else apps) to false
+            }
             else -> resolveApps(ctx, p).toList() to true         // exclude: выбранные — МИМО VPN
         }
     }
