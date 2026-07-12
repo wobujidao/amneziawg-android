@@ -319,14 +319,15 @@ class MayakPresetEditorActivity : AppCompatActivity() {
                     check.isChecked = app.checked
                     updateCounter()
                 }
-                // Долгий тап → копируем package в буфер (запрос владельца: вставить в телеграм поддержке).
+                // Долгий тап → копируем «Название — package» в буфер (запрос владельца: вставить в телеграм поддержке).
                 view.setOnLongClickListener {
                     val pos = adapterPosition
                     if (pos == RecyclerView.NO_POSITION) return@setOnLongClickListener false
-                    val pkg = shownApps[pos].packageName
+                    val app = shownApps[pos]
+                    val text = "${app.label} — ${app.packageName}"
                     val cm = getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                    cm.setPrimaryClip(android.content.ClipData.newPlainText("package", pkg))
-                    android.widget.Toast.makeText(this@MayakPresetEditorActivity, "Скопировано: $pkg", android.widget.Toast.LENGTH_SHORT).show()
+                    cm.setPrimaryClip(android.content.ClipData.newPlainText("app", text))
+                    android.widget.Toast.makeText(this@MayakPresetEditorActivity, "Скопировано: $text", android.widget.Toast.LENGTH_SHORT).show()
                     true
                 }
             }
