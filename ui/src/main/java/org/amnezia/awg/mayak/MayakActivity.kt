@@ -481,8 +481,9 @@ class MayakActivity : AppCompatActivity() {
     private fun showPresetChooser() {
         val presets = MayakPresets.cached(this)
         if (presets.isEmpty()) { openPresetEditor(null); return }
-        // Пункт 0 — создание нового; далее сами пресеты (системные помечаем «·»).
-        val items = (listOf("＋ Новый пресет") + presets.map { it.name + if (it.source == "system") " ·" else "" }).toTypedArray()
+        // Пункт 0 — создание нового; далее сами пресеты. Системный подписываем «(базовый)» — его нельзя
+        // удалить, а имя может совпадать со своим форком (владелец путался, где системный, где свой).
+        val items = (listOf("＋ Новый пресет") + presets.map { it.name + if (it.source == "system") "  (базовый)" else "" }).toTypedArray()
         val activeId = MayakPrefs.activePresetId(this)
         var sel = presets.indexOfFirst { it.id == activeId }.let { if (it < 0) 0 else it } + 1
         com.google.android.material.dialog.MaterialAlertDialogBuilder(this)

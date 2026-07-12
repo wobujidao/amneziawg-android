@@ -46,19 +46,16 @@
                 android:text="" />
 
             <TextView
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_weight="1"
                 android:layout_marginStart="8dp"
                 android:text="@string/mayak_preset_editor_title"
                 android:textAppearance="@style/Mayak.Title"
                 android:textSize="24sp" />
 
-            <View
-                android:layout_width="0dp"
-                android:layout_height="1dp"
-                android:layout_weight="1" />
-
-            <!-- Удалить пресет: виден только для своего пресета (в коде). -->
+            <!-- Удалить пресет: виден только для своего пресета (в коде).
+                 Заголовок выше — 0dp+weight, поэтому кнопка всегда влезает справа (не срезается). -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/mayak_preset_delete"
                 style="@style/Mayak.Button.Text"
