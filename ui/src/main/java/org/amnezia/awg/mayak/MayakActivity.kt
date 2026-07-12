@@ -470,30 +470,28 @@ class MayakActivity : AppCompatActivity() {
         presetSwitch?.isChecked = MayakPrefs.presetEnabled(this)
     }
 
-    /** Диалог выбора пресета: выбрать активный / изменить (свой) или форкнуть (системный) / создать новый. */
+    /** Диалог выбора пресета: «Выбрать» — сделать активным; «Изменить» — редактировать/форкнуть выбранный;
+     *  первый пункт «＋ Новый пресет» — создать с нуля. (Раньше правка была скрыта в долгом тапе — запрос владельца.) */
     private fun showPresetChooser() {
         val presets = MayakPresets.cached(this)
         if (presets.isEmpty()) { openPresetEditor(null); return }
-        val names = presets.map { it.name + if (it.source == "system") " ·" else "" }.toTypedArray()
+        // Пункт 0 — создание нового; далее сами пресеты (системные помечаем «·»).
+        val items = (listOf("＋ Новый пресет") + presets.map { it.name + if (it.source == "system") " ·" else "" }).toTypedArray()
         val activeId = MayakPrefs.activePresetId(this)
-        var sel = presets.indexOfFirst { it.id == activeId }.let { if (it < 0) 0 else it }
+        var sel = presets.indexOfFirst { it.id == activeId }.let { if (it < 0) 0 else it } + 1
         com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
             .setTitle(getString(R.string.mayak_settings_split))
-            .setSingleChoiceItems(names, sel) { _, which -> sel = which }
-            .setPositiveButton(android.R.string.ok) { _, _ ->
-                MayakPrefs.setActivePresetId(this, presets[sel].id)
+            .setSingleChoiceItems(items, sel) { _, which -> sel = which }
+            .setPositiveButton("Выбрать") { _, _ ->
+                if (sel == 0) { openPresetEditor(null); return@setPositiveButton }
+                MayakPrefs.setActivePresetId(this, presets[sel - 1].id)
                 updatePresetSelector()
             }
-            .setNeutralButton("＋") { _, _ -> openPresetEditor(null) }
+            .setNeutralButton("Изменить") { _, _ ->
+                openPresetEditor(if (sel == 0) null else presets[sel - 1])
+            }
             .setNegativeButton(android.R.string.cancel, null)
-            // «Изменить/форкнуть» выбранный — долгий тап по имени открывает редактор активного; тут вторая кнопка занята.
-            .create().apply {
-                setOnShowListener {
-                    getButton(android.app.AlertDialog.BUTTON_NEUTRAL)?.setOnLongClickListener {
-                        dismiss(); openPresetEditor(presets[sel]); true
-                    }
-                }
-            }.show()
+            .show()
     }
 
     /** Открыть редактор: preset=null → новый; свой → правка; системный → форк (копия с предвыбранными приложениями). */
@@ -503,7 +501,10 @@ class MayakActivity : AppCompatActivity() {
         val mode = preset?.mode ?: MayakPresetEditorActivity.MODE_EXCLUDE
         // приложения раскрываем в конкретные установленные пакеты (системный rule-based → отмеченные РФ-приложения).
         val apps = if (preset != null) MayakPresets.resolveApps(this, preset).toList() else emptyList()
-        val editable = preset == null || preset.owned
+        // Всегда редактируемо: свой пресет правим на месте, СИСТЕМНЫЙ (РФ напрямую) — форкаем в редактируемую
+        // копию с предзаполненными приложениями (сохранится под НОВЫМ именем, editingPresetId=0). Запрос владельца:
+        // «надо взять текущий пресет и его поменять» — раньше системный открывался view-only и не редактировался.
+        val editable = true
         presetEditorLauncher.launch(MayakPresetEditorActivity.intent(this, editingPresetId, name, mode, apps, editable))
     }
 
