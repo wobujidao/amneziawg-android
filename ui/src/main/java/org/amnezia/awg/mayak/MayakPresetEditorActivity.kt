@@ -257,6 +257,7 @@ class MayakPresetEditorActivity : AppCompatActivity() {
         inner class VH(view: View) : RecyclerView.ViewHolder(view) {
             val icon: ImageView = view.findViewById(R.id.app_icon)
             val name: TextView = view.findViewById(R.id.app_name)
+            val pkg: TextView = view.findViewById(R.id.app_pkg)
             val check: MaterialCheckBox = view.findViewById(R.id.app_check)
 
             init {
@@ -280,6 +281,7 @@ class MayakPresetEditorActivity : AppCompatActivity() {
             val app = shownApps[position]
             holder.icon.setImageDrawable(app.icon)
             holder.name.text = app.label
+            holder.pkg.text = app.packageName
             holder.check.isChecked = app.checked
         }
 
