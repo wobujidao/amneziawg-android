@@ -440,6 +440,12 @@ class MayakActivity : AppCompatActivity() {
         registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()) { res ->
             if (res.resultCode != RESULT_OK) return@registerForActivityResult
             val data = res.data ?: return@registerForActivityResult
+            // Редактор вернул запрос на удаление своего пресета.
+            if (data.getBooleanExtra(MayakPresetEditorActivity.EXTRA_DELETE, false)) {
+                val delId = data.getLongExtra(MayakPresetEditorActivity.EXTRA_ID, 0L)
+                if (delId > 0L) deletePresetById(delId)
+                return@registerForActivityResult
+            }
             val name = data.getStringExtra(MayakPresetEditorActivity.EXTRA_NAME)?.takeIf { it.isNotBlank() } ?: return@registerForActivityResult
             val mode = data.getStringExtra(MayakPresetEditorActivity.EXTRA_MODE) ?: MayakPresetEditorActivity.MODE_EXCLUDE
             val apps = data.getStringArrayListExtra(MayakPresetEditorActivity.EXTRA_APPS) ?: arrayListOf()
@@ -533,22 +539,31 @@ class MayakActivity : AppCompatActivity() {
     private fun confirmDeleteActivePreset() {
         val active = MayakPresets.activePreset(this) ?: return
         if (!active.owned) return // системный удалить нельзя
-        val b = backend ?: return
         com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
             .setMessage("Удалить пресет «${active.name}»?")
-            .setPositiveButton(android.R.string.ok) { _, _ ->
-                lifecycleScope.launch {
-                    runCatching {
-                        session.deletePreset(b, active.id)
-                        session.syncPresets(this@MayakActivity, b)
-                        MayakPresets.invalidate()
-                    }
-                    MayakPrefs.setActivePresetId(this@MayakActivity, 0L)
-                    updatePresetSelector()
-                }
-            }
+            .setPositiveButton(android.R.string.ok) { _, _ -> deletePresetById(active.id) }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
+    }
+
+    /** Удалить пресет по id на сервере, пересинхронить, сбросить активный, обновить селектор.
+     *  Вызывается из редактора (кнопка «Удалить») и из долгого тапа по имени. Подтверждение — у вызывающего. */
+    private fun deletePresetById(id: Long) {
+        val b = backend ?: return
+        lifecycleScope.launch {
+            val ok = runCatching {
+                session.deletePreset(b, id)
+                session.syncPresets(this@MayakActivity, b)
+                MayakPresets.invalidate()
+            }.isSuccess
+            if (MayakPrefs.activePresetId(this@MayakActivity) == id) {
+                MayakPrefs.setActivePresetId(this@MayakActivity, 0L)
+            }
+            updatePresetSelector()
+            Toast.makeText(this@MayakActivity,
+                if (ok) R.string.mayak_settings_split_applied else R.string.mayak_update_check_failed,
+                Toast.LENGTH_SHORT).show()
+        }
     }
 
     // --- главный экран (Happ-стиль): круг-подключение + список стран с флагами ---

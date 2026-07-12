@@ -52,6 +52,25 @@
                 android:text="@string/mayak_preset_editor_title"
                 android:textAppearance="@style/Mayak.Title"
                 android:textSize="24sp" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+
+            <!-- Удалить пресет: виден только для своего пресета (в коде). -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/mayak_preset_delete"
+                style="@style/Mayak.Button.Text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:textColor="@color/mayak_red"
+                android:visibility="gone"
+                android:text="@string/mayak_preset_editor_delete" />
         </LinearLayout>
 
         <!-- Имя пресета: read-only при EXTRA_EDITABLE=false (системный пресет). -->
@@ -84,6 +103,69 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
+
+                <!-- Сворачиваемая шапка: показывает текущий режим; тап — раскрыть выбор.
+                     По умолчанию тело свёрнуто, чтобы список приложений занимал больше места. -->
+                <LinearLayout
+                    android:id="@+id/mayak_preset_mode_header"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:gravity="center_vertical"
+                    android:minHeight="56dp"
+                    android:orientation="horizontal"
+                    android:paddingTop="8dp"
+                    android:paddingBottom="8dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/mayak_preset_editor_mode_label"
+                            android:textColor="@color/mayak_on_surface"
+                            android:textAppearance="@style/Mayak.CardTitle"
+                            android:textSize="15sp" />
+
+                        <TextView
+                            android:id="@+id/mayak_preset_mode_summary"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="1dp"
+                            android:textColor="@color/mayak_on_surface"
+                            android:alpha="0.8"
+                            android:textAppearance="@style/Mayak.Tagline"
+                            tools:text="Все, кроме выбранных" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/mayak_preset_mode_chevron"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="▾"
+                        android:textColor="@color/mayak_on_surface"
+                        android:textSize="18sp"
+                        android:alpha="0.7"
+                        android:paddingStart="8dp"
+                        android:paddingEnd="4dp" />
+                </LinearLayout>
+
+                <!-- Тело выбора режима: свёрнуто по умолчанию (visibility=gone). -->
+                <LinearLayout
+                    android:id="@+id/mayak_preset_modes_body"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="@color/mayak_divider" />
 
                 <!-- Режим «Все приложения» → mode "all" -->
                 <LinearLayout
@@ -226,6 +308,7 @@
                         android:clickable="false"
                         android:focusable="false" />
                 </LinearLayout>
+                </LinearLayout><!-- /mayak_preset_modes_body -->
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

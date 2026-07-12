@@ -55,6 +55,7 @@ class MayakPresetEditorActivity : AppCompatActivity() {
     )
 
     private var editable = true
+    private var editingId = 0L // >0 — правим свой пресет (можно удалить); 0 — новый/форк системного
     private var mode = MODE_EXCLUDE
 
     // Полный список приложений (backing) и отфильтрованный по поиску (виден в RecyclerView).
@@ -74,6 +75,10 @@ class MayakPresetEditorActivity : AppCompatActivity() {
     private lateinit var radioAll: MaterialRadioButton
     private lateinit var radioExclude: MaterialRadioButton
     private lateinit var radioInclude: MaterialRadioButton
+    private lateinit var modeHeader: View
+    private lateinit var modeSummary: TextView
+    private lateinit var modeChevron: TextView
+    private lateinit var modesBody: View
     private val adapter = AppAdapter()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -94,6 +99,7 @@ class MayakPresetEditorActivity : AppCompatActivity() {
 
         // Считываем входные экстры.
         val startName = intent.getStringExtra(EXTRA_NAME) ?: ""
+        editingId = intent.getLongExtra(EXTRA_ID, 0L)
         mode = intent.getStringExtra(EXTRA_MODE)?.takeIf { it in VALID_MODES } ?: MODE_EXCLUDE
         editable = intent.getBooleanExtra(EXTRA_EDITABLE, true)
         val selected = intent.getStringArrayListExtra(EXTRA_APPS)?.toHashSet() ?: HashSet()
@@ -111,6 +117,10 @@ class MayakPresetEditorActivity : AppCompatActivity() {
         radioAll = findViewById(R.id.mayak_preset_radio_all)
         radioExclude = findViewById(R.id.mayak_preset_radio_exclude)
         radioInclude = findViewById(R.id.mayak_preset_radio_include)
+        modeHeader = findViewById(R.id.mayak_preset_mode_header)
+        modeSummary = findViewById(R.id.mayak_preset_mode_summary)
+        modeChevron = findViewById(R.id.mayak_preset_mode_chevron)
+        modesBody = findViewById(R.id.mayak_preset_modes_body)
 
         nameField.setText(startName)
         // Системный пресет (editable=false): имя только для чтения, а «Сохранить» = сохранить свою копию.
@@ -124,10 +134,21 @@ class MayakPresetEditorActivity : AppCompatActivity() {
             finish(); MayakTransitions.applyAxisReverse(this)
         }
 
+        // Удаление: только для своего пресета (editingId>0). Системный/новый удалять нечего — кнопка скрыта.
+        val deleteButton = findViewById<MaterialButton>(R.id.mayak_preset_delete)
+        if (editingId > 0L) {
+            deleteButton.visibility = View.VISIBLE
+            deleteButton.setOnClickListener { confirmDelete(startName) }
+        }
+
+        // Шапка режима сворачивается — тело выбора занимает место, поэтому по умолчанию свёрнуто.
+        modeHeader.setOnClickListener { setModesExpanded(modesBody.visibility != View.VISIBLE) }
+
         // Выбор режима: клик по строке. Мьютекс ведём вручную (строки с подзаголовками ≠ RadioGroup).
-        findViewById<View>(R.id.mayak_preset_row_all).setOnClickListener { selectMode(MODE_ALL) }
-        findViewById<View>(R.id.mayak_preset_row_exclude).setOnClickListener { selectMode(MODE_EXCLUDE) }
-        findViewById<View>(R.id.mayak_preset_row_include).setOnClickListener { selectMode(MODE_INCLUDE) }
+        // После выбора сворачиваем — чтобы список приложений снова был во весь экран.
+        findViewById<View>(R.id.mayak_preset_row_all).setOnClickListener { selectMode(MODE_ALL); setModesExpanded(false) }
+        findViewById<View>(R.id.mayak_preset_row_exclude).setOnClickListener { selectMode(MODE_EXCLUDE); setModesExpanded(false) }
+        findViewById<View>(R.id.mayak_preset_row_include).setOnClickListener { selectMode(MODE_INCLUDE); setModesExpanded(false) }
 
         recycler.layoutManager = LinearLayoutManager(this)
         recycler.adapter = adapter
@@ -151,11 +172,27 @@ class MayakPresetEditorActivity : AppCompatActivity() {
         applyModeUi()
     }
 
+    /** Раскрыть/свернуть выбор режима + повернуть шеврон. */
+    private fun setModesExpanded(expanded: Boolean) {
+        modesBody.visibility = if (expanded) View.VISIBLE else View.GONE
+        modeChevron.text = if (expanded) "▴" else "▾"
+    }
+
+    /** Текст-сводка для свёрнутой шапки режима (какой режим сейчас выбран). */
+    private fun modeLabel(m: String): String = getString(
+        when (m) {
+            MODE_ALL -> R.string.mayak_preset_editor_mode_all
+            MODE_INCLUDE -> R.string.mayak_preset_editor_mode_include
+            else -> R.string.mayak_preset_editor_mode_exclude
+        }
+    )
+
     /** Синхронизировать радиокнопки, видимость списка/поиска и счётчик с текущим режимом. */
     private fun applyModeUi() {
         radioAll.isChecked = mode == MODE_ALL
         radioExclude.isChecked = mode == MODE_EXCLUDE
         radioInclude.isChecked = mode == MODE_INCLUDE
+        modeSummary.text = modeLabel(mode)
 
         // Режим «Все»: выбирать нечего — прячем поиск и список, показываем подсказку.
         val needList = mode != MODE_ALL
@@ -252,6 +289,19 @@ class MayakPresetEditorActivity : AppCompatActivity() {
         MayakTransitions.applyAxisReverse(this)
     }
 
+    /** Подтвердить и вернуть запрос на удаление своего пресета вызывающей стороне (она удалит на сервере). */
+    private fun confirmDelete(name: String) {
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setMessage(getString(R.string.mayak_preset_editor_delete_confirm, name))
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                setResult(RESULT_OK, Intent().putExtra(EXTRA_DELETE, true).putExtra(EXTRA_ID, editingId))
+                finish()
+                MayakTransitions.applyAxisReverse(this)
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
     // Адаптер списка приложений: иконка+имя+галочка; клик по строке переключает галочку.
     private inner class AppAdapter : RecyclerView.Adapter<AppAdapter.VH>() {
         inner class VH(view: View) : RecyclerView.ViewHolder(view) {
@@ -268,6 +318,16 @@ class MayakPresetEditorActivity : AppCompatActivity() {
                     app.checked = !app.checked
                     check.isChecked = app.checked
                     updateCounter()
+                }
+                // Долгий тап → копируем package в буфер (запрос владельца: вставить в телеграм поддержке).
+                view.setOnLongClickListener {
+                    val pos = adapterPosition
+                    if (pos == RecyclerView.NO_POSITION) return@setOnLongClickListener false
+                    val pkg = shownApps[pos].packageName
+                    val cm = getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                    cm.setPrimaryClip(android.content.ClipData.newPlainText("package", pkg))
+                    android.widget.Toast.makeText(this@MayakPresetEditorActivity, "Скопировано: $pkg", android.widget.Toast.LENGTH_SHORT).show()
+                    true
                 }
             }
         }
@@ -294,6 +354,7 @@ class MayakPresetEditorActivity : AppCompatActivity() {
         const val EXTRA_MODE = "mayak_preset_mode"
         const val EXTRA_APPS = "mayak_preset_apps"
         const val EXTRA_EDITABLE = "mayak_preset_editable"
+        const val EXTRA_DELETE = "mayak_preset_delete" // OUT: true → вызывающая сторона удаляет пресет
 
         const val MODE_ALL = "all"
         const val MODE_EXCLUDE = "exclude"

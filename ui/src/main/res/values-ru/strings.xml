@@ -423,6 +423,9 @@
     <!-- SPEC-0028: редактор пресета сплит-туннеля (полноэкранный) -->
     <string name="mayak_preset_editor_title">Режим VPN для приложений</string>
     <string name="mayak_preset_editor_name_hint">Название пресета</string>
+    <string name="mayak_preset_editor_mode_label">Режим VPN</string>
+    <string name="mayak_preset_editor_delete">Удалить</string>
+    <string name="mayak_preset_editor_delete_confirm">Удалить пресет «%1$s»?</string>
     <string name="mayak_preset_editor_mode_all">Все приложения</string>
     <string name="mayak_preset_editor_mode_all_sub">VPN работает для всех приложений</string>
     <string name="mayak_preset_editor_mode_exclude">Все, кроме выбранных</string>
