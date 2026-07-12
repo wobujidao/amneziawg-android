@@ -1027,13 +1027,17 @@ class MayakActivity : AppCompatActivity() {
                     if (ip != null) { session.rememberWorking(d.id, paths); onConnected(ip); return@launch }
                 }
 
-                if (relay == null) { fail(getString(R.string.mayak_status_no_egress)); return@launch }
+                // Проба direct не прошла, резерва нет: ГАСИМ туннель (иначе VpnService остаётся
+                // активным и черной-холит весь трафик, а UI показывает «отключено» — тихий no-internet).
+                if (relay == null) { runCatching { tunnel.down() }; fail(getString(R.string.mayak_status_no_egress)); return@launch }
                 // Резерв: прямого не было вовсе или он не прошёл пробу.
                 if (direct != null) setStatus(getString(R.string.mayak_status_relay_switch))
                 GoTunnel.connectedServerHost = MayakPing.hostOf(paths.relayEndpoint) // сервер для пинга
                 tunnel.up(prepareConf(relay))
                 val ip = probeWithRetry()
-                if (ip != null) { session.rememberWorking(d.id, paths); onConnected(ip) } else fail(getString(R.string.mayak_status_no_egress))
+                if (ip != null) { session.rememberWorking(d.id, paths); onConnected(ip) }
+                // Проба relay не прошла — тоже ГАСИМ туннель (иначе тихий no-internet, см. выше).
+                else { runCatching { tunnel.down() }; fail(getString(R.string.mayak_status_no_egress)) }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 // пользователь отменил подключение (тап по кнопке) — гасим туннель, БЕЗ ошибки/инвалидации.
                 runCatching { tunnel.down() }
