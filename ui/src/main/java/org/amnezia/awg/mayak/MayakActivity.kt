@@ -614,11 +614,7 @@ class MayakActivity : AppCompatActivity() {
         rippleView?.coreRadiusPx = 88f * resources.displayMetrics.density
 
         setupThemeButton()
-        // Переключатель языка на главной (правка владельца 2026-07-06): тот же диалог, что и в настройках.
-        findViewById<MaterialButton>(R.id.mayak_lang_button)?.setOnClickListener {
-            it.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-            MayakLanguages.showDialog(this)
-        }
+        // Язык убран с главной (правка владельца 2026-07-18) — переключение только в настройках.
         findViewById<MaterialButton>(R.id.mayak_settings_button).setOnClickListener {
             startActivity(Intent(this, MayakSettingsActivity::class.java))
             MayakTransitions.applyAxis(this) // плавный переход к настройкам
