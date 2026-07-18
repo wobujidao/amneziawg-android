@@ -72,29 +72,32 @@
                     android:gravity="center_vertical"
                     android:orientation="horizontal">
 
+                    <!-- Имя пресета: без иконки (правка владельца 2026-07-18 — «без 3х точек»),
+                         компактно, имя влезает целиком (без maxWidth/ellipsize), шрифт помельче. -->
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/mayak_preset_name"
                         style="@style/Mayak.Button.Outlined"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:minWidth="0dp"
-                        android:minHeight="40dp"
+                        android:minHeight="34dp"
                         android:insetTop="0dp"
                         android:insetBottom="0dp"
-                        android:maxWidth="150dp"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="12dp"
                         android:maxLines="1"
-                        android:ellipsize="end"
-                        app:icon="@drawable/ic_settings"
-                        app:iconGravity="textStart"
-                        app:iconSize="18dp"
-                        app:iconTint="@color/mayak_outline"
+                        android:textSize="12sp"
                         android:text="РФ напрямую" />
 
+                    <!-- Тумблер «применять пресет»: уменьшен (scale 0.8) и подтянут вплотную —
+                         компактнее, чтобы имя пресета помещалось целиком (правка владельца). -->
                     <com.google.android.material.materialswitch.MaterialSwitch
                         android:id="@+id/mayak_preset_switch"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="6dp" />
+                        android:layout_marginStart="-2dp"
+                        android:scaleX="0.8"
+                        android:scaleY="0.8" />
                 </LinearLayout>
 
                 <View
