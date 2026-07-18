@@ -16,21 +16,17 @@
         android:layout_height="match_parent"
         android:importantForAccessibility="no" />
 
-    <ScrollView
+    <!-- Верх экрана фиксирован (шапка / кнопка / статус), а прокручивается ТОЛЬКО список стран
+         внутри карточки (правка владельца 2026-07-18). Поэтому корень — LinearLayout, не ScrollView. -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:fillViewport="true"
-        android:clipToPadding="false">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:gravity="center_horizontal"
-            android:paddingStart="20dp"
-            android:paddingEnd="20dp"
-            android:paddingTop="48dp"
-            android:paddingBottom="28dp">
+        android:orientation="vertical"
+        android:gravity="center_horizontal"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingTop="48dp"
+        android:paddingBottom="20dp">
 
             <!-- Шапка (правка владельца 2026-07-18): слева — тема (солнце/луна/авто),
                  ПО ЦЕНТРУ — селектор пресета split-туннеля (SPEC-0028), справа — настройки.
@@ -254,16 +250,18 @@
                 android:visibility="gone"
                 android:text="" />
 
-            <!-- Список стран -->
+            <!-- Список стран. Карточка занимает всё оставшееся место (weight=1), а список внутри
+                 прокручивается сам (правка владельца 2026-07-18): верх экрана остаётся на месте. -->
             <com.google.android.material.card.MaterialCardView
                 style="@style/Mayak.Card"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/mayak_space_6">
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:layout_marginTop="@dimen/mayak_space_4">
 
                 <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
+                    android:layout_height="match_parent"
                     android:orientation="vertical">
 
                     <LinearLayout
@@ -303,14 +301,25 @@
                             android:focusable="true" />
                     </LinearLayout>
 
-                    <LinearLayout
-                        android:id="@+id/mayak_dirs_container"
+                    <!-- Прокрутка списка внутри карточки; разделители между строками — через
+                         showDividers="middle" на самом контейнере строк (divider = 1dp линия). -->
+                    <ScrollView
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:orientation="vertical" />
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:layout_marginTop="4dp"
+                        android:scrollbars="none"
+                        android:clipToPadding="false">
+
+                        <LinearLayout
+                            android:id="@+id/mayak_dirs_container"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:divider="@drawable/mayak_row_divider"
+                            android:showDividers="middle" />
+                    </ScrollView>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
         </LinearLayout>
-    </ScrollView>
 </FrameLayout>
