@@ -93,6 +93,25 @@ public final class GoBackend implements Backend {
     }
 
     /**
+     * Маяк: защитить сокет от заворачивания в туннель ({@link android.net.VpnService#protect}), чтобы замер
+     * пинга (MayakPing) шёл НАПРЯМУЮ мимо VPN — иначе при подключении пинг мерил бы путь через туннель и все
+     * направления показывали бы примерно одинаковую задержку. Best-effort: если VpnService ещё не поднят
+     * (туннель выключен) — сокет не трогаем (заворачивать некуда, соединение и так прямое).
+     *
+     * @return true, если сокет успешно защищён (VPN активен и protect сработал).
+     */
+    public static boolean protectSocket(final java.net.Socket socket) {
+        try {
+            if (!vpnService.isDone())
+                return false;
+            final VpnService svc = vpnService.get(0, TimeUnit.NANOSECONDS);
+            return svc != null && svc.protect(socket);
+        } catch (final Exception e) {
+            return false;
+        }
+    }
+
+    /**
      * Set a {@link AlwaysOnCallback} to be invoked when {@link VpnService} is started by the
      * system's Always-On VPN mode.
      *
