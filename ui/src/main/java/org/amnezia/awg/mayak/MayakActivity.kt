@@ -832,6 +832,14 @@ class MayakActivity : AppCompatActivity() {
         }
     }
 
+    /** Пульсация (alpha 1↔0.25) для ячейки пинга, ПОКА идёт замер — вместо статичного «—» (правка владельца). */
+    private fun pingWaitAnimation(): android.view.animation.Animation =
+        android.view.animation.AlphaAnimation(1f, 0.25f).apply {
+            duration = 550
+            repeatMode = android.view.animation.Animation.REVERSE
+            repeatCount = android.view.animation.Animation.INFINITE
+        }
+
     /** Строка-страна: ВЕКТОРНЫЙ флаг + название + индикатор сигнала; тап = выбор (без подключения). */
     private fun countryRow(d: Direction): View {
         val container = dirsContainer
@@ -841,12 +849,22 @@ class MayakActivity : AppCompatActivity() {
         // по качеству (зелёный→оранжевый). Не измерен/провалился → «—» серым. Сортировка «Пинг» — по нему.
         row.findViewById<TextView>(R.id.mayak_row_ping).apply {
             val rtt = MayakPingCache.rtt(d.id)
-            if (rtt != null) {
-                text = "$rtt мс"
-                setTextColor(pingColor(rtt))
-            } else {
-                text = "—"
-                setTextColor(0xFF8A929C.toInt())
+            when {
+                rtt != null -> { // измерен
+                    clearAnimation()
+                    text = "$rtt мс"
+                    setTextColor(pingColor(rtt))
+                }
+                MayakPingCache.isFresh(d.id) -> { // измерен, но сервер не ответил на ICMP
+                    clearAnimation()
+                    text = "—"
+                    setTextColor(0xFF8A929C.toInt())
+                }
+                else -> { // ЕЩЁ идёт замер → анимация ожидания вместо статичного «—» (правка владельца 2026-07-19)
+                    text = "•••"
+                    setTextColor(0xFF8A929C.toInt())
+                    startAnimation(pingWaitAnimation())
+                }
             }
         }
         row.findViewById<TextView>(R.id.mayak_row_name).text = d.displayLabel()
