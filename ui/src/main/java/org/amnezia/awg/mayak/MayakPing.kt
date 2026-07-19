@@ -1,58 +1,46 @@
-// Замер задержки до сервера направления. РАНЬШЕ был ICMP через InetAddress.isReachable — на Android
-// ненадёжно (непривилегированный ICMP часто недоступен → молчит/подменяется TCP-порт-7) + сокет не был
-// защищён, поэтому при подключении пинг мерил путь ЧЕРЕЗ туннель и все направления показывали ~одинаково.
-// ТЕПЕРЬ (директива владельца 2026-07-19): TCP-connect RTT к :22 (SSH открыт на всех наших нодах; голый
-// connect без авторизации — fail2ban не триггерит), сокет ЗАЩИЩЁН (GoBackend.protectSocket → VpnService.protect)
-// → замер идёт МИМО туннеля = честная близость сервера, подключён ты или нет. Первую пробу (прогрев радио/
-// стека — всегда завышена) отбрасываем, усредняем следующие 5.
+// Замер задержки до сервера направления — НАСТОЯЩИЙ ICMP через СИСТЕМНЫЙ ping (как `ping` на ПК).
+// История: (1) InetAddress.isReachable — на Android НЕ настоящий ICMP, часто мусор (давал ~211мс там, где
+// реально 6мс); (2) TCP-connect к :22 — некоторые сети режут/шейпят :22 → завышало. Директива владельца
+// 2026-07-19: делать именно ICMP. Берём /system/bin/ping — реальный ICMP-эхо, совпадает с ping на ПК.
+// 6 проб (ping -c 6), ПЕРВУЮ (прогрев радио/стека — завышена) отбрасываем, усредняем остальные 5.
+//
+// ⚠️ Ограничение: подпроцесс ping нельзя увести мимо туннеля (VpnService.protect работает только для сокетов
+// в нашем процессе, не для внешнего процесса). Поэтому: ОТКЛЮЧЁН → замер прямой и точный (реальная близость
+// сервера); ПОДКЛЮЧЁН → ICMP идёт через туннель (пинги других стран завышены). Точный замер под туннелем
+// потребовал бы нативного ICMP-сокета с protect — отдельная задача.
 package org.amnezia.awg.mayak
-import android.os.SystemClock
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.amnezia.awg.backend.GoBackend
-import java.net.InetAddress
-import java.net.InetSocketAddress
-import java.net.Socket
+import java.util.concurrent.TimeUnit
 object MayakPing {
-    private const val PING_PORT = 22   // TCP-порт замера (SSH открыт на ядре и всех нодах — UFW ALLOW anywhere)
-    private const val TIMEOUT_MS = 1500
-    private const val AVG_PROBES = 5   // усредняем столько замеров ПОСЛЕ прогревочного (директива владельца)
+    private const val PROBES = 6                 // ping -c 6: 6 эхо; первое (прогрев) отбрасываем → усредняем 5
+    private const val PER_PING_TIMEOUT_S = 1     // ping -W: таймаут одного эхо, сек
+    private val TIME_RE = Regex("""time[=<]\s*([0-9.]+)""") // "... time=6.12 ms" / "time<1 ms"
 
-    /**
-     * Средний RTT (мс) TCP-connect до host:port или null, если сервер недоступен. Первая проба —
-     * прогревочная (и проверка доступности): её RTT отбрасываем (всегда завышен), дальше усредняем [AVG_PROBES].
-     * Блокирующие сетевые вызовы → на IO.
-     */
-    suspend fun ping(host: String, port: Int = PING_PORT, timeoutMs: Int = TIMEOUT_MS): Int? = withContext(Dispatchers.IO) {
-        val addr = runCatching { InetAddress.getByName(host) }.getOrNull() ?: return@withContext null // DNS вне таймингов
-        // Прогрев + проверка доступности: если даже он не прошёл — сервер недоступен, дальше не мучаем (без 5 таймаутов).
-        val warmup = tcpConnectRtt(addr, port, timeoutMs) ?: return@withContext null
-        val samples = ArrayList<Int>(AVG_PROBES)
-        repeat(AVG_PROBES) { tcpConnectRtt(addr, port, timeoutMs)?.let { samples.add(it) } }
-        if (samples.isEmpty()) warmup // все замеры после прогрева отвалились — берём прогрев (лучше, чем прочерк)
-        else (samples.sum().toDouble() / samples.size).toInt()
-    }
-
-    /** Одна проба: время установки TCP-соединения (мс). Сокет защищаем от туннеля (protect) → замер напрямую. */
-    private fun tcpConnectRtt(addr: InetAddress, port: Int, timeoutMs: Int): Int? {
-        val sock = Socket()
-        return try {
-            // ВАЖНО (Android-грабля): свежий Socket() не создаёт нативный fd до connect, а VpnService.protect()
-            // применяется к fd. Без bind() protect() — no-op, и при включённом туннеле замер УХОДИТ В ТУННЕЛЬ
-            // (баг 0.3.35: РФ мерилась как phone→NL→РФ). bind() к эфемерному порту создаёт fd → protect работает.
-            sock.bind(InetSocketAddress(0))
-            GoBackend.protectSocket(sock) // мимо туннеля (best-effort; VPN выкл. → no-op, соединение и так прямое)
-            val start = SystemClock.elapsedRealtime()
-            sock.connect(InetSocketAddress(addr, port), timeoutMs)
-            (SystemClock.elapsedRealtime() - start).toInt()
+    /** Средний ICMP-RTT (мс) до host или null (недоступен). Первую пробу-прогрев отбрасываем. Блокирующий → IO. */
+    suspend fun ping(host: String): Int? = withContext(Dispatchers.IO) {
+        val proc = runCatching {
+            ProcessBuilder("/system/bin/ping", "-c", PROBES.toString(), "-W", PER_PING_TIMEOUT_S.toString(), host)
+                .redirectErrorStream(true).start()
+        }.getOrNull() ?: return@withContext null
+        val out = try {
+            val text = proc.inputStream.bufferedReader().readText()
+            // ждём завершения с запасом: 6 эхо × (таймаут + ~1с интервал) + 2с
+            proc.waitFor(PROBES.toLong() * (PER_PING_TIMEOUT_S + 1) + 2, TimeUnit.SECONDS)
+            text
         } catch (e: Exception) {
-            null
+            runCatching { proc.destroy() }
+            return@withContext null
         } finally {
-            runCatching { sock.close() }
+            runCatching { proc.destroy() }
         }
+        val times = TIME_RE.findAll(out).mapNotNull { it.groupValues[1].toFloatOrNull() }.toList()
+        if (times.isEmpty()) return@withContext null // сервер не ответил на ICMP / ping недоступен
+        val measured = if (times.size > 1) times.drop(1) else times // прогревочный первый — за борт
+        (measured.sum() / measured.size).toInt()
     }
 
-    /** Хост из endpoint "IP:port" (или "host:port") — для пинга сервера. null, если пусто/не распарсить. */
+    /** Хост из endpoint "IP:port" (или "host:port"). null, если пусто/не распарсить. */
     fun hostOf(endpoint: String?): String? {
         if (endpoint.isNullOrBlank()) return null
         val h = endpoint.substringBeforeLast(':', endpoint).trim()
