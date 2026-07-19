@@ -37,6 +37,10 @@ object MayakPing {
     private fun tcpConnectRtt(addr: InetAddress, port: Int, timeoutMs: Int): Int? {
         val sock = Socket()
         return try {
+            // ВАЖНО (Android-грабля): свежий Socket() не создаёт нативный fd до connect, а VpnService.protect()
+            // применяется к fd. Без bind() protect() — no-op, и при включённом туннеле замер УХОДИТ В ТУННЕЛЬ
+            // (баг 0.3.35: РФ мерилась как phone→NL→РФ). bind() к эфемерному порту создаёт fd → protect работает.
+            sock.bind(InetSocketAddress(0))
             GoBackend.protectSocket(sock) // мимо туннеля (best-effort; VPN выкл. → no-op, соединение и так прямое)
             val start = SystemClock.elapsedRealtime()
             sock.connect(InetSocketAddress(addr, port), timeoutMs)
