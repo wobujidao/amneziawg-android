@@ -585,6 +585,7 @@ class MayakActivity : AppCompatActivity() {
         // Кнопка «Обновить» — явно перетянуть список стран с сервера (новые направления без перелогина).
         findViewById<View?>(R.id.mayak_refresh_dirs)?.setOnClickListener {
             it.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+            MayakPingCache.clear() // «Обновить» ПЕРЕМЕРЯЕТ и пинги (иначе кэш 3 мин отдаёт старые) — правка владельца
             loadDirections(forceRefresh = true)
             checkAppUpdate(force = true) // «Обновить» проверяет и список стран, И версию приложения
         }
