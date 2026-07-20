@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- DEV-сборка нового дизайна: метка приложения «Маяк VPN dev» (ставится рядом с прод-приложением). -->
+<!-- DEV-сборка нового дизайна: метка приложения «Маяк Networks dev» (ставится рядом с прод-приложением). -->
 <resources>
-    <string name="app_name" translatable="false">Маяк VPN dev</string>
+    <string name="app_name" translatable="false">Маяк Networks dev</string>
 </resources>

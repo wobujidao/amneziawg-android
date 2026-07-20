@@ -427,7 +427,7 @@
     <string name="mayak_protocol">Протокол</string>
     <string name="mayak_based_on_body">Форк официального клиента AmneziaWG (amneziawg-android).\nДвижок: amneziawg-go %1$s.\nПротокол: AmneziaWG 2.0 — обфусцированный WireGuard.\nОснован на WireGuard® (не аффилирован с WireGuard LLC и не одобрен ею).</string>
     <string name="mayak_license">Лицензия</string>
-    <string name="mayak_license_line">Apache-2.0. © участники AmneziaWG и WireGuard LLC. «Маяк VPN» — форк с собственным интерфейсом.</string>
+    <string name="mayak_license_line">Apache-2.0. © участники AmneziaWG и WireGuard LLC. «Маяк Networks» — форк с собственным интерфейсом.</string>
     <string name="mayak_oss_licenses">Открытый код / лицензии</string>
     <string name="mayak_oss_licenses_body">Встроенные компоненты с открытым кодом:\n\n• amneziawg-android — Apache-2.0\n• amneziawg-go — MIT\n• WireGuard® (базовый протокол) — GPLv2 / прочие; «основано на WireGuard®», без аффилиации\n• библиотеки AndroidX — Apache-2.0\n• Material Components for Android — Apache-2.0\n• ZXing (сканер QR) — Apache-2.0\n• kotlinx (coroutines, serialization) — Apache-2.0\n\nПолные тексты лицензий доступны в репозиториях соответствующих проектов.</string>
     <string name="mayak_privacy_policy">Политика конфиденциальности</string>

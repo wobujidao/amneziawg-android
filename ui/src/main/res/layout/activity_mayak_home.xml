@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Главный экран «Маяк VPN» в стиле Happ: шапка (тема/настройки), большая круглая
+<!-- Главный экран «Маяк Networks» в стиле Happ: шапка (тема/настройки), большая круглая
      кнопка-подключение с состояниями + таймер сессии, ниже — список стран с флагами. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"

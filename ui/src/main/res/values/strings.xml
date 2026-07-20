@@ -63,7 +63,7 @@
     <string name="allow_remote_control_intents_summary_on">External apps may toggle tunnels (advanced)</string>
     <string name="allow_remote_control_intents_title">Allow remote control apps</string>
     <string name="allowed_ips">Allowed IPs</string>
-    <string name="app_name" translatable="false">Маяк VPN</string>
+    <string name="app_name" translatable="false">Маяк Networks</string>
     <string name="mayak_tagline">Connect freely</string>
     <string name="mayak_login_hint">Login</string>
     <string name="mayak_email_hint">Email</string>
@@ -219,7 +219,7 @@
     <string name="mayak_protocol">Protocol</string>
     <string name="mayak_based_on_body">A fork of the official AmneziaWG client (amneziawg-android).\nEngine: amneziawg-go %1$s.\nProtocol: AmneziaWG 2.0 — obfuscated WireGuard.\nBased on WireGuard® (not affiliated with or endorsed by WireGuard LLC).</string>
     <string name="mayak_license">License</string>
-    <string name="mayak_license_line">Apache-2.0. © AmneziaWG contributors and WireGuard LLC. Маяк VPN — a fork with custom UI.</string>
+    <string name="mayak_license_line">Apache-2.0. © AmneziaWG contributors and WireGuard LLC. Маяк Networks — a fork with custom UI.</string>
     <string name="mayak_oss_licenses">Open-source licenses</string>
     <string name="mayak_oss_licenses_body">Bundled open-source components:\n\n• amneziawg-android — Apache-2.0\n• amneziawg-go — MIT\n• WireGuard® (underlying protocol) — GPLv2 / various; \"based on WireGuard®\", not affiliated\n• AndroidX libraries — Apache-2.0\n• Material Components for Android — Apache-2.0\n• ZXing (QR scanning) — Apache-2.0\n• kotlinx (coroutines, serialization) — Apache-2.0\n\nFull license texts are available in the respective project repositories.</string>
     <string name="mayak_privacy_policy">Privacy policy</string>
