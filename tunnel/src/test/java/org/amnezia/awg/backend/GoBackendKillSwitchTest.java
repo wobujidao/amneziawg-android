@@ -1,5 +1,5 @@
 /*
- * Copyright © 2026 Mayak VPN. SPDX-License-Identifier: Apache-2.0
+ * Copyright © 2026 Mayak Networks. SPDX-License-Identifier: Apache-2.0
  *
  * Юнит-тест per-family kill-switch (Маяк, SPEC-0014): проверяем, что при v4-only конфиге IPv6
  * ГЛУШИТСЯ (не течёт мимо VPN) — фикс IPv6-утечки после вопроса владельца «а если у меня IPv6?».

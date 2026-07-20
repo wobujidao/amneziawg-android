@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Publish a signed AAB to Google Play via the androidpublisher API.
 
-Established Маяк VPN release flow (edits.insert -> bundles.upload -> tracks patch -> commit).
+Established Mayak Networks release flow (edits.insert -> bundles.upload -> tracks patch -> commit).
 Auth: service-account JWT (RS256) -> OAuth2 access token. SA key is OUTSIDE git.
 
 Usage:
