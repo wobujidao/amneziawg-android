@@ -80,6 +80,16 @@ android {
             initWith(getByName("release"))
             matchingFallbacks += "release"
         }
+        // DEV-сборка нового дизайна: свой applicationId (mayakvpn.app.dev) → ставится РЯДОМ с прод-приложением,
+        // чтобы владелец сравнил старый и новый дизайн на одном устройстве. Подписана стабильным mayakdebug-ключом
+        // (не секрет) → assembleDev даёт готовый к установке APK. Метка «Маяк VPN dev» — из ui/src/dev/res.
+        create("dev") {
+            initWith(getByName("release"))
+            matchingFallbacks += "release"
+            applicationIdSuffix = ".dev"
+            versionNameSuffix = "-dev"
+            signingConfig = signingConfigs.getByName("mayakdebug")
+        }
     }
     androidResources {
         generateLocaleConfig = true

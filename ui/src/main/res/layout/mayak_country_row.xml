@@ -25,17 +25,36 @@
         android:scaleType="fitXY"
         android:src="@drawable/flag_globe" />
 
-    <TextView
-        android:id="@+id/mayak_row_name"
+    <!-- Название + город-подзаголовок (SPEC-0037): две строки как в утв. дизайне (approved-idle.png). -->
+    <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
         android:layout_marginStart="@dimen/mayak_space_3"
-        android:textColor="@color/mayak_on_surface"
-        android:textSize="14sp"
-        android:maxLines="1"
-        android:ellipsize="end"
-        android:text="—" />
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/mayak_row_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/mayak_on_surface"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:text="—" />
+
+        <TextView
+            android:id="@+id/mayak_row_city"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/mayak_on_surface"
+            android:alpha="0.6"
+            android:textSize="12sp"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:visibility="gone" />
+    </LinearLayout>
 
     <!-- SPEC-0031 / запрос владельца 2026-07-11: ЦИФРА пинга (мс) телефон→сервер вместо полосок. -->
     <TextView

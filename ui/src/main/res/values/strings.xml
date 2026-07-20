@@ -96,9 +96,9 @@
     <string name="mayak_status_relay_switch">Direct path blocked — switching to reserve…</string>
     <string name="mayak_status_offline_lastgood">Core unavailable — connecting to %1$s with the last saved config…</string>
     <string name="mayak_status_no_egress">Both paths failed to reach the internet</string>
-    <string name="mayak_status_disconnected">Disconnected</string>
+    <string name="mayak_status_disconnected">Unprotected</string>
     <string name="mayak_status_cancelled">Connection cancelled</string>
-    <string name="mayak_connected">Connected</string>
+    <string name="mayak_connected">Protected</string>
     <string name="mayak_notif_channel_name">VPN status</string>
     <string name="mayak_notif_channel_desc">Shows the active connection</string>
     <string name="mayak_notif_connected_title">Mayak — connected</string>

@@ -868,7 +868,13 @@ class MayakActivity : AppCompatActivity() {
                 }
             }
         }
-        row.findViewById<TextView>(R.id.mayak_row_name).text = d.displayLabel()
+        // Новый дизайн (SPEC-0037, approved-idle.png): название — жирным; город — подзаголовком снизу.
+        // Пусто (старые направления без city) → подзаголовок скрыт, показываем только название.
+        row.findViewById<TextView>(R.id.mayak_row_name).text = d.name
+        row.findViewById<TextView>(R.id.mayak_row_city).apply {
+            val c = d.city.trim()
+            if (c.isNotEmpty()) { text = c; visibility = View.VISIBLE } else { visibility = View.GONE }
+        }
         row.tag = d.id
         row.setOnClickListener {
             it.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)

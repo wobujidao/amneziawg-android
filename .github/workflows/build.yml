@@ -13,6 +13,7 @@ on:
         - release_aab
         - release_apk
         - debug_apk
+        - dev_apk
       ref:
         # ПУСТО по умолчанию: checkout использует `ref: ${{ inputs.ref }}`, а пустой ref в actions/checkout
         # означает «ветка/SHA, запустившие workflow» (при dispatch — ветка, на которой запущен). Раньше
@@ -73,6 +74,14 @@ jobs:
             echo "artifact_name=debug-apk" >> "$GITHUB_OUTPUT"
             echo "needs_signing=false" >> "$GITHUB_OUTPUT"
             ;;
+          dev_apk)
+            # DEV-сборка нового дизайна (applicationId mayakvpn.app.dev, метка «Маяк VPN dev»): ставится
+            # РЯДОМ с прод-приложением для сравнения. Подписана стабильным mayakdebug-ключом в gradle → без CI-подписи.
+            echo "gradle_task=assembleDev" >> "$GITHUB_OUTPUT"
+            echo "kind=apk_dev" >> "$GITHUB_OUTPUT"
+            echo "artifact_name=dev-apk" >> "$GITHUB_OUTPUT"
+            echo "needs_signing=false" >> "$GITHUB_OUTPUT"
+            ;;
           *)
             echo "Unknown target: ${{ inputs.target }}" >&2
             exit 1
@@ -112,6 +121,7 @@ jobs:
             FILE="./ui/build/outputs/apk/release/ui-release-unsigned.apk"
             [[ -f "${FILE}" ]] || FILE="./ui/build/outputs/apk/release/ui-release.apk"
             ;;
+          apk_dev) FILE="./ui/build/outputs/apk/dev/ui-dev.apk" ;;
           *) FILE="./ui/build/outputs/apk/debug/ui-debug.apk" ;;
         esac
 
