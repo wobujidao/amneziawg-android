@@ -6,7 +6,7 @@ Auth: service-account JWT (RS256) -> OAuth2 access token. SA key is OUTSIDE git.
 
 Usage:
   python3 play_publish.py <path-to.aab> [--track internal] \
-      [--package mayakvpn.app] [--sa ~/.mayak-secrets/mayak-play-publisher.json] \
+      [--package mayaknetworks.app] [--sa ~/.mayak-secrets/mayak-play-publisher.json] \
       [--notes "changelog text"]
 
 Requires: pyjwt, requests (present on nl3). Prints the uploaded versionCode.
@@ -45,7 +45,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("aab")
     ap.add_argument("--track", default="internal")
-    ap.add_argument("--package", default="mayakvpn.app")
+    ap.add_argument("--package", default="mayaknetworks.app")
     ap.add_argument("--sa", default=os.path.expanduser("~/.mayak-secrets/mayak-play-publisher.json"))
     ap.add_argument("--notes", default="")
     a = ap.parse_args()
