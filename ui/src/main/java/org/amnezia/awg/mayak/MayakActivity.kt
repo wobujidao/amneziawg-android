@@ -331,6 +331,9 @@ class MayakActivity : AppCompatActivity() {
             }
             doSignIn(email, pass)
         }
+        findViewById<MaterialButton>(R.id.mayak_forgot_password).setOnClickListener {
+            showForgotPasswordDialog(emailField.text?.toString()?.trim().orEmpty())
+        }
         // Регистрация и личный кабинет — в вебе (там же подтверждение email).
         findViewById<MaterialButton>(R.id.mayak_register).setOnClickListener { openUrl(CABINET_URL) }
         findViewById<MaterialButton>(R.id.mayak_scan_qr).setOnClickListener {
@@ -375,6 +378,75 @@ class MayakActivity : AppCompatActivity() {
             .setTitle(getString(R.string.mayak_paste_link_title))
             .setView(wrapper)
             .setPositiveButton(getString(R.string.mayak_ok)) { _, _ -> handleRegLink(input.text.toString()) }
+            .setNegativeButton(getString(R.string.mayak_cancel), null)
+            .show()
+    }
+
+    /** «Забыли пароль?» шаг 1: спросить email → POST /forgot (код на почту) → шаг 2 (ввод кода+нового пароля). */
+    private fun showForgotPasswordDialog(prefillEmail: String) {
+        val input = TextInputEditText(this).apply {
+            hint = getString(R.string.mayak_email_hint)
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
+            if (prefillEmail.isNotBlank()) setText(prefillEmail)
+        }
+        val wrapper = TextInputLayout(this).apply { setPadding(dp(24), dp(8), dp(24), 0); addView(input) }
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.mayak_forgot_title))
+            .setMessage(getString(R.string.mayak_forgot_msg))
+            .setView(wrapper)
+            .setPositiveButton(getString(R.string.mayak_forgot_send)) { _, _ ->
+                val email = input.text?.toString()?.trim().orEmpty()
+                if (email.isBlank()) { setStatus(getString(R.string.mayak_err_fill_login)); return@setPositiveButton }
+                backend = MayakBackend(hostProvider())
+                setStatus(getString(R.string.mayak_forgot_sending))
+                lifecycleScope.launch {
+                    try {
+                        backend!!.forgotPassword(email)
+                        setStatus(getString(R.string.mayak_forgot_sent))
+                        showResetPasswordDialog(email)
+                    } catch (e: Exception) { setStatus(humanError(e)) }
+                }
+            }
+            .setNegativeButton(getString(R.string.mayak_cancel), null)
+            .show()
+    }
+
+    /** «Забыли пароль?» шаг 2: код из письма + новый пароль → POST /reset → назад ко входу. */
+    private fun showResetPasswordDialog(email: String) {
+        val codeInput = TextInputEditText(this).apply {
+            hint = getString(R.string.mayak_reset_code_hint)
+            inputType = android.text.InputType.TYPE_CLASS_TEXT
+        }
+        val passInput = TextInputEditText(this).apply {
+            hint = getString(R.string.mayak_reset_newpass_hint)
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+        }
+        val box = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(24), dp(8), dp(24), 0)
+            addView(TextInputLayout(this@MayakActivity).apply { addView(codeInput) })
+            addView(TextInputLayout(this@MayakActivity).apply { addView(passInput) })
+        }
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.mayak_reset_title))
+            .setMessage(getString(R.string.mayak_reset_msg))
+            .setView(box)
+            .setPositiveButton(getString(R.string.mayak_reset_do)) { _, _ ->
+                val code = codeInput.text?.toString()?.trim().orEmpty()
+                val pass = passInput.text?.toString().orEmpty()
+                if (code.isBlank() || pass.isBlank()) { setStatus(getString(R.string.mayak_err_fill_login)); return@setPositiveButton }
+                backend = MayakBackend(hostProvider())
+                setStatus(getString(R.string.mayak_reset_doing))
+                lifecycleScope.launch {
+                    try {
+                        backend!!.resetPassword(email, code, pass)
+                        setStatus(getString(R.string.mayak_reset_done))
+                        findViewById<TextInputEditText>(R.id.mayak_login)?.setText(email)
+                    } catch (e: MayakApiException) {
+                        setStatus(if (e.status == 400) getString(R.string.mayak_reset_bad) else humanError(e))
+                    } catch (e: Exception) { setStatus(humanError(e)) }
+                }
+            }
             .setNegativeButton(getString(R.string.mayak_cancel), null)
             .show()
     }

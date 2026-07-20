@@ -143,6 +143,16 @@
                         android:layout_marginTop="@dimen/mayak_space_5"
                         android:text="@string/mayak_sign_in" />
 
+                    <!-- Забыли пароль? — сброс по email-коду (POST /v1/auth/password/forgot+/reset). -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/mayak_forgot_password"
+                        style="@style/Mayak.Button.Text"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/mayak_space_1"
+                        android:textColor="@color/mayak_outline"
+                        android:text="@string/mayak_forgot_password" />
+
                     <View
                         android:layout_width="match_parent"
                         android:layout_height="1dp"

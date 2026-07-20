@@ -20,6 +20,19 @@ data class LoginResponse(
     val token: String,
 )
 
+// Сброс пароля по email-коду (POST /v1/auth/password/forgot → код на почту; /reset — код+новый пароль).
+@Serializable
+data class ForgotPasswordRequest(
+    val email: String,
+)
+
+@Serializable
+data class ResetPasswordRequest(
+    val email: String,
+    val code: String,
+    val password: String,
+)
+
 @Serializable
 data class DeviceRequest(
     val pubkey: String,

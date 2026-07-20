@@ -70,6 +70,21 @@ class MayakBackend(
         return json.decodeFromString(LoginResponse.serializer(), resp)
     }
 
+    /** Запрос сброса пароля: POST /v1/auth/password/forgot {email} → код на почту (ответ всегда 202, анти-энум). */
+    suspend fun forgotPassword(email: String) {
+        val body = json.encodeToString(ForgotPasswordRequest.serializer(), ForgotPasswordRequest(email))
+        call("POST", "/v1/auth/password/forgot", token = null, body = body)
+    }
+
+    /** Сброс пароля кодом из письма: POST /v1/auth/password/reset {email,code,password}. 400 — неверный код/слабый пароль. */
+    suspend fun resetPassword(email: String, code: String, password: String) {
+        val body = json.encodeToString(
+            ResetPasswordRequest.serializer(),
+            ResetPasswordRequest(email, code, password),
+        )
+        call("POST", "/v1/auth/password/reset", token = null, body = body)
+    }
+
     suspend fun registerDevice(
         token: String,
         pubkey: String,
