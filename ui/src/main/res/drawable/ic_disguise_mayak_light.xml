@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Светлый вариант иконки «Mayak» (выбор иконок в настройках): тот же маяк-маскот на БЕЛОМ фоне.
+     Layer-list (не adaptive) — как у прочих disguise-иконок; работает на всех API (minSdk 24). Тёмный
+     вариант (дефолт) — adaptive @mipmap/ic_launcher с фоном @color/ic_launcher_bg = #15181B. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@android:color/white" />
+    <item android:drawable="@drawable/ic_launcher_foreground_inset" />
+</layer-list>

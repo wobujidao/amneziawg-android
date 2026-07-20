@@ -63,7 +63,9 @@
     <color name="tunnel_status_connected">#4CAF50</color>
     <color name="tunnel_status_connecting">#FF9800</color>
     <color name="tunnel_status_disconnected">#F44336</color>
-    <color name="ic_launcher_bg">#FFFFFF</color>
+    <!-- Фон иконки приложения — фирменный тёмный (совпадает с иконкой в Google Play и тёмным UI).
+         Светлый вариант доступен пользователю через выбор иконок (disguise.MayakLight). -->
+    <color name="ic_launcher_bg">#15181B</color>
 
     <!-- ============================================================
          Бренд «Маяк» — СВЕТЛАЯ тема (values/). Тёмная — в values-night/.

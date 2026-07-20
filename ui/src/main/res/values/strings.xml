@@ -198,6 +198,8 @@
     <string name="mayak_lock_unlock">Unlock</string>
     <string name="mayak_lock_exit">Exit</string>
     <string name="mayak_settings_disguise">App icon</string>
+    <string name="mayak_icon_dark">Mayak (dark)</string>
+    <string name="mayak_icon_light">Mayak (light)</string>
     <string name="mayak_disguise_weather">Weather</string>
     <string name="mayak_disguise_notes">Notes</string>
     <string name="mayak_disguise_calc">Calculator</string>

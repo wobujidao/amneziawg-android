@@ -194,7 +194,8 @@ class MayakSettingsActivity : AppCompatActivity() {
     private fun showDisguiseDialog() {
         val aliases = MayakDisguise.ALL
         val labels = arrayOf(
-            getString(R.string.app_name),
+            getString(R.string.mayak_icon_dark),
+            getString(R.string.mayak_icon_light),
             getString(R.string.mayak_disguise_weather),
             getString(R.string.mayak_disguise_notes),
             getString(R.string.mayak_disguise_calc),

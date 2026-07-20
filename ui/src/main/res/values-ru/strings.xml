@@ -406,6 +406,8 @@
     <string name="mayak_lock_unlock">Разблокировать</string>
     <string name="mayak_lock_exit">Выйти</string>
     <string name="mayak_settings_disguise">Значок приложения</string>
+    <string name="mayak_icon_dark">Mayak (тёмный фон)</string>
+    <string name="mayak_icon_light">Mayak (светлый фон)</string>
     <string name="mayak_disguise_weather">Погода</string>
     <string name="mayak_disguise_notes">Заметки</string>
     <string name="mayak_disguise_calc">Калькулятор</string>

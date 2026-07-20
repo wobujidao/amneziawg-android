@@ -14,13 +14,14 @@ import android.content.pm.PackageManager
  * нескольких секунд (иногда нужен ручной перезапуск — предупреждаем пользователя).
  */
 object MayakDisguise {
-    const val DEFAULT = "org.amnezia.awg.mayak.disguise.Default"
+    const val DEFAULT = "org.amnezia.awg.mayak.disguise.Default"       // маяк на тёмном (дефолт)
+    const val MAYAK_LIGHT = "org.amnezia.awg.mayak.disguise.MayakLight" // маяк на белом
     const val WEATHER = "org.amnezia.awg.mayak.disguise.Weather"
     const val NOTES = "org.amnezia.awg.mayak.disguise.Notes"
     const val CALC = "org.amnezia.awg.mayak.disguise.Calc"
 
-    /** Все пресеты в порядке показа (первый — обычный «Маяк»). */
-    val ALL = listOf(DEFAULT, WEATHER, NOTES, CALC)
+    /** Все пресеты в порядке показа (первый — обычный «Маяк» тёмный, второй — светлый вариант). */
+    val ALL = listOf(DEFAULT, MAYAK_LIGHT, WEATHER, NOTES, CALC)
 
     /** Включает выбранный alias и выключает остальные (гарантируя ровно один активный лаунчер). */
     fun apply(context: Context, alias: String) {
