@@ -148,10 +148,21 @@ class MayakSettingsActivity : AppCompatActivity() {
         // ни экран-блокировки — предупреждаем (fail-open: без них блокировка просто не сработает).
         val appLockSwitch = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.mayak_settings_applock)
         appLockSwitch.isChecked = MayakPrefs.appLock(this)
-        appLockSwitch.setOnCheckedChangeListener { _, checked ->
-            MayakPrefs.setAppLock(this, checked)
-            if (checked && !MayakLock.canAuthenticate(this)) {
-                Toast.makeText(this, R.string.mayak_settings_applock_no_credential, Toast.LENGTH_LONG).show()
+        appLockSwitch.setOnCheckedChangeListener { btn, checked ->
+            if (checked) {
+                // Включение = сразу подтвердить личность (запрос владельца 2026-07-20): нельзя включить
+                // защиту, не доказав, что это ты. Нет биометрии/экран-блока → защищать нечем, откатываем.
+                if (!MayakLock.canAuthenticate(this)) {
+                    Toast.makeText(this, R.string.mayak_settings_applock_no_credential, Toast.LENGTH_LONG).show()
+                    btn.isChecked = false
+                    return@setOnCheckedChangeListener
+                }
+                MayakLock.authenticate(this) { ok ->
+                    if (ok) MayakPrefs.setAppLock(this, true)
+                    else btn.isChecked = false // отмена/ошибка отпечатка → не включаем
+                }
+            } else {
+                MayakPrefs.setAppLock(this, false)
             }
         }
 
