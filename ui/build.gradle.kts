@@ -34,6 +34,11 @@ android {
         versionCode = providers.gradleProperty("mayakVersionCode").get().toInt()
         versionName = providers.gradleProperty("mayakVersionName").get()
         buildConfigField("int", "MIN_SDK_VERSION", minSdk.toString())
+        // Флаг НОВОГО дизайна (DESIGN-VISION: живой фон-карта с маршрутом + премиум-кнопка). По умолчанию
+        // ВЫКЛ → прод/релиз рендерят текущий дизайн БАЙТ-В-БАЙТ. Включается ТОЛЬКО в build type `dev`
+        // (mayaknetworks.app.dev, ставится рядом) → владелец сравнивает старый и новый дизайн на одном
+        // устройстве. Ветвление — в коде через BuildConfig.NEW_DESIGN.
+        buildConfigField("boolean", "NEW_DESIGN", "false")
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -79,6 +84,19 @@ android {
         create("googleplay") {
             initWith(getByName("release"))
             matchingFallbacks += "release"
+        }
+        // DEV-сборка НОВОГО дизайна: свой applicationId (mayaknetworks.app.dev) → ставится РЯДОМ с прод-
+        // приложением, чтобы владелец сравнил старый и новый дизайн на одном устройстве. Подписана стабильным
+        // mayakdebug-ключом (не секрет) → assembleDev даёт готовый к установке APK. Метка «Mayak dev» — из
+        // ui/src/dev/res. NEW_DESIGN=true → включает ветку нового дизайна в коде. matchingFallbacks=release →
+        // :tunnel/:core берут release-вариант (namespace org.amnezia.awg общий, JNI не зависит от applicationId).
+        create("dev") {
+            initWith(getByName("release"))
+            matchingFallbacks += "release"
+            applicationIdSuffix = ".dev"
+            versionNameSuffix = "-dev"
+            signingConfig = signingConfigs.getByName("mayakdebug")
+            buildConfigField("boolean", "NEW_DESIGN", "true")
         }
     }
     androidResources {
