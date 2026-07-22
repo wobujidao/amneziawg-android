@@ -64,11 +64,14 @@ class NetworkBackgroundView @JvmOverloads constructor(
     private var running = false
     private var routeProg = 1f // 0..1 «затекание» дуги
 
-    // «Живой» режим (ТОЛЬКО НОВЫЙ дизайн, dev-сборка): мерцание городов-точек — тёплый «маячный» свет,
-    // пробегающий по миру. Непрерывно, мягко, уважает reduced-motion. Прод (livingMode=false) — карта
-    // остаётся статичной БАЙТ-В-БАЙТ (постоянной перерисовки нет). Включается из MayakActivity по
-    // BuildConfig.NEW_DESIGN. Дёшево: N drawCircle/кадр по точкам суши, без layout/аллокаций в onDraw.
+    // «Живой» режим (НОВЫЙ дизайн, дефолт): мерцание городов-точек — тёплый «маячный» свет по миру.
+    // Непрерывно, мягко, уважает reduced-motion. livingMode=false → карта статична (постоянной перерисовки нет).
+    // Дёшево: N drawCircle/кадр по точкам суши, без layout/аллокаций в onDraw.
     var livingMode = false
+    // wantRunning отделяет «хотим анимировать» от «точки готовы»: startAnimation (onResume) может прийти РАНЬШЕ
+    // onSizeChanged (когда dots ещё пусты) → тогда стартуем в onSizeChanged, как только точки посчитаны. Без этого
+    // мерцание не запускалось до случайной перерисовки (баг «огоньки то есть, то нет, подожди минуту» 2026-07-23).
+    private var wantRunning = false
     private data class Twinkle(val x: Float, val y: Float, var start: Long, var dur: Long, var peak: Int)
     private val twinkles = ArrayList<Twinkle>()
     private val twinklePaint = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -127,7 +130,8 @@ class NetworkBackgroundView @JvmOverloads constructor(
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
         rebuild(w, h)
-        if (running && livingMode) seedTwinkles() // точки суши пересчитались — пересеять мерцание
+        // Точки суши только что посчитаны: если уже крутимся — пересеять; если ждали старта — стартовать.
+        if (running) seedTwinkles() else maybeStart()
     }
 
     private fun rebuild(w: Int, h: Int) {
@@ -189,20 +193,23 @@ class NetworkBackgroundView @JvmOverloads constructor(
         }
     }
 
-    // Прод/reduced-motion: карта статична (только invalidate). Живой режим: запускаем кадровый цикл мерцания.
+    // Прод/reduced-motion: карта статична (только invalidate). Живой режим: помечаем «хотим крутиться» и
+    // стартуем, как только точки готовы (сейчас или в onSizeChanged). Порядок onResume/layout не важен.
     fun startAnimation() {
-        if (livingMode && !reducedMotion() && dots.isNotEmpty()) {
-            if (!running) {
-                running = true
-                seedTwinkles()
-                postOnAnimation(frameTick)
-            }
-        } else {
-            invalidate()
-        }
+        wantRunning = livingMode && !reducedMotion()
+        if (!wantRunning) { invalidate(); return }
+        maybeStart()
     }
 
-    fun stopAnimation() { running = false; removeCallbacks(frameTick) }
+    // Стартует кадровый цикл, только когда есть намерение (wantRunning) и готовы точки суши. Идемпотентно.
+    private fun maybeStart() {
+        if (!wantRunning || running || dots.isEmpty()) return
+        running = true
+        seedTwinkles()
+        postOnAnimation(frameTick)
+    }
+
+    fun stopAnimation() { wantRunning = false; running = false; removeCallbacks(frameTick) }
 
     private fun seedTwinkles() {
         twinkles.clear()
