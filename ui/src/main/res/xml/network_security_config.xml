@@ -14,8 +14,13 @@
         </trust-anchors>
     </base-config>
 
-    <!-- Тестовое ядро на RuVDS по IP (выпущено НАШИМ CA) — доверяем нашему CA только для этого адреса -->
+    <!-- Ядро по IP (серт выпущен НАШИМ Mayak Core CA) — доверяем нашему CA только для адреса ядра.
+         IP-фолбэк на случай DNS-блокировки домена api.mayakvpn.ru в РФ. Новое ядро — 138.16.128.138
+         (с 2026-07-18); старый 45.132.18.167 (RuVDS) выключается ~07-23, оставлен на переходный период.
+         ⚠️ Серт client-api :8443 нового ядра ДОЛЖЕН иметь SAN=IP:138.16.128.138 (иначе hostname-проверка
+         не пройдёт). См. FINDING-app-ip-fallback-stale-core-2026-07-22. -->
     <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="false">138.16.128.138</domain>
         <domain includeSubdomains="false">45.132.18.167</domain>
         <trust-anchors>
             <certificates src="@raw/mayak_ca" />
