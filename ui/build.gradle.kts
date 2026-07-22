@@ -55,6 +55,12 @@ android {
             keyAlias = "mayak"
             keyPassword = "mayakdebug"
             storeType = "PKCS12"
+            // Явно включаем ВСЕ схемы подписи (v1 JAR + v2 + v3) — максимальная совместимость сайдлоада на
+            // разных прошивках (MIUI/EMUI/Android 24…35). По умолчанию для minSdk 24 AGP отключал v1 → APK
+            // был v2-only; часть инсталляторов при сайдлоаде даёт «Приложение не установлено» (2026-07-22).
+            enableV1Signing = true
+            enableV2Signing = true
+            enableV3Signing = true
         }
     }
     buildTypes {
