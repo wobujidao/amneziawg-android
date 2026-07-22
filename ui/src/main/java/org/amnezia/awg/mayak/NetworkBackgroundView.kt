@@ -10,6 +10,7 @@ package org.amnezia.awg.mayak
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
 import android.os.SystemClock
@@ -19,6 +20,7 @@ import android.view.View
 import androidx.core.content.ContextCompat
 import org.amnezia.awg.R
 import kotlin.math.hypot
+import kotlin.math.sin
 
 class NetworkBackgroundView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null, defStyle: Int = 0,
@@ -61,6 +63,16 @@ class NetworkBackgroundView @JvmOverloads constructor(
     private var connected = false
     private var running = false
     private var routeProg = 1f // 0..1 «затекание» дуги
+
+    // «Живой» режим (ТОЛЬКО НОВЫЙ дизайн, dev-сборка): мерцание городов-точек — тёплый «маячный» свет,
+    // пробегающий по миру. Непрерывно, мягко, уважает reduced-motion. Прод (livingMode=false) — карта
+    // остаётся статичной БАЙТ-В-БАЙТ (постоянной перерисовки нет). Включается из MayakActivity по
+    // BuildConfig.NEW_DESIGN. Дёшево: N drawCircle/кадр по точкам суши, без layout/аллокаций в onDraw.
+    var livingMode = false
+    private data class Twinkle(val x: Float, val y: Float, var start: Long, var dur: Long, var peak: Int)
+    private val twinkles = ArrayList<Twinkle>()
+    private val twinklePaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val rnd = java.util.Random()
 
     private val cDot = ContextCompat.getColor(context, R.color.mayak_map_dot)
     private val cLit = ContextCompat.getColor(context, R.color.mayak_map_lit)
@@ -115,6 +127,7 @@ class NetworkBackgroundView @JvmOverloads constructor(
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
         rebuild(w, h)
+        if (running && livingMode) seedTwinkles() // точки суши пересчитались — пересеять мерцание
     }
 
     private fun rebuild(w: Int, h: Int) {
@@ -144,22 +157,70 @@ class NetworkBackgroundView @JvmOverloads constructor(
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        // Только точечная КАРТА МИРА (по правке владельца: линию-маршрут убрали — её не было видно за кнопкой).
+        // Точечная КАРТА МИРА (маршрут-линию убрали — её не было видно за кнопкой, правка владельца).
         staticLayer?.let { canvas.drawBitmap(it, 0f, 0f, null) }
+        // Живой режим (dev): поверх статичной карты — мерцающие города тёплым «маячным» светом.
+        if (!livingMode || twinkles.isEmpty()) return
+        val now = SystemClock.uptimeMillis()
+        val warm = if (connected) cGlow else cLit
+        for (t in twinkles) {
+            val e = (now - t.start).toFloat() / t.dur
+            if (e < 0f || e > 1f) continue
+            val bell = sin(e * Math.PI).toFloat() // 0→1→0 плавный всполох
+            val a = (t.peak * bell).toInt()
+            if (a <= 4) continue
+            twinklePaint.color = withAlpha(warm, a)
+            canvas.drawCircle(t.x, t.y, 1.6f + 1.6f * bell, twinklePaint)
+        }
     }
 
     private val frameTick = object : Runnable {
         override fun run() {
             if (!running) return
             if (connected && routeProg < 1f) routeProg = (routeProg + 0.03f).coerceAtMost(1f)
+            if (livingMode) {
+                val now = SystemClock.uptimeMillis()
+                for (i in twinkles.indices) {
+                    if (now - twinkles[i].start > twinkles[i].dur) twinkles[i] = spawnTwinkle(now, false)
+                }
+            }
             invalidate()
             postOnAnimationDelayed(this, FRAME_MS)
         }
     }
 
-    fun startAnimation() { invalidate() } // карта статична — постоянная перерисовка не нужна
+    // Прод/reduced-motion: карта статична (только invalidate). Живой режим: запускаем кадровый цикл мерцания.
+    fun startAnimation() {
+        if (livingMode && !reducedMotion() && dots.isNotEmpty()) {
+            if (!running) {
+                running = true
+                seedTwinkles()
+                postOnAnimation(frameTick)
+            }
+        } else {
+            invalidate()
+        }
+    }
 
     fun stopAnimation() { running = false; removeCallbacks(frameTick) }
+
+    private fun seedTwinkles() {
+        twinkles.clear()
+        if (dots.isEmpty()) return
+        val now = SystemClock.uptimeMillis()
+        repeat(TWINKLE_COUNT) { twinkles.add(spawnTwinkle(now, true)) }
+    }
+
+    private fun spawnTwinkle(now: Long, staggered: Boolean): Twinkle {
+        val d = dots[rnd.nextInt(dots.size)]
+        val dur = 1400L + rnd.nextInt(1700).toLong()
+        val start = if (staggered) now - rnd.nextInt(dur.toInt()).toLong() else now
+        val peak = 120 + rnd.nextInt(120)
+        return Twinkle(d.x, d.y, start, dur, peak)
+    }
+
+    private fun withAlpha(color: Int, a: Int): Int =
+        Color.argb(a.coerceIn(0, 255), Color.red(color), Color.green(color), Color.blue(color))
 
     override fun onDetachedFromWindow() {
         stopAnimation(); staticLayer?.recycle(); staticLayer = null
@@ -181,6 +242,7 @@ class NetworkBackgroundView @JvmOverloads constructor(
 
     companion object {
         private const val FRAME_MS = 33L
+        private const val TWINKLE_COUNT = 26 // одновременно мерцающих городов (живой режим)
         private fun lon(d: Float) = (d + 180f) / 360f
         private fun lat(d: Float) = (90f - d) / 180f
         private fun f(lonI: Int, latI: Int) = floatArrayOf(lon(lonI.toFloat()), lat(latI.toFloat()))

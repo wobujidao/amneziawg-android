@@ -683,6 +683,9 @@ class MayakActivity : AppCompatActivity() {
         speedView = findViewById(R.id.mayak_speed)
         rippleView = findViewById(R.id.mayak_ripple)
         networkBg = findViewById(R.id.mayak_network_bg)
+        // НОВЫЙ дизайн (dev-сборка): «живой» фон-карта — мерцающие города тёплым маячным светом. В прод/
+        // релизе NEW_DESIGN=false → карта статична, поведение прежнее. См. DESIGN-VISION §2.
+        if (org.amnezia.awg.BuildConfig.NEW_DESIGN) networkBg?.livingMode = true
         // волны стартуют от края круга (176dp/2)
         rippleView?.coreRadiusPx = 88f * resources.displayMetrics.density
 
