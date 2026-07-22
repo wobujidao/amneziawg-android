@@ -34,11 +34,10 @@ android {
         versionCode = providers.gradleProperty("mayakVersionCode").get().toInt()
         versionName = providers.gradleProperty("mayakVersionName").get()
         buildConfigField("int", "MIN_SDK_VERSION", minSdk.toString())
-        // Флаг НОВОГО дизайна (DESIGN-VISION: живой фон-карта с маршрутом + премиум-кнопка). По умолчанию
-        // ВЫКЛ → прод/релиз рендерят текущий дизайн БАЙТ-В-БАЙТ. Включается ТОЛЬКО в build type `dev`
-        // (mayaknetworks.app.dev, ставится рядом) → владелец сравнивает старый и новый дизайн на одном
-        // устройстве. Ветвление — в коде через BuildConfig.NEW_DESIGN.
-        buildConfigField("boolean", "NEW_DESIGN", "false")
+        // Флаг НОВОГО дизайна (DESIGN-VISION: живой фон-карта + премиум-кнопка). Владелец одобрил на устройстве
+        // 2026-07-22 → сделали ДЕФОЛТОМ (true) для всех сборок, включая прод/релиз. Флаг оставлен на случай
+        // будущего A/B или быстрого отката. Ветвление — в коде через BuildConfig.NEW_DESIGN (живой фон-карта).
+        buildConfigField("boolean", "NEW_DESIGN", "true")
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
