@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- DEV «Beacon» — тот же тёмный маяк-палитр, что и в values/colors.xml, чтобы dev-сборка была
+     тёмной и в НОЧНОЙ системной теме (иначе в night-режиме подтянулся бы main values-night =
+     обычный навигационный синий, и dev стал бы непоследовательным). Держать синхронно с
+     ui/src/dev/res/values/colors.xml. -->
+<resources>
+    <color name="mayak_navy">#101C33</color>
+    <color name="mayak_navy_light">#17284A</color>
+    <color name="mayak_navy_dark">#070C16</color>
+    <color name="mayak_accent">#4FC3F7</color>
+    <color name="mayak_red">#FF5A6A</color>
+    <color name="mayak_ping_green">#37D08B</color>
+    <color name="mayak_ping_yellow">#F0B24B</color>
+    <color name="mayak_cream">#EAF2FF</color>
+
+    <color name="mayak_bg">#0A1120</color>
+    <color name="mayak_bg_grad_top">#0D1A31</color>
+    <color name="mayak_bg_grad_center">#0A1322</color>
+    <color name="mayak_bg_grad_bottom">#060A13</color>
+    <color name="mayak_statusbar">#070C16</color>
+    <color name="mayak_surface">#111E34</color>
+
+    <color name="mayak_on_bg">#EAF2FF</color>
+    <color name="mayak_on_bg_muted">#93A4C4</color>
+    <color name="mayak_on_surface">#EAF2FF</color>
+    <color name="mayak_on_surface_muted">#8D9FC0</color>
+    <color name="mayak_primary">#4FC3F7</color>
+    <color name="mayak_on_primary">#04121F</color>
+
+    <color name="mayak_field_bg">#16233C</color>
+    <color name="mayak_field_on">#EAF2FF</color>
+    <color name="mayak_divider">#1E2C48</color>
+    <color name="mayak_outline">#4FC3F7</color>
+
+    <color name="mayak_circle_fill_off">#0F1B30</color>
+    <color name="mayak_circle_ring_off">#2B3E60</color>
+    <color name="mayak_circle_icon_off">#52658A</color>
+    <color name="mayak_circle_fill_pending">#123049</color>
+    <color name="mayak_circle_glow_in">#FFF3D6</color>
+    <color name="mayak_circle_glow_out">#4FC3F7</color>
+    <color name="mayak_circle_icon_on">#04202F</color>
+    <color name="mayak_circle_halo">#7A4FC3F7</color>
+    <color name="mayak_circle_halo_mid">#304FC3F7</color>
+
+    <color name="mayak_card_stroke">#223350</color>
+    <color name="mayak_net_node">#3A4FC3F7</color>
+    <color name="mayak_net_line">#244FC3F7</color>
+    <color name="mayak_net_spark">#7A4FC3F7</color>
+    <color name="mayak_ripple">#4FC3F7</color>
+    <color name="mayak_row_selected_bg">#13273D</color>
+
+    <color name="mayak_card">@color/mayak_surface</color>
+    <color name="mayak_text">@color/mayak_on_surface</color>
+    <color name="mayak_text_muted">@color/mayak_on_surface_muted</color>
+    <color name="mayak_on_navy">@color/mayak_on_bg</color>
+    <color name="mayak_on_navy_muted">@color/mayak_on_bg_muted</color>
+
+    <color name="mayak_map_dot">#34445E</color>
+    <color name="mayak_map_lit">#F4C879</color>
+    <color name="mayak_map_route">#F4C879</color>
+    <color name="mayak_map_glow">#FFDE9E</color>
+    <color name="mayak_map_device">#EAF1F8</color>
+</resources>
