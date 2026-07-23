@@ -899,7 +899,10 @@ class MayakActivity : AppCompatActivity() {
         pingPassJob?.cancel()
         pingPassJob = lifecycleScope.launch {
             val results = need.map { d ->
-                async(Dispatchers.IO) { d.id to MayakPing.ping(d.poolHost) }
+                // poolHost — домен направления: РЕЗОЛВИМ через DoH (мимо оператора), пингуем УЖЕ IP. Иначе
+                // /system/bin/ping (внешний процесс) резолвил бы имя системным DNS оператора → на свежей/
+                // подменённой записи проба падает («...»), хотя нода жива. Уже IP или DoH не вышел → как есть.
+                async(Dispatchers.IO) { d.id to MayakPing.ping(DohResolver.resolveHost(d.poolHost)) }
             }.awaitAll()
             results.forEach { (id, rtt) -> MayakPingCache.put(id, rtt) }
             // получили новые пинги → пересобрать список по свежим RTT. Кэш теперь свежий → повторный

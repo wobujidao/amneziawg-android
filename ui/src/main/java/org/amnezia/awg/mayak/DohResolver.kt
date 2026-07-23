@@ -40,6 +40,19 @@ object DohResolver {
         return null
     }
 
+    /**
+     * host → IPv4 через DoH; если host УЖЕ IPv4 (резолвить нечего) или DoH не вышел — возвращает host как есть.
+     * Для ICMP-пробы RTT (MayakPing): /system/bin/ping — ВНЕШНИЙ процесс, резолвит имя СИСТЕМНЫМ резолвером
+     * оператора (мимо app-DoH), поэтому проба ПО ИМЕНИ падает на подменённом/зарезанном DNS (напр. свежая нода
+     * → «...» в списке). Резолвим домен здесь через DoH (мимо оператора) и пингуем УЖЕ IP — как endpoint туннеля
+     * (resolveEndpoint). Фоллбэк на сырой host: caller (MayakPing) всё равно попробует системный резолв.
+     */
+    fun resolveHost(host: String): String {
+        if (host.isBlank()) return host
+        if (host.matches(Regex("\\d{1,3}(\\.\\d{1,3}){3}"))) return host // уже IPv4 — DoH не нужен
+        return resolve(host) ?: host
+    }
+
     /** "host:port" → "ip:port" через DoH; если host уже IP или DoH недоступен — возвращает как есть (фоллбэк). */
     fun resolveEndpoint(hostPort: String): String {
         val i = hostPort.lastIndexOf(':')
