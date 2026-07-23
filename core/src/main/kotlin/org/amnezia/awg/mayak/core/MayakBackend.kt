@@ -101,10 +101,20 @@ class MayakBackend(
         return json.decodeFromString(kotlinx.serialization.builtins.ListSerializer(Direction.serializer()), resp)
     }
 
-    suspend fun connect(token: String, deviceId: Long, directionId: Long): ConnectResult {
-        val body = json.encodeToString(ConnectRequest.serializer(), ConnectRequest(deviceId, directionId))
+    suspend fun connect(token: String, deviceId: Long, directionId: Long, appVersion: String = ""): ConnectResult {
+        val body = json.encodeToString(ConnectRequest.serializer(), ConnectRequest(deviceId, directionId, appVersion))
         val resp = call("POST", "/v1/client/connect", token = token, body = body)
         return json.decodeFromString(ConnectResult.serializer(), resp)
+    }
+
+    /**
+     * Тихий еженедельный телеметри-бикон (POST /v1/client/telemetry). Успех = 204 No Content (тело
+     * пустое, не парсим). Ошибки НЕ глотаем здесь — их глотает воркер (MayakTelemetryWorker → Result),
+     * чтобы бикон не устраивал retry-шторм. Токен обязателен (ядро само проставит user_id/ip).
+     */
+    suspend fun telemetry(token: String, req: TelemetryRequest) {
+        val body = json.encodeToString(TelemetryRequest.serializer(), req)
+        call("POST", "/v1/client/telemetry", token = token, body = body)
     }
 
     /** keepalive аренды overlay-IP (SPEC-0015): пока туннель поднят, приложение продлевает аренду своих

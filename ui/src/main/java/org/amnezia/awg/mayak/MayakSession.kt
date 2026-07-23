@@ -11,6 +11,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
+import org.amnezia.awg.BuildConfig
 import org.amnezia.awg.mayak.core.ConfRenderer
 import org.amnezia.awg.mayak.core.Direction
 import org.amnezia.awg.mayak.core.HostProvider
@@ -184,7 +185,9 @@ class MayakSession(
         val token = requireToken()
         val priv = ensureKeys()
         val deviceId = ensureDevice(backend, token)
-        val res = backend.connect(token, deviceId, direction.id)
+        // app_version — версия приложения «Маяк» (BuildConfig.VERSION_NAME). Заполняем на /connect, иначе
+        // на ядре поле приходит пустым (2026-07-23). Не путать с версией движка AmneziaWG.
+        val res = backend.connect(token, deviceId, direction.id, BuildConfig.VERSION_NAME)
         // DoH-резолв endpoint делаем ОДИН раз на путь (и для .conf, и для пинг-хоста).
         val directCfg = res.direct?.let { dohEndpoint(it) }
         val relayCfg = res.relay?.let { dohEndpoint(it) }
@@ -260,6 +263,11 @@ class MayakSession(
     /** Отправка диагностического лога на сервер (кнопка «Отправить лог»). Требует входа (токен). */
     suspend fun sendDiagLog(backend: MayakBackend, req: org.amnezia.awg.mayak.core.DiagLogRequest) =
         backend.sendDiagLog(requireToken(), req)
+
+    /** Тихий еженедельный телеметри-бикон (MayakTelemetryWorker). Требует токен — воркер сам no-op'ит
+     *  через hasToken() до вызова, если пользователь не вошёл. */
+    suspend fun sendTelemetry(backend: MayakBackend, req: org.amnezia.awg.mayak.core.TelemetryRequest) =
+        backend.telemetry(requireToken(), req)
 
     /** Пресеты split-туннеля (SPEC-0028): синхрон с ядра (кэш в MayakPresets) + CRUD своих. Токен —
      *  внутри session (не светим наружу). */

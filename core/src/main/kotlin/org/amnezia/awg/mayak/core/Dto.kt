@@ -88,6 +88,10 @@ data class Direction(
 data class ConnectRequest(
     @SerialName("device_id") val deviceId: Long,
     @SerialName("direction_id") val directionId: Long,
+    // Версия приложения (BuildConfig.VERSION_NAME). Ядро пишет её в аналитику/last_seen устройства.
+    // Раньше поле не заполнялось → на проде приходило пустым (2026-07-23). Пусто допустимо
+    // (старое ядро игнорирует поле; connect не использует DisallowUnknownFields).
+    @SerialName("app_version") val appVersion: String = "",
 )
 
 // keepalive аренды overlay-IP (SPEC-0015): продлеваем аренду устройства, пока туннель поднят.
@@ -180,6 +184,25 @@ data class AppVersionInfo(
     @SerialName("apk_url") val apkUrl: String = "",
     @SerialName("min_version_code") val minVersionCode: Int = 0, // ниже этого — жёсткий апдейт (на будущее)
     val changelog: String = "",
+)
+
+/**
+ * Тихий еженедельный телеметри-бикон (POST /v1/client/telemetry → 204 No Content). Не-ПДн: версия
+ * приложения/сборки, модель устройства, версия ОС, локаль, источник установки + агрегированные счётчики
+ * использования. user_id и ip ядро проставляет САМО по Bearer-токену — их НЕ шлём.
+ * ⚠️ Ядро парсит тело с DisallowUnknownFields → набор ключей должен совпадать ТОЧНО (ни лишних, ни
+ * пропущенных). Все поля обязательны (без дефолтов) → сериализуются всегда, ровно 8 ключей.
+ */
+@Serializable
+data class TelemetryRequest(
+    @SerialName("app_version") val appVersion: String,
+    @SerialName("version_code") val versionCode: Int,
+    @SerialName("device_model") val deviceModel: String,
+    @SerialName("os_version") val osVersion: String,
+    val locale: String,
+    @SerialName("install_source") val installSource: String,
+    @SerialName("connect_count") val connectCount: Int,
+    @SerialName("active_days") val activeDays: Int,
 )
 
 /** OTA-список РФ-приложений для split-туннеля «Открывать российские сервисы напрямую» (BlancVPN-parity

@@ -1222,6 +1222,7 @@ class MayakActivity : AppCompatActivity() {
     private fun onConnected(ip: String) = runOnUiThread {
         connState = ConnState.CONNECTED
         renderState(ConnState.CONNECTED)
+        MayakPrefs.noteConnect(this) // best-effort счётчики для тихого телеметри-бикона (не-ПДн агрегаты)
         GoTunnel.egressIpv4 = ip // персистим выходной IPv4 (показ переживает пересоздание Activity)
         // таймер/IP появляются с лёгким fade (не резким visibility).
         renderEgress() // IP-адреса теперь НЕ на главном (правка владельца: в детали) — mayak_ip остаётся скрытым

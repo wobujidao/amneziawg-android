@@ -28,6 +28,11 @@ object MayakPrefs {
     private const val KEY_APP_LOCK = "app_lock" // блокировка приложения по биометрии/PIN устройства (по умолч. ВЫКЛ)
     private const val KEY_SORT_MODE = "dir_sort_mode" // SPEC-0031: 0=авто(сервер), 1=пинг, 2=свои (по умолч. 0)
     private const val KEY_CUSTOM_ORDER = "dir_custom_order" // SPEC-0031: пользовательский порядок направлений (CSV id)
+    // Агрегированные (не-ПДн) счётчики для тихого еженедельного телеметри-бикона (MayakTelemetryWorker).
+    // Кумулятивные за всё время установки (сервер при желании считает недельную дельту сам). НЕ сбрасываем.
+    private const val KEY_CONNECT_COUNT = "telemetry_connect_count" // всего успешных подключений
+    private const val KEY_ACTIVE_DAYS = "telemetry_active_days"     // число РАЗНЫХ дней с подключением
+    private const val KEY_LAST_ACTIVE_DAY = "telemetry_last_active_day" // последняя учтённая дата (yyyy-MM-dd)
 
     // Режим сортировки списка стран (SPEC-0031): 0 — как отдал сервер (авто), 1 — по клиентскому пингу,
     // 2 — пользовательский (свой порядок перетаскиванием). По умолчанию 0.
@@ -158,6 +163,27 @@ object MayakPrefs {
 
     fun setLastDirectionId(context: Context, id: Long) {
         prefs(context).edit().putLong(KEY_LAST_DIR, id).apply()
+    }
+
+    /** Всего успешных подключений (кумулятивно) — для телеметри-бикона. */
+    fun connectCount(context: Context): Int = prefs(context).getInt(KEY_CONNECT_COUNT, 0)
+
+    /** Число РАЗНЫХ дней, в которые было хоть одно подключение (кумулятивно) — для телеметри-бикона. */
+    fun activeDays(context: Context): Int = prefs(context).getInt(KEY_ACTIVE_DAYS, 0)
+
+    /** Отметить успешное подключение (best-effort счётчики телеметрии): +1 к числу подключений и, если
+     *  сегодняшний день ещё не учтён, +1 к числу активных дней. Без ПДн — только агрегаты. Зовётся из
+     *  onConnected(). java.time доступен через core-library desugaring (minSdk 24). */
+    fun noteConnect(context: Context) {
+        val p = prefs(context)
+        val today = java.time.LocalDate.now().toString() // yyyy-MM-dd, без времени/ПДн
+        val e = p.edit()
+        e.putInt(KEY_CONNECT_COUNT, p.getInt(KEY_CONNECT_COUNT, 0) + 1)
+        if (p.getString(KEY_LAST_ACTIVE_DAY, "") != today) {
+            e.putInt(KEY_ACTIVE_DAYS, p.getInt(KEY_ACTIVE_DAYS, 0) + 1)
+            e.putString(KEY_LAST_ACTIVE_DAY, today)
+        }
+        e.apply()
     }
 
     // Значения совпадают по смыслу с AppCompatDelegate.MODE_NIGHT_*

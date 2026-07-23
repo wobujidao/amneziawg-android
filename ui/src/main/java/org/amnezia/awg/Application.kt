@@ -139,6 +139,11 @@ class Application : android.app.Application() {
             StrictMode.setVmPolicy(VmPolicy.Builder().detectAll().penaltyLog().build())
             StrictMode.setThreadPolicy(ThreadPolicy.Builder().detectAll().penaltyLog().build())
         }
+
+        // Тихий еженедельный телеметри-бикон (не-ПДн: версия/модель/ОС/локаль/источник + счётчики).
+        // Идемпотентно (ExistingPeriodicWorkPolicy.KEEP) → безопасно на каждом старте. Без UI/эффекта;
+        // если не вошёл или сбой — тихо no-op. См. MayakTelemetryWorker / TELEMETRY-DISCLOSURE.md.
+        runCatching { org.amnezia.awg.mayak.MayakTelemetryWorker.enqueue(this) }
     }
 
     override fun onTerminate() {

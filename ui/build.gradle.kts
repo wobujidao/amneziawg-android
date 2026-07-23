@@ -127,6 +127,7 @@ dependencies {
     implementation(libs.androidx.fragment.ktx)
     implementation(libs.androidx.preference.ktx)
     implementation(libs.androidx.security.crypto)
+    implementation(libs.androidx.work.runtime.ktx) // тихий еженедельный телеметри-бикон (MayakTelemetryWorker)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.google.material)
