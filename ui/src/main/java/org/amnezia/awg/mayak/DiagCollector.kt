@@ -19,9 +19,10 @@ object DiagCollector {
 
     /**
      * Собирает диагностику. direction — текущее выбранное направление (может быть пустым),
-     * deviceId — id устройства из сессии (0 если неизвестен). Сеть/логи читаем в IO.
+     * deviceId — id устройства из сессии (0 если неизвестен). source — "manual" (кнопка юзера) или
+     * "auto" (авто-заливка при ошибке подключения, 0.3.48). Сеть/логи читаем в IO.
      */
-    suspend fun collect(context: Context, direction: String, deviceId: Long): DiagLogRequest =
+    suspend fun collect(context: Context, direction: String, deviceId: Long, source: String = "manual"): DiagLogRequest =
         withContext(Dispatchers.IO) {
             val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
             val net = networkInfo(cm)
@@ -33,6 +34,7 @@ object DiagCollector {
                 otherVpn = net.vpnActive,
                 direction = direction,
                 deviceId = deviceId,
+                source = source,
                 meta = buildMap {
                     put("abi", Build.SUPPORTED_ABIS.firstOrNull() ?: "?")
                     put("vpn_transport_present", net.vpnActive.toString())

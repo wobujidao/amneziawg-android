@@ -165,6 +165,9 @@ data class DiagLogRequest(
     @SerialName("other_vpn") val otherVpn: Boolean,       // в момент сбора активен ДРУГОЙ VPN?
     val direction: String = "",
     @SerialName("device_id") val deviceId: Long = 0,
+    // Источник заливки (0.3.48): "manual" — кнопка «Отправить лог» в настройках; "auto" — авто-заливка
+    // при ошибке подключения (rate-limited). encodeDefaults=true → сериализуется всегда (ядру нужно поле).
+    @SerialName("source") val source: String = "manual",
     val meta: Map<String, String> = emptyMap(),           // доп. поля (внешний IP, оператор и т.п.)
     val log: String,
 )

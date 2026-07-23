@@ -1260,6 +1260,27 @@ class MayakActivity : AppCompatActivity() {
         renderState(ConnState.DISCONNECTED)
         setStatus(message)
         Toast.makeText(this, message, Toast.LENGTH_LONG).show() // ошибку показываем попапом — её надо заметить
+        maybeAutoSendDiag() // авто-заливка диаг-лога на ошибку подключения (тихо, rate-limited) — 0.3.48
+    }
+
+    /**
+     * Авто-заливка диагностики при ОШИБКЕ подключения (0.3.48). Мотивация: регрессия коннекта раньше
+     * всплывала только когда пользователь сам жал «Отправить лог» — теперь лог с source="auto" уходит
+     * сам. Строго: (1) rate-limited (не чаще раза в 6ч на установку, MayakPrefs) — чтобы шквал ошибок
+     * не породил шквал заливок; (2) требует входа и backend (как ручная кнопка) — иначе тихо пропускаем;
+     * (3) полностью тихо (без UI) и БЕЗ ретраев; любой сбой глотаем (диагностика не должна ронять UI).
+     */
+    private fun maybeAutoSendDiag() {
+        if (!::session.isInitialized || !session.hasToken()) return
+        val b = backend ?: return
+        if (!MayakPrefs.noteAutoDiagIfDue(this)) return // слишком часто — пропускаем
+        val dirName = selectedDir?.name ?: ""
+        lifecycleScope.launch {
+            try {
+                val req = DiagCollector.collect(this@MayakActivity, direction = dirName, deviceId = session.deviceId(), source = "auto")
+                session.sendDiagLog(b, req)
+            } catch (_: Exception) { /* тихо: авто-диагностика best-effort, без ретраев/краша */ }
+        }
     }
 
     private fun disconnect() {

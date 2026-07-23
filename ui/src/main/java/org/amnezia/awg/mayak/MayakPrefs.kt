@@ -33,6 +33,8 @@ object MayakPrefs {
     private const val KEY_CONNECT_COUNT = "telemetry_connect_count" // всего успешных подключений
     private const val KEY_ACTIVE_DAYS = "telemetry_active_days"     // число РАЗНЫХ дней с подключением
     private const val KEY_LAST_ACTIVE_DAY = "telemetry_last_active_day" // последняя учтённая дата (yyyy-MM-dd)
+    private const val KEY_LAST_AUTO_DIAG = "auto_diag_last_ms" // ts последней АВТО-заливки диаг-лога (rate-limit)
+    private const val AUTO_DIAG_MIN_INTERVAL_MS = 6L * 60 * 60 * 1000 // не чаще раза в 6ч на установку
 
     // Режим сортировки списка стран (SPEC-0031): 0 — как отдал сервер (авто), 1 — по клиентскому пингу,
     // 2 — пользовательский (свой порядок перетаскиванием). По умолчанию 0.
@@ -184,6 +186,20 @@ object MayakPrefs {
             e.putString(KEY_LAST_ACTIVE_DAY, today)
         }
         e.apply()
+    }
+
+    /** Rate-limit авто-заливки диаг-лога при ошибке подключения (0.3.48): если с прошлой авто-заливки
+     *  прошло >= 6ч (или её не было) — помечает «сейчас» и возвращает true (можно слать); иначе false
+     *  (слишком часто, пропускаем). Атомарно (проверка+пометка вместе), чтобы шквал ошибок подряд не
+     *  породил шквал заливок. Ручную кнопку это НЕ трогает. */
+    fun noteAutoDiagIfDue(context: Context): Boolean {
+        val p = prefs(context)
+        val now = System.currentTimeMillis()
+        val last = p.getLong(KEY_LAST_AUTO_DIAG, 0L)
+        // now < last — часы устройства перевели назад: не блокируемся навсегда, разрешаем и перезаписываем.
+        if (last != 0L && now >= last && now - last < AUTO_DIAG_MIN_INTERVAL_MS) return false
+        p.edit().putLong(KEY_LAST_AUTO_DIAG, now).apply()
+        return true
     }
 
     // Значения совпадают по смыслу с AppCompatDelegate.MODE_NIGHT_*

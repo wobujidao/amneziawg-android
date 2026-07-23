@@ -236,7 +236,7 @@ class MayakSettingsActivity : AppCompatActivity() {
         button.setText(R.string.mayak_settings_send_log_sending)
         lifecycleScope.launch {
             val msg = try {
-                val req = DiagCollector.collect(this@MayakSettingsActivity, direction = "", deviceId = session.deviceId())
+                val req = DiagCollector.collect(this@MayakSettingsActivity, direction = "", deviceId = session.deviceId(), source = "manual")
                 session.sendDiagLog(backend, req)
                 getString(R.string.mayak_settings_send_log_ok)
             } catch (e: MayakApiException) {
