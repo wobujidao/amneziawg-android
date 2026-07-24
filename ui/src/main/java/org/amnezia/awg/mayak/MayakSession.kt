@@ -14,6 +14,7 @@ import kotlinx.serialization.builtins.ListSerializer
 import org.amnezia.awg.BuildConfig
 import org.amnezia.awg.mayak.core.ConfRenderer
 import org.amnezia.awg.mayak.core.Direction
+import org.amnezia.awg.mayak.core.DohResolver
 import org.amnezia.awg.mayak.core.HostProvider
 import org.amnezia.awg.mayak.core.HwidProvider
 import org.amnezia.awg.mayak.core.KeyProvider

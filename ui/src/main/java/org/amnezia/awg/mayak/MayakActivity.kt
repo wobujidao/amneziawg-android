@@ -49,6 +49,7 @@ import org.amnezia.awg.R
 import org.amnezia.awg.backend.GoBackend
 import org.amnezia.awg.mayak.core.AppVersionInfo
 import org.amnezia.awg.mayak.core.Direction
+import org.amnezia.awg.mayak.core.DohResolver
 import org.amnezia.awg.mayak.core.HostProvider
 import org.amnezia.awg.mayak.core.MayakApiException
 import org.amnezia.awg.mayak.core.MayakBackend
