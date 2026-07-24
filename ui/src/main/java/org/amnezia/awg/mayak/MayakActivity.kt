@@ -1138,7 +1138,7 @@ class MayakActivity : AppCompatActivity() {
                     tunnel.up(prepareConf(direct))
                     setStatus(getString(R.string.mayak_status_probing))
                     val ip = probeWithRetry()
-                    if (ip != null) { session.rememberWorking(d.id, paths); onConnected(ip); return@launch }
+                    if (ip != null) { session.rememberWorking(d.id, paths); onConnected(ip, d); return@launch }
                 }
 
                 // Проба direct не прошла, резерва нет: ГАСИМ туннель (иначе VpnService остаётся
@@ -1149,7 +1149,7 @@ class MayakActivity : AppCompatActivity() {
                 GoTunnel.connectedServerHost = MayakPing.hostOf(paths.relayEndpoint) // сервер для пинга
                 tunnel.up(prepareConf(relay))
                 val ip = probeWithRetry()
-                if (ip != null) { session.rememberWorking(d.id, paths); onConnected(ip) }
+                if (ip != null) { session.rememberWorking(d.id, paths); onConnected(ip, d) }
                 // Проба relay не прошла — тоже ГАСИМ туннель (иначе тихий no-internet, см. выше).
                 else { runCatching { tunnel.down() }; fail(getString(R.string.mayak_status_no_egress)) }
             } catch (e: kotlinx.coroutines.CancellationException) {
@@ -1237,7 +1237,14 @@ class MayakActivity : AppCompatActivity() {
         return null
     }
 
-    private fun onConnected(ip: String) = runOnUiThread {
+    /**
+     * @param d направление, К КОТОРОМУ реально поднялся туннель. Берём именно его, а НЕ глобальный
+     * `selectedDir`: пока шёл коннект к A, пользователь мог ткнуть страну B (во время CONNECTING тап
+     * лишь меняет выбор, переключения не делает) — и по завершении коннекта метка/`connectedDir`
+     * говорили бы «B», хотя трафик идёт через A. Хуже: следующий тап по B попадал на гард
+     * «уже подключены к B» → no-op, и добраться до B из списка становилось нельзя вообще.
+     */
+    private fun onConnected(ip: String, d: Direction?) = runOnUiThread {
         connState = ConnState.CONNECTED
         renderState(ConnState.CONNECTED)
         MayakPrefs.noteConnect(this) // best-effort счётчики для тихого телеметри-бикона (не-ПДн агрегаты)
@@ -1252,9 +1259,9 @@ class MayakActivity : AppCompatActivity() {
         startIpv6Probe() // фоновая проба IPv6-выхода → честный значок «IPv6»
         // Постоянное уведомление «Подключено» (флаг+направление); метку персистим в GoTunnel (процесс-
         // скоупно) — на повторном открытии покажем то же направление.
-        connectedDir = selectedDir // запоминаем направление живого туннеля (для авто-переключения)
-        GoTunnel.connectedDirectionId = selectedDir?.id // надёжный процесс-скоупный источник активной страны (для показа её пинга без hairpin)
-        GoTunnel.connectedLabel = MayakNotification.labelFor(this, selectedDir)
+        connectedDir = d // направление ЖИВОГО туннеля — из аргумента, не из мутабельного выбора в списке
+        GoTunnel.connectedDirectionId = d?.id // надёжный процесс-скоупный источник активной страны (для показа её пинга без hairpin)
+        GoTunnel.connectedLabel = MayakNotification.labelFor(this, d)
         MayakNotification.show(this, GoTunnel.connectedLabel, GoTunnel.connectedPingMs)
         Toast.makeText(this, getString(R.string.mayak_connected), Toast.LENGTH_SHORT).show()
     }
