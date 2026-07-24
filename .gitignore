@@ -16,3 +16,8 @@ build/
 *.jks
 gradlew.bat
 maint/
+
+# build artifacts (не коммитить)
+*.aab
+*.idsig
+*.apk

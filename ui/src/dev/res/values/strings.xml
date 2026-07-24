@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- DEV-сборка НОВОГО дизайна: метка приложения «Mayak dev» (ставится РЯДОМ с прод-приложением
-     mayaknetworks.app, свой applicationId mayaknetworks.app.dev). Только для сравнения дизайнов. -->
-<resources>
-    <string name="app_name" translatable="false">Mayak dev</string>
-</resources>
