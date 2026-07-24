@@ -894,7 +894,12 @@ class MayakActivity : AppCompatActivity() {
      * списка/загрузке данных). Провалы кэшируются, чтобы не долбить сеть; повторный вызов найдёт всё свежим → без цикла.
      */
     private fun pingDirectionsOnce(dirs: List<Direction>) {
-        val need = dirs.filter { it.poolHost.isNotBlank() && !MayakPingCache.isFresh(it.id) }
+        // АКТИВНОЕ направление (к которому подключён туннель) НЕ пингуем: подключённым `/system/bin/ping` идёт
+        // ЧЕРЕЗ туннель, а эхо в СВОЙ ЖЕ выходной IP заворачивается сам в себя (hairpin) и не проходит → в кэш
+        // осел бы null и строка показывала «—» у активной страны. Его пинг берём из ЖИВОГО замера туннеля
+        // (GoTunnel.connectedPingMs, тот же «Пинг: N мс» сверху) — см. рендер строки. Правка 2026-07-24.
+        val activeId = if (connState == ConnState.CONNECTED) connectedDir?.id else null
+        val need = dirs.filter { it.poolHost.isNotBlank() && it.id != activeId && !MayakPingCache.isFresh(it.id) }
         if (need.isEmpty()) return
         pingPassJob?.cancel()
         pingPassJob = lifecycleScope.launch {
@@ -927,14 +932,19 @@ class MayakActivity : AppCompatActivity() {
         // SPEC-0031 / запрос владельца 2026-07-11: ЦИФРА клиентского пинга (мс), а не полоски. Цвет —
         // по качеству (зелёный→оранжевый). Не измерен/провалился → «—» серым. Сортировка «Пинг» — по нему.
         row.findViewById<TextView>(R.id.mayak_row_ping).apply {
-            val rtt = MayakPingCache.rtt(d.id)
+            // АКТИВНОЕ направление (подключены): его нельзя пинговать через туннель (self-ping заворачивается —
+            // «—»), поэтому показываем ЖИВОЙ пинг туннеля (тот же «Пинг: N мс» сверху); нет живого → прошлый
+            // замер (до подключения). Остальные — из кэша замеров. Правка 2026-07-24.
+            val isActiveDir = connState == ConnState.CONNECTED && d.id == connectedDir?.id
+            val rtt = if (isActiveDir) (GoTunnel.connectedPingMs?.takeIf { it > 0 } ?: MayakPingCache.rtt(d.id))
+                      else MayakPingCache.rtt(d.id)
             when {
                 rtt != null -> { // измерен
                     clearAnimation()
                     text = "$rtt мс"
                     setTextColor(pingColor(rtt))
                 }
-                MayakPingCache.isFresh(d.id) -> { // измерен, но сервер не ответил на ICMP
+                isActiveDir || MayakPingCache.isFresh(d.id) -> { // подключены (живой ещё не пришёл) ИЛИ сервер не ответил на ICMP
                     clearAnimation()
                     text = "—"
                     setTextColor(0xFF8A929C.toInt())
