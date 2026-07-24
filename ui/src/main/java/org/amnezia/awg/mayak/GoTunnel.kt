@@ -62,6 +62,13 @@ class GoTunnel(context: Context, tunnelName: String = "mayak") : MayakCoreTunnel
         // ещё не мерян / недоступен. Обновляет ping-цикл UI; сбрасывается в down().
         @Volatile var connectedPingMs: Int? = null
 
+        // id направления ТЕКУЩЕГО подключения; процесс-скоупно (переживает пересоздание Activity И
+        // пересортировку/рефетч списка). Надёжный источник «какая страна подключена» для показа ЕЁ пинга
+        // из живого замера туннеля — в отличие от Activity-поля connectedDir, которое обнуляется при
+        // пересоздании Activity и эвристически восстанавливается (мог указать не на ту страну → активная
+        // страна пинговалась через свой же туннель, hairpin, «•••»). Ставится при коннекте; сброс в down().
+        @Volatile var connectedDirectionId: Long? = null
+
         // Выходной IPv4-адрес (проба ipify через туннель). Процесс-скоупно → показ IP переживает
         // пересоздание Activity (на реоупене видим тот же IP без повторной пробы). Сбрасывается в down().
         @Volatile var egressIpv4: String? = null
@@ -82,6 +89,7 @@ class GoTunnel(context: Context, tunnelName: String = "mayak") : MayakCoreTunnel
             connectedLabel = null
             connectedServerHost = null
             connectedPingMs = null
+            connectedDirectionId = null
             egressIpv4 = null
             egressIpv6 = null
             appContext?.let { MayakNotification.clear(it) }
@@ -142,6 +150,7 @@ class GoTunnel(context: Context, tunnelName: String = "mayak") : MayakCoreTunnel
         connectedLabel = null
         connectedServerHost = null
         connectedPingMs = null
+        connectedDirectionId = null
         egressIpv4 = null
         egressIpv6 = null
         Unit

@@ -875,7 +875,8 @@ class MayakActivity : AppCompatActivity() {
         // На живом туннеле после пересоздания Activity (смена темы) connectedDir сброшен (instance-поле) —
         // восстанавливаем его из выбора (это и есть подключённая страна), иначе пассивный selectDir принял
         // бы живую страну за «другую» и, будь он userInitiated, дёрнул бы switchTo.
-        if (connState == ConnState.CONNECTED && connectedDir == null) connectedDir = initial
+        if (connState == ConnState.CONNECTED && connectedDir == null)
+            connectedDir = GoTunnel.connectedDirectionId?.let { id -> dirs.firstOrNull { it.id == id } } ?: initial
         selectDir(initial, userInitiated = false) // пассивно: без сети, без переподключения (тема молчит)
         if (connState == ConnState.DISCONNECTED) {
             setStatus(getString(R.string.mayak_status_disconnected))
@@ -898,7 +899,10 @@ class MayakActivity : AppCompatActivity() {
         // ЧЕРЕЗ туннель, а эхо в СВОЙ ЖЕ выходной IP заворачивается сам в себя (hairpin) и не проходит → в кэш
         // осел бы null и строка показывала «—» у активной страны. Его пинг берём из ЖИВОГО замера туннеля
         // (GoTunnel.connectedPingMs, тот же «Пинг: N мс» сверху) — см. рендер строки. Правка 2026-07-24.
-        val activeId = if (connState == ConnState.CONNECTED) connectedDir?.id else null
+        // Активную страну берём из ПРОЦЕСС-СКОУПНОГО GoTunnel (переживает пересоздание Activity/пересортировку),
+        // fallback — Activity-поле connectedDir. Иначе после рефетча списка (добавили ноду) активная страна не
+        // опознавалась → пинговалась через свой же туннель (hairpin) → «•••». Правка 2026-07-24.
+        val activeId = if (connState == ConnState.CONNECTED) (GoTunnel.connectedDirectionId ?: connectedDir?.id) else null
         val need = dirs.filter { it.poolHost.isNotBlank() && it.id != activeId && !MayakPingCache.isFresh(it.id) }
         if (need.isEmpty()) return
         pingPassJob?.cancel()
@@ -935,7 +939,7 @@ class MayakActivity : AppCompatActivity() {
             // АКТИВНОЕ направление (подключены): его нельзя пинговать через туннель (self-ping заворачивается —
             // «—»), поэтому показываем ЖИВОЙ пинг туннеля (тот же «Пинг: N мс» сверху); нет живого → прошлый
             // замер (до подключения). Остальные — из кэша замеров. Правка 2026-07-24.
-            val isActiveDir = connState == ConnState.CONNECTED && d.id == connectedDir?.id
+            val isActiveDir = connState == ConnState.CONNECTED && d.id == (GoTunnel.connectedDirectionId ?: connectedDir?.id)
             val rtt = if (isActiveDir) (GoTunnel.connectedPingMs?.takeIf { it > 0 } ?: MayakPingCache.rtt(d.id))
                       else MayakPingCache.rtt(d.id)
             when {
@@ -1248,6 +1252,7 @@ class MayakActivity : AppCompatActivity() {
         // Постоянное уведомление «Подключено» (флаг+направление); метку персистим в GoTunnel (процесс-
         // скоупно) — на повторном открытии покажем то же направление.
         connectedDir = selectedDir // запоминаем направление живого туннеля (для авто-переключения)
+        GoTunnel.connectedDirectionId = selectedDir?.id // надёжный процесс-скоупный источник активной страны (для показа её пинга без hairpin)
         GoTunnel.connectedLabel = MayakNotification.labelFor(this, selectedDir)
         MayakNotification.show(this, GoTunnel.connectedLabel, GoTunnel.connectedPingMs)
         Toast.makeText(this, getString(R.string.mayak_connected), Toast.LENGTH_SHORT).show()
