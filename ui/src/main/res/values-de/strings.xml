@@ -263,6 +263,8 @@
     <string name="mayak_status_connected_direct">Verbunden (direkt). IP: %1$s</string>
     <string name="mayak_status_connected_relay">Verbunden (Reserve). IP: %1$s</string>
     <string name="mayak_status_relay_switch">Direkter Weg blockiert — wechsle zur Reserve…</string>
+    <string name="mayak_status_fallback_switch">UDP blockiert — schalte auf Ersatzkanal um…</string>
+    <string name="mayak_fallback_badge">Ersatz</string>
     <string name="mayak_status_no_egress">Beide Wege erreichten das Internet nicht</string>
     <string name="mayak_status_disconnected">Getrennt</string>
     <string name="mayak_err_fill_login">Login und Passwort eingeben</string>

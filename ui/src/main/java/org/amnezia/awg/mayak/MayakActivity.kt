@@ -50,6 +50,8 @@ import org.amnezia.awg.backend.GoBackend
 import org.amnezia.awg.mayak.core.AppVersionInfo
 import org.amnezia.awg.mayak.core.Direction
 import org.amnezia.awg.mayak.core.DohResolver
+import org.amnezia.awg.mayak.core.Fallback
+import org.amnezia.awg.mayak.core.FallbackDecision
 import org.amnezia.awg.mayak.core.HostProvider
 import org.amnezia.awg.mayak.core.MayakApiException
 import org.amnezia.awg.mayak.core.MayakBackend
@@ -98,6 +100,7 @@ class MayakActivity : AppCompatActivity() {
     private var timerView: TextView? = null
     private var ipView: TextView? = null
     private var ipv6Badge: TextView? = null
+    private var fallbackBadge: TextView? = null // «Резерв» — подключены через запасной канал (SPEC-0039)
     private var pingView: TextView? = null
     private var speedView: TextView? = null
     private var pulseAnimator: ObjectAnimator? = null
@@ -680,6 +683,7 @@ class MayakActivity : AppCompatActivity() {
         timerView = findViewById(R.id.mayak_timer)
         ipView = findViewById(R.id.mayak_ip)
         ipv6Badge = findViewById(R.id.mayak_ipv6_badge)
+        fallbackBadge = findViewById(R.id.mayak_fallback_badge)
         pingView = findViewById(R.id.mayak_ping)
         speedView = findViewById(R.id.mayak_speed)
         rippleView = findViewById(R.id.mayak_ripple)
@@ -729,6 +733,7 @@ class MayakActivity : AppCompatActivity() {
             // Значок IPv6 + выходные IP персистятся в GoTunnel (процесс-скоупно) → на реоупене восстанавливаем.
             val v6 = GoTunnel.egressIpv6
             setIpv6Badge(v6 != null)
+            setFallbackBadge(GoTunnel.connectedViaFallback) // пометка «Резерв» тоже персистится в GoTunnel
             if (GoTunnel.egressIpv4 != null) renderEgress() // IP не на главном (в деталях) — mayak_ip скрыт
             MayakNotification.show(this, GoTunnel.connectedLabel, GoTunnel.connectedPingMs, ipv6 = v6 != null) // персист-метка направления
         } else {
@@ -1137,7 +1142,7 @@ class MayakActivity : AppCompatActivity() {
                     GoTunnel.connectedServerHost = MayakPing.hostOf(paths.directEndpoint) // сервер для пинга
                     tunnel.up(prepareConf(direct))
                     setStatus(getString(R.string.mayak_status_probing))
-                    val ip = probeWithRetry()
+                    val ip = probeOrFallback(direct, paths.directFallback)
                     if (ip != null) { session.rememberWorking(d.id, paths); onConnected(ip, d); return@launch }
                 }
 
@@ -1148,7 +1153,7 @@ class MayakActivity : AppCompatActivity() {
                 if (direct != null) setStatus(getString(R.string.mayak_status_relay_switch))
                 GoTunnel.connectedServerHost = MayakPing.hostOf(paths.relayEndpoint) // сервер для пинга
                 tunnel.up(prepareConf(relay))
-                val ip = probeWithRetry()
+                val ip = probeOrFallback(relay, paths.relayFallback)
                 if (ip != null) { session.rememberWorking(d.id, paths); onConnected(ip, d) }
                 // Проба relay не прошла — тоже ГАСИМ туннель (иначе тихий no-internet, см. выше).
                 else { runCatching { tunnel.down() }; fail(getString(R.string.mayak_status_no_egress)) }
@@ -1166,6 +1171,52 @@ class MayakActivity : AppCompatActivity() {
                 connectJob = null
             }
         }
+    }
+
+    /**
+     * Ждём egress по уже поднятому туннелю. Если у плеча есть ПРИГОДНЫЙ запасной канал (SPEC-0039) —
+     * не досиживаем полный набор проб (~34с), а по порогам [FallbackDecision] уходим на него.
+     * Возвращает выходной IP или null, если не вышло ни так, ни так.
+     *
+     * Когда запасного канала нет — ведём себя ровно как раньше: полный набор проб по UDP.
+     */
+    private suspend fun probeOrFallback(conf: String, fb: Fallback?): String? {
+        if (fb == null || !fb.usable()) return probeWithRetry()
+        val started = SystemClock.elapsedRealtime()
+        while (true) {
+            val ip = probe.externalIp()
+            if (ip != null) return ip // UDP работает — запасной канал не нужен
+            // Хендшейк читаем из статистики движка (JNI) — не на главном потоке.
+            val handshake = withContext(Dispatchers.IO) { tunnel.hasHandshake() }
+            val elapsed = SystemClock.elapsedRealtime() - started
+            if (FallbackDecision.shouldSwitch(elapsed, handshake)) {
+                android.util.Log.i(PROBE_TAG, "UDP не пошёл за ${elapsed}мс (хендшейк=$handshake) → запасной канал")
+                return switchToFallback(conf, fb)
+            }
+            delay(PROBE_DELAY_MS)
+        }
+    }
+
+    /**
+     * Переключение на запасной канал: гасим туннель, поднимаем локальный шим (AWG внутри обычного HTTPS
+     * к нашему сайту) и поднимаем ТОТ ЖЕ конфиг с Endpoint'ом на шим.
+     *
+     * Туннель обязательно опускаем: `GoBackend.setState(UP)` при уже поднятом туннеле — no-op
+     * («Tunnel already up»), новый конфиг просто не применился бы. Шим стартуем ПОСЛЕ down(): он и так
+     * подключается лениво, на первой датаграмме от движка, то есть уже при живом VpnService — иначе
+     * `protect()` вернул бы false и мы бы отказались подключаться (защита от петли).
+     */
+    private suspend fun switchToFallback(conf: String, fb: Fallback): String? {
+        setStatus(getString(R.string.mayak_status_fallback_switch))
+        runCatching { tunnel.down() }
+        val local = MayakFallbackTransport.start(fb) ?: return null // не пригоден/не поднялся — молча остаёмся ни с чем
+        val up = runCatching { tunnel.up(prepareConf(org.amnezia.awg.mayak.core.ConfRenderer.withEndpoint(conf, local))) }
+        if (up.isFailure) { MayakFallbackTransport.stop(); return null }
+        // По запасному каналу пир на сервере тот же, но путь длиннее (TCP+TLS+WS) — даём полный набор проб.
+        val ip = probeWithRetry()
+        if (ip == null) { MayakFallbackTransport.stop(); return null }
+        GoTunnel.connectedViaFallback = true
+        return ip
     }
 
     /** Тумблер «Не использовать IPv6» (SPEC-0014 T5): при выкл срезаем v6 из .conf перед подъёмом
@@ -1226,6 +1277,15 @@ class MayakActivity : AppCompatActivity() {
         }
     }
 
+    /** Показать/скрыть значок «Резерв» — идём через запасной канал, а не по UDP (SPEC-0039).
+     *  Пользователь должен видеть, что канал запасной: он медленнее прямого, и это объясняет цифры. */
+    private fun setFallbackBadge(on: Boolean) = runOnUiThread {
+        fallbackBadge?.let {
+            if (on && it.visibility != View.VISIBLE) { it.visibility = View.VISIBLE; fadeIn(it) }
+            else if (!on) it.visibility = View.GONE
+        }
+    }
+
     /** Несколько попыток egress-пробы (пир появляется на сервере не сразу; v6-выход может «прогреться» позже).
      *  По умолчанию v4-проба (probe, PROBE_ATTEMPTS); v6-проба зовёт с probe6 и IPV6_PROBE_ATTEMPTS. */
     private suspend fun probeWithRetry(p: IpifyProbe = probe, attempts: Int = PROBE_ATTEMPTS): String? {
@@ -1248,6 +1308,10 @@ class MayakActivity : AppCompatActivity() {
         connState = ConnState.CONNECTED
         renderState(ConnState.CONNECTED)
         MayakPrefs.noteConnect(this) // best-effort счётчики для тихого телеметри-бикона (не-ПДн агрегаты)
+        // Подключились через запасной канал → честная пометка на главном + счётчик в бикон (владельцу
+        // важно знать, у скольких людей UDP уже не проходит: это сигнал о цензуре, а не украшение).
+        setFallbackBadge(GoTunnel.connectedViaFallback)
+        if (GoTunnel.connectedViaFallback) MayakPrefs.noteFallbackConnect(this)
         GoTunnel.egressIpv4 = ip // персистим выходной IPv4 (показ переживает пересоздание Activity)
         // таймер/IP появляются с лёгким fade (не резким visibility).
         renderEgress() // IP-адреса теперь НЕ на главном (правка владельца: в детали) — mayak_ip остаётся скрытым
@@ -1359,6 +1423,7 @@ class MayakActivity : AppCompatActivity() {
                 ipView?.visibility = View.GONE
                 pingView?.visibility = View.GONE
                 ipv6Badge?.visibility = View.GONE
+                fallbackBadge?.visibility = View.GONE
                 if (::status.isInitialized) status.text = getString(R.string.mayak_status_disconnected)
                 setStatusInfoIcon(false)
             }

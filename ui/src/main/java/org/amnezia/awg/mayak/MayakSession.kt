@@ -31,6 +31,11 @@ data class Paths(
     val relayConf: String?,
     val directEndpoint: String? = null,
     val relayEndpoint: String? = null,
+    // Запасной канал плеча (SPEC-0039): чем поднимать AWG, когда оператор душит UDP. null — линия
+    // запасного канала не выдала (поле `fallback` в /connect отсутствует), работаем как раньше.
+    // Поля с дефолтами → сохранённые на диск last-good конфиги СТАРОГО формата читаются как прежде.
+    val directFallback: org.amnezia.awg.mayak.core.Fallback? = null,
+    val relayFallback: org.amnezia.awg.mayak.core.Fallback? = null,
 )
 
 /** Сохранённая на диск запись offline-фоллбэка: конфиг направления + настенная метка сохранения (мс).
@@ -198,6 +203,8 @@ class MayakSession(
             relayConf = relayCfg?.let { ConfRenderer.render(it, priv) },
             directEndpoint = directCfg?.endpoint,
             relayEndpoint = relayCfg?.endpoint,
+            directFallback = directCfg?.fallback,
+            relayFallback = relayCfg?.fallback,
         )
     }
 

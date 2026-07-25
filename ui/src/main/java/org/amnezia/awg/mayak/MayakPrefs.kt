@@ -33,6 +33,7 @@ object MayakPrefs {
     private const val KEY_CONNECT_COUNT = "telemetry_connect_count" // всего успешных подключений
     private const val KEY_ACTIVE_DAYS = "telemetry_active_days"     // число РАЗНЫХ дней с подключением
     private const val KEY_LAST_ACTIVE_DAY = "telemetry_last_active_day" // последняя учтённая дата (yyyy-MM-dd)
+    private const val KEY_FALLBACK_COUNT = "telemetry_fallback_count" // подключений через запасной канал (SPEC-0039)
     private const val KEY_LAST_AUTO_DIAG = "auto_diag_last_ms" // ts последней АВТО-заливки диаг-лога (rate-limit)
     private const val AUTO_DIAG_MIN_INTERVAL_MS = 6L * 60 * 60 * 1000 // не чаще раза в 6ч на установку
 
@@ -186,6 +187,19 @@ object MayakPrefs {
             e.putString(KEY_LAST_ACTIVE_DAY, today)
         }
         e.apply()
+    }
+
+    /** Сколько подключений ушло через ЗАПАСНОЙ канал (кумулятивно) — для телеметри-бикона. Отдельно от
+     *  общего счётчика: доля таких подключений показывает, у скольких людей UDP уже не проходит.
+     *  Это сигнал о цензуре, ради которого спека и делалась — без него мы узнаём о блокировках от
+     *  пользователей в поддержке, а не из данных. */
+    fun fallbackConnects(context: Context): Int = prefs(context).getInt(KEY_FALLBACK_COUNT, 0)
+
+    /** Отметить подключение, поднятое через запасной канал. Зовётся из onConnected() ДОПОЛНИТЕЛЬНО к
+     *  noteConnect() — то есть такое подключение попадает и в общий счётчик, и в этот. */
+    fun noteFallbackConnect(context: Context) {
+        val p = prefs(context)
+        p.edit().putInt(KEY_FALLBACK_COUNT, p.getInt(KEY_FALLBACK_COUNT, 0) + 1).apply()
     }
 
     /** Rate-limit авто-заливки диаг-лога при ошибке подключения (0.3.48): если с прошлой авто-заливки

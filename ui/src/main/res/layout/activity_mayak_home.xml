@@ -236,6 +236,23 @@
                     android:visibility="gone"
                     tools:ignore="HardcodedText"
                     android:text="IPv6" />
+
+                <!-- Значок «Резерв»: подключены через запасной канал (AWG внутри HTTPS), а не по UDP.
+                     Канал медленнее прямого — пользователь должен видеть, почему цифры другие (SPEC-0039). -->
+                <TextView
+                    android:id="@+id/mayak_fallback_badge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:background="@drawable/mayak_bg_ipv6_badge"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="2dp"
+                    android:gravity="center"
+                    android:textColor="@color/mayak_accent"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:visibility="gone"
+                    android:text="@string/mayak_fallback_badge" />
             </LinearLayout>
 
             <!-- Скорость (↓/↑; включается в настройках) — одна мелкая строка -->

@@ -78,6 +78,11 @@ class GoTunnel(context: Context, tunnelName: String = "mayak") : MayakCoreTunnel
         // пересоздание Activity). Сбрасывается в down(). Честный сигнал (SPEC-0014): по факту egress, не по ::/0.
         @Volatile var egressIpv6: String? = null
 
+        // Подключены ЧЕРЕЗ запасной канал (SPEC-0039): AWG идёт внутри обычного HTTPS к нашему сайту,
+        // а не по UDP. Процесс-скоупно → пометка «Резерв» на главном и в уведомлении переживает
+        // пересоздание Activity. Сбрасывается вместе с остальным состоянием коннекта в down().
+        @Volatile var connectedViaFallback: Boolean = false
+
         // Application-контекст (процесс-скоупный) — чтобы убрать уведомление из onStateChange, когда
         // туннель гаснет ВНЕ приложения и Activity под рукой нет. Ставится при создании GoTunnel.
         @Volatile private var appContext: Context? = null
@@ -92,6 +97,9 @@ class GoTunnel(context: Context, tunnelName: String = "mayak") : MayakCoreTunnel
             connectedDirectionId = null
             egressIpv4 = null
             egressIpv6 = null
+            // Туннеля нет — держать WSS-соединение к мосту незачем (и светить его тоже незачем).
+            connectedViaFallback = false
+            MayakFallbackTransport.stop()
             appContext?.let { MayakNotification.clear(it) }
         }
 
@@ -153,10 +161,23 @@ class GoTunnel(context: Context, tunnelName: String = "mayak") : MayakCoreTunnel
         connectedDirectionId = null
         egressIpv4 = null
         egressIpv6 = null
+        // Запасной канал живёт ровно столько, сколько туннель: гасим шим здесь, в ЕДИНОЙ точке, —
+        // так он закрывается при любом способе отключения (кнопка, отмена, смена страны, внешний DOWN).
+        connectedViaFallback = false
+        MayakFallbackTransport.stop()
         Unit
     }
 
     fun isUp(): Boolean = runCatching { backend.getState(tunnel) == Tunnel.State.UP }.getOrDefault(false)
+
+    /** Был ли хоть один успешный хендшейк с сервером — сигнал для сторожа запасного канала (SPEC-0039 T5):
+     *  хендшейка нет вовсе = наши UDP-пакеты не доходят, ждать полный набор egress-проб незачем.
+     *  Ошибку статистики считаем «хендшейка нет»: сторож в этом случае лишь уйдёт на запасной канал
+     *  раньше, а не зависнет. */
+    fun hasHandshake(): Boolean = runCatching {
+        val st = backend.getStatistics(tunnel)
+        st.peers().any { (st.peer(it)?.latestHandshakeEpochMillis() ?: 0L) > 0L }
+    }.getOrDefault(false)
 
     /** Суммарные rx/tx байты туннеля (для отображения скорости передачи). null — статистика недоступна. */
     fun transfer(): Pair<Long, Long>? = runCatching {

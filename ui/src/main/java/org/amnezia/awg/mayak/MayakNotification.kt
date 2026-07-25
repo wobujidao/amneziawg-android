@@ -91,6 +91,9 @@ object MayakNotification {
                 append(ctx.getString(R.string.mayak_connected))
                 if (pingMs != null) { append(" · "); append(ctx.getString(R.string.mayak_ping_label, pingMs)) }
                 if (ipv6) { append(" · "); append(ctx.getString(R.string.mayak_ipv6_badge)) } // честный значок IPv6
+                // «Резерв» — идём через запасной канал (SPEC-0039). Флаг процесс-скоупный (GoTunnel), а не
+                // параметр: уведомление обновляется из полудюжины мест, и все они его бы просто забыли.
+                if (GoTunnel.connectedViaFallback) { append(" · "); append(ctx.getString(R.string.mayak_fallback_badge)) }
                 if (speed != null) { append(" · "); append(speed) } // ↓/↑ скорость (видно в шторке при свёрнутом app)
             }
             builder.setContentText(text)

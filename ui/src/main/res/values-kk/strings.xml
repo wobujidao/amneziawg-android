@@ -20,6 +20,8 @@
     <string name="mayak_status_connected_direct">Қосылды (тікелей). IP: %1$s</string>
     <string name="mayak_status_connected_relay">Қосылды (резерв). IP: %1$s</string>
     <string name="mayak_status_relay_switch">Тікелей жол бөгелген — резервке ауысу…</string>
+    <string name="mayak_status_fallback_switch">UDP өтпейді — қосалқы арнаны қосамын…</string>
+    <string name="mayak_fallback_badge">Қосалқы</string>
     <string name="mayak_status_no_egress">Екі жол да интернетке шыға алмады</string>
     <string name="mayak_status_disconnected">Ажыратылды</string>
     <string name="mayak_err_fill_login">Логин мен құпиясөзді енгізіңіз</string>

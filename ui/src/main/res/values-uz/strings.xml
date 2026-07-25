@@ -20,6 +20,8 @@
     <string name="mayak_status_connected_direct">Ulandi (toʻgʻridan-toʻgʻri). IP: %1$s</string>
     <string name="mayak_status_connected_relay">Ulandi (zaxira). IP: %1$s</string>
     <string name="mayak_status_relay_switch">Toʻgʻridan-toʻgʻri yoʻl bloklangan — zaxiraga oʻtilmoqda…</string>
+    <string name="mayak_status_fallback_switch">UDP oʻtmayapti — zaxira kanal yoqilmoqda…</string>
+    <string name="mayak_fallback_badge">Zaxira</string>
     <string name="mayak_status_no_egress">Ikkala yoʻl ham internetga chiqa olmadi</string>
     <string name="mayak_status_disconnected">Uzildi</string>
     <string name="mayak_err_fill_login">Login va parolni kiriting</string>

@@ -263,6 +263,8 @@
     <string name="mayak_status_connected_direct">Connecté (direct). IP : %1$s</string>
     <string name="mayak_status_connected_relay">Connecté (secours). IP : %1$s</string>
     <string name="mayak_status_relay_switch">Voie directe bloquée — passage au secours…</string>
+    <string name="mayak_status_fallback_switch">UDP bloqué — passage au canal de secours…</string>
+    <string name="mayak_fallback_badge">Secours</string>
     <string name="mayak_status_no_egress">Les deux voies n\'ont pas atteint Internet</string>
     <string name="mayak_status_disconnected">Déconnecté</string>
     <string name="mayak_err_fill_login">Saisissez identifiant et mot de passe</string>

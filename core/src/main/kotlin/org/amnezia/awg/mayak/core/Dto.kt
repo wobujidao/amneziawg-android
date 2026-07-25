@@ -223,6 +223,8 @@ data class TelemetryRequest(
     @SerialName("install_source") val installSource: String,
     @SerialName("connect_count") val connectCount: Int,
     @SerialName("active_days") val activeDays: Int,
+    // Из них ушло через запасной канал (SPEC-0039) — метрика «у скольких людей задавлен UDP».
+    @SerialName("fallback_connects") val fallbackConnects: Int = 0,
 )
 
 /** OTA-список РФ-приложений для split-туннеля «Открывать российские сервисы напрямую» (BlancVPN-parity

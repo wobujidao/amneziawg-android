@@ -61,6 +61,10 @@ class MayakTelemetryWorker(
         installSource = installSource(context),
         connectCount = MayakPrefs.connectCount(context),
         activeDays = MayakPrefs.activeDays(context),
+        // Сколько подключений ушло по запасному каналу (SPEC-0039): доля = сколько людей уже не
+        // пускают по UDP. Ядро принимает это поле с 2026-07-25; на более старом ядре бикон вернул бы
+        // 400 (строгий контракт, DisallowUnknownFields) — поэтому сервер выкатывается ПЕРВЫМ.
+        fallbackConnects = MayakPrefs.fallbackConnects(context),
     )
 
     // BCP-47 тег текущей локали, напр. "ru-RU". "und"/пусто → "" (не шлём мусор).
