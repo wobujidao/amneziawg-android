@@ -46,14 +46,38 @@ object MayakAutoConnect {
             return@withContext false
         }
         // Прямой путь приоритетен (как в MayakActivity.doConnect); резерв — релей.
-        val conf = paths.directConf ?: paths.relayConf
-        val endpoint = paths.directEndpoint ?: paths.relayEndpoint
+        val direct = paths.directConf != null
+        val conf = if (direct) paths.directConf else paths.relayConf
+        val endpoint = if (direct) paths.directEndpoint else paths.relayEndpoint
         if (conf == null) {
             Log.i(TAG, "сохранённый конфиг без плеч — пропуск")
             return@withContext false
         }
+        // Тумблер «Всегда использовать запасной канал» (SPEC-0039) обязан работать и здесь: у того, кто
+        // его включил, UDP не ходит НИКОГДА, а тут пробы egress нет вовсе — молча подняли бы мёртвый
+        // туннель, и весь трафик ушёл бы в никуда. Имя моста резолвим ДО подъёма (иначе резолвер пойдёт
+        // через туннель, которого ещё нет / который не работает). Порогов тут нет намеренно: без пробы
+        // «UDP не пошёл» определить нечем, поэтому только явный выбор пользователя.
+        val fb = if (direct) paths.directFallback else paths.relayFallback
+        val local = if (fb != null && fb.usable() && MayakPrefs.forceFallback(ctx)) {
+            val ip = runCatching {
+                val host = java.net.URI(fb.url).host
+                host?.let { org.amnezia.awg.mayak.core.DohResolver.resolveHost(it).takeIf { r -> r != it } }
+                    ?: java.net.InetAddress.getByName(host).hostAddress
+            }.getOrNull()
+            MayakFallbackTransport.start(fb, ip)
+        } else {
+            null
+        }
+        val confToUp = if (local != null) {
+            GoTunnel.connectedViaFallback = true
+            Log.i(TAG, "автоподключение через запасной канал (тумблер включён)")
+            ConfRenderer.withEndpoint(conf, local)
+        } else {
+            conf
+        }
         return@withContext try {
-            tunnel.up(prepareConf(ctx, conf))
+            tunnel.up(prepareConf(ctx, confToUp))
             // Метки для уведомления «Подключено» (процесс-скоупны в GoTunnel): на headless-подъёме
             // Activity нет, поэтому проставляем здесь, чтобы шторка/повторное открытие показали страну.
             GoTunnel.connectedLabel = paths.directionName
@@ -66,6 +90,8 @@ object MayakAutoConnect {
             // (Android O+ вне Always-On), протухший конфиг. Не критично — тихо, основной путь всё равно
             // системный Always-On VPN; пользователь увидит отсутствие коннекта и подключится вручную.
             Log.w(TAG, "автоподключение не удалось: ${e.message}")
+            // Туннель не встал — держать WS-соединение к мосту незачем (и светить его тоже незачем).
+            MayakFallbackTransport.stop()
             false
         }
     }
