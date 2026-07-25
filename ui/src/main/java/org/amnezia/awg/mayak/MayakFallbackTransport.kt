@@ -20,7 +20,10 @@ import org.amnezia.awg.mayak.core.WsDatagramClient
 import org.amnezia.awg.mayak.core.WsUdpShim
 
 object MayakFallbackTransport {
-    private const val TAG = "MayakFallback"
+    // Тег ОБЯЗАН содержать «AmneziaWG»: DiagCollector собирает в присланный лог только такие теги.
+    // Первый же живой разбор (2026-07-25) уткнулся ровно в это — в логе не было НИ ОДНОЙ строки
+    // запасного канала, и понять, пробовал он его вообще, было нельзя.
+    private const val TAG = "AmneziaWG/mayak-fallback"
 
     private var shim: WsUdpShim? = null
 
