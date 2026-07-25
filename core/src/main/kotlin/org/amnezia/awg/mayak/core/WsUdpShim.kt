@@ -27,10 +27,14 @@ import kotlin.concurrent.thread
  * @param connectClient создаёт НОВОГО подключённого клиента (вызывается заново на каждый реконнект).
  * @param onUp          колбэк смены состояния канала: true — соединение живо, false — переподключаемся.
  *                      Нужен для UI-пометки «резервный канал» и телеметрии (T5).
+ * @param onError       ПРИЧИНА неудачной попытки подключения. Без него разбор упирается в стену:
+ *                      в первом же живом тесте (2026-07-25) канал рвался каждые 500 мс, а почему —
+ *                      в логе не было ни слова, потому что исключение здесь молча проглатывалось.
  */
 class WsUdpShim(
     private val connectClient: () -> WsDatagramClient,
     private val onUp: (Boolean) -> Unit = {},
+    private val onError: (Throwable) -> Unit = {},
     private val reconnectDelaysMs: List<Long> = listOf(0, 500, 1_000, 2_000, 5_000),
 ) : Closeable {
 
@@ -82,6 +86,7 @@ class WsUdpShim(
                     c = fresh
                 } catch (e: Exception) {
                     attempt++
+                    onError(e)
                     onUp(false)
                     continue // датаграмму теряем — WireGuard переспросит
                 }

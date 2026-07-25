@@ -58,6 +58,7 @@ object MayakFallbackTransport {
         }
         stop()
         pinnedIp = resolvedIp
+        Log.i(TAG, "адрес моста: ${resolvedIp ?: "НЕ разрешён заранее (будет резолвиться через туннель — почти наверняка не выйдет)"}")
         return try {
             val s = WsUdpShim(
                 connectClient = {
@@ -67,6 +68,10 @@ object MayakFallbackTransport {
                     isUp = up
                     Log.i(TAG, if (up) "запасной канал поднят" else "запасной канал оборван, переподключаюсь")
                 },
+                // Причина обязана быть в логе: без неё «оборван, переподключаюсь» каждые полсекунды
+                // не отличить от «нет сети», «не пустил мост», «не смогли защитить сокет» и «имя не
+                // разрешилось» — а лечатся они по-разному.
+                onError = { e -> Log.w(TAG, "попытка подключения к мосту не удалась: ${e.javaClass.simpleName}: ${e.message}") },
             )
             s.start()
             shim = s
