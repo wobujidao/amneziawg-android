@@ -123,7 +123,24 @@ data class ClientConfig(
     @SerialName("endpoint_fqdn") val endpointFqdn: String = "", // fqdn:port — резолвим через DoH, фоллбэк на endpoint
     @SerialName("allowed_ips") val allowedIps: String,
     @SerialName("persistent_keepalive") val persistentKeepalive: Int = 0,
+    // Запасной транспорт (SPEC-0039): AWG внутри обычного HTTPS к нашему сайту, когда оператор душит
+    // весь UDP. Поля может не быть вовсе — тогда запасного канала у этой линии нет, работаем как раньше.
+    val fallback: Fallback? = null,
 )
+
+/**
+ * Параметры запасного канала. `kind` пока всегда "wss"; поле оставлено на случай, если появится
+ * второй вид транспорта — тогда старый клиент увидит незнакомое значение и просто не полезет туда.
+ */
+@Serializable
+data class Fallback(
+    val kind: String = "",
+    val url: String = "",
+    val token: String = "",
+) {
+    /** Годен ли к использованию ЭТИМ клиентом (умеем только wss и только с непустыми полями). */
+    fun usable(): Boolean = kind == "wss" && url.startsWith("wss://") && token.isNotEmpty()
+}
 
 /** Профиль обфускации AmneziaWG 2.0 (desiredstate.Obfuscation). Поля 1:1 ложатся на парсер Interface форка. */
 @Serializable

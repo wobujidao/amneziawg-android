@@ -261,3 +261,46 @@ private class FakeWsServer(
         }
     }
 }
+
+/** Разбор ответа /connect: поле fallback опционально, а его пригодность решает клиент, а не сервер. */
+class FallbackDtoTest {
+    private val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+
+    private fun cfg(extra: String) = """
+        {"address":"10.30.0.2/32","dns":"1.1.1.1","mtu":1280,"server_pubkey":"P=",
+         "endpoint":"1.2.3.4:51822","allowed_ips":"0.0.0.0/0","persistent_keepalive":25$extra}
+    """.trimIndent()
+
+    @Test
+    fun `без поля fallback конфиг разбирается как раньше`() {
+        val c = json.decodeFromString(ClientConfig.serializer(), cfg(""))
+        assertNull(c.fallback)
+    }
+
+    @Test
+    fun `фолбэк разбирается и признаётся пригодным`() {
+        val c = json.decodeFromString(
+            ClientConfig.serializer(),
+            cfg(""","fallback":{"kind":"wss","url":"wss://mayakvpn.ru/v1/stream","token":"abc"}"""),
+        )
+        assertTrue(c.fallback!!.usable())
+        assertEquals("wss://mayakvpn.ru/v1/stream", c.fallback!!.url)
+    }
+
+    /**
+     * Незнакомый вид транспорта, открытый ws:// и пустой токен — НЕ используем. Сервер новее клиента
+     * бывает всегда, и в этом месте лучше остаться на UDP, чем полезть в то, чего не умеем.
+     */
+    @Test
+    fun `непригодный фолбэк не используется`() {
+        val cases = listOf(
+            ""","fallback":{"kind":"quic","url":"wss://mayakvpn.ru/v1/stream","token":"abc"}""",
+            ""","fallback":{"kind":"wss","url":"ws://mayakvpn.ru/v1/stream","token":"abc"}""",
+            ""","fallback":{"kind":"wss","url":"wss://mayakvpn.ru/v1/stream","token":""}""",
+        )
+        for (extra in cases) {
+            val c = json.decodeFromString(ClientConfig.serializer(), cfg(extra))
+            assertTrue("не должно считаться пригодным: $extra", !c.fallback!!.usable())
+        }
+    }
+}
