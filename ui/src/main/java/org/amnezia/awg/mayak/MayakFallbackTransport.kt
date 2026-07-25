@@ -27,6 +27,11 @@ object MayakFallbackTransport {
 
     private var shim: WsUdpShim? = null
 
+    // Адрес моста, разрешённый ЗАРАНЕЕ — пока туннель ещё не поднят (см. start). Держится на всё время
+    // жизни канала: WS-соединение переустанавливается при обрывах, и каждый реконнект иначе снова
+    // упирался бы в резолвинг через мёртвый туннель.
+    @Volatile private var pinnedIp: String? = null
+
     /** Поднят ли канал прямо сейчас (для пометки «резервный канал» в интерфейсе). */
     @Volatile
     var isUp: Boolean = false
@@ -39,13 +44,20 @@ object MayakFallbackTransport {
      * Соединение до моста устанавливается ЛЕНИВО, на первой датаграмме от движка: пока туннель молчит,
      * лишнюю TCP-сессию к нашему домену не держим и лишний раз её не светим.
      */
+    /**
+     * @param resolvedIp адрес хоста моста, разрешённый ВЫЗЫВАЮЩИМ до подъёма туннеля (null — резолвить
+     * на месте). Это не оптимизация: имя моста разрешается системным резолвером, а тот при поднятом
+     * VPN ходит через туннель — то есть ровно через тот путь, который не работает (иначе запасной
+     * канал не понадобился бы). Соединяемся по IP, а имя остаётся для SNI и проверки сертификата.
+     */
     @Synchronized
-    fun start(fb: Fallback): String? {
+    fun start(fb: Fallback, resolvedIp: String? = null): String? {
         if (!fb.usable()) {
             Log.i(TAG, "запасной канал не пригоден (kind=${fb.kind}) — остаёмся на UDP")
             return null
         }
         stop()
+        pinnedIp = resolvedIp
         return try {
             val s = WsUdpShim(
                 connectClient = {
@@ -71,6 +83,7 @@ object MayakFallbackTransport {
         shim?.let { runCatching { it.close() } }
         shim = null
         isUp = false
+        pinnedIp = null
     }
 
     /** Диагностика: сколько датаграмм ушло/пришло по запасному каналу (0/0 — им не пользовались). */
@@ -83,7 +96,11 @@ object MayakFallbackTransport {
             runCatching { s.close() }
             throw IOException("не удалось защитить сокет от туннеля — запасной канал не поднимаю (иначе петля)")
         }
-        s.connect(InetSocketAddress(host, port), timeoutMs)
+        // Литеральный IP в InetSocketAddress резолвинга НЕ требует — а он при поднятом туннеле пошёл
+        // бы через сам туннель (защитить системный резолвер мы не можем).
+        val target = pinnedIp ?: host
+        if (target != host) Log.i(TAG, "мост $host → $target (адрес разрешён до подъёма туннеля)")
+        s.connect(InetSocketAddress(target, port), timeoutMs)
         return s
     }
 }

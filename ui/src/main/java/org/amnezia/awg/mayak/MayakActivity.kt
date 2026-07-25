@@ -1219,7 +1219,16 @@ class MayakActivity : AppCompatActivity() {
     private suspend fun switchToFallback(conf: String, fb: Fallback): String? {
         setStatus(getString(R.string.mayak_status_fallback_switch))
         runCatching { tunnel.down() }
-        val local = MayakFallbackTransport.start(fb) ?: return null // не пригоден/не поднялся — молча остаёмся ни с чем
+        // Имя моста разрешаем ЗДЕСЬ — туннель уже опущен, а под поднятым туннелем системный резолвер
+        // пошёл бы через него, то есть через путь, который как раз и не работает. Защитить резолвер
+        // мы не можем (он не наш сокет), поэтому дальше соединяемся по IP; имя остаётся для TLS.
+        val bridgeIp = withContext(Dispatchers.IO) {
+            runCatching {
+                val host = java.net.URI(fb.url).host ?: return@runCatching null
+                org.amnezia.awg.mayak.core.DohResolver.resolveHost(host).takeIf { it != host }
+            }.getOrNull()
+        }
+        val local = MayakFallbackTransport.start(fb, bridgeIp) ?: return null // не пригоден/не поднялся — молча остаёмся ни с чем
         val up = runCatching { tunnel.up(prepareConf(org.amnezia.awg.mayak.core.ConfRenderer.withEndpoint(conf, local))) }
         if (up.isFailure) { MayakFallbackTransport.stop(); return null }
         // По запасному каналу пир на сервере тот же, но путь длиннее (TCP+TLS+WS) — даём полный набор проб.
