@@ -60,11 +60,14 @@ object MayakAutoConnect {
         // «UDP не пошёл» определить нечем, поэтому только явный выбор пользователя.
         val fb = if (direct) paths.directFallback else paths.relayFallback
         val local = if (fb != null && fb.usable() && MayakPrefs.forceFallback(ctx)) {
-            val ip = runCatching {
-                val host = java.net.URI(fb.url).host
-                host?.let { org.amnezia.awg.mayak.core.DohResolver.resolveHost(it).takeIf { r -> r != it } }
-                    ?: java.net.InetAddress.getByName(host).hostAddress
-            }.getOrNull()
+            // IP моста от ядра приоритетен: резолвить имя тут нечем и незачем (см. MayakActivity).
+            val ip = fb.ip.ifBlank {
+                runCatching {
+                    val host = java.net.URI(fb.url).host
+                    host?.let { org.amnezia.awg.mayak.core.DohResolver.resolveHost(it).takeIf { r -> r != it } }
+                        ?: java.net.InetAddress.getByName(host).hostAddress
+                }.getOrNull() ?: ""
+            }.ifBlank { null }
             MayakFallbackTransport.start(fb, ip)
         } else {
             null

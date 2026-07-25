@@ -1222,7 +1222,7 @@ class MayakActivity : AppCompatActivity() {
         // Имя моста разрешаем ЗДЕСЬ — туннель уже опущен, а под поднятым туннелем системный резолвер
         // пошёл бы через него, то есть через путь, который как раз и не работает. Защитить резолвер
         // мы не можем (он не наш сокет), поэтому дальше соединяемся по IP; имя остаётся для TLS.
-        val bridgeIp = withContext(Dispatchers.IO) { resolveBridgeHost(fb.url) }
+        val bridgeIp = withContext(Dispatchers.IO) { resolveBridgeHost(fb.url, fb.ip) }
         val local = MayakFallbackTransport.start(fb, bridgeIp) ?: return null // не пригоден/не поднялся — молча остаёмся ни с чем
         val up = runCatching { tunnel.up(prepareConf(org.amnezia.awg.mayak.core.ConfRenderer.withEndpoint(conf, local))) }
         if (up.isFailure) { MayakFallbackTransport.stop(); return null }
@@ -1239,7 +1239,11 @@ class MayakActivity : AppCompatActivity() {
      * годится, пока VPN не поднят, и лучше, чем остаться совсем без адреса. null — не разрешили;
      * тогда шим попробует сам, и если туннель уже поднят — упрётся в тот самый замкнутый круг.
      */
-    private fun resolveBridgeHost(url: String): String? {
+    private fun resolveBridgeHost(url: String, given: String): String? {
+        if (given.isNotBlank()) {
+            android.util.Log.i(PROBE_TAG, "адрес моста из выдачи ядра: $given (резолв не нужен)")
+            return given
+        }
         val host = runCatching { java.net.URI(url).host }.getOrNull() ?: return null
         runCatching {
             org.amnezia.awg.mayak.core.DohResolver.resolveHost(host).takeIf { it != host }
