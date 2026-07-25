@@ -96,7 +96,12 @@ object MayakFallbackTransport {
 
     private fun openProtectedTcp(host: String, port: Int, timeoutMs: Int): Socket {
         val s = Socket()
-        // ⚠️ Порядок важен: protect ДО connect. Иначе первый SYN уйдёт в туннель, а туннеля ещё нет.
+        // ⚠️ Android-грабля, на которую проект уже наступал с пингом (0.3.36): свежий Socket() НЕ создаёт
+        // нативный fd до connect/bind, а VpnService.protect() применяется именно к fd — на сокете без fd
+        // он просто возвращает false. Здесь это выглядело как «не удалось защитить сокет» на каждой
+        // попытке (живой тест 2026-07-25). bind() на эфемерный порт создаёт fd, и protect работает.
+        s.bind(InetSocketAddress(0))
+        // Порядок важен: protect ДО connect. Иначе первый SYN уйдёт в туннель, а туннель как раз не работает.
         if (!GoBackend.protectSocket(s)) {
             runCatching { s.close() }
             throw IOException("не удалось защитить сокет от туннеля — запасной канал не поднимаю (иначе петля)")
