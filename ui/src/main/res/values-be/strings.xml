@@ -22,6 +22,8 @@
     <string name="mayak_status_relay_switch">Прамы шлях заблакаваны — пераключаюся на рэзерв…</string>
     <string name="mayak_status_fallback_switch">UDP не праходзіць — уключаю запасны канал…</string>
     <string name="mayak_fallback_badge">Рэзерв</string>
+    <string name="mayak_settings_force_fallback">Заўсёды выкарыстоўваць запасны канал</string>
+    <string name="mayak_settings_force_fallback_hint">Звычайна не патрэбна: праграма сама пераходзіць на запасны канал, калі UDP не праходзіць. Уключы, калі ў тваёй сетцы UDP не працуе ніколі. Запасны канал павольнейшы за прамы.</string>
     <string name="mayak_status_no_egress">Абодва шляхі не выйшлі ў інтэрнэт</string>
     <string name="mayak_status_disconnected">Адключана</string>
     <string name="mayak_err_fill_login">Увядзіце лагін і пароль</string>

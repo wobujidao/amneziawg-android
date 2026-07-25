@@ -99,6 +99,16 @@ class MayakSettingsActivity : AppCompatActivity() {
             Toast.makeText(this, R.string.mayak_settings_ipv6_applied, Toast.LENGTH_SHORT).show()
         }
 
+        // «Всегда запасной канал» (SPEC-0039). В норме не нужен: автоматика сама уходит на запасной,
+        // когда UDP не проходит. Полезен там, где UDP не работает ВСЕГДА — не ждать распознавания
+        // каждый раз. Применяется со следующего подключения, текущий туннель не рвём.
+        val forceFallback = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.mayak_settings_force_fallback)
+        forceFallback.isChecked = MayakPrefs.forceFallback(this)
+        forceFallback.setOnCheckedChangeListener { _, checked ->
+            MayakPrefs.setForceFallback(this, checked)
+            Toast.makeText(this, R.string.mayak_settings_ipv6_applied, Toast.LENGTH_SHORT).show()
+        }
+
         // Пресеты split-туннеля (SPEC-0028): само управление (выбор/создание/правка) — на ГЛАВНОМ экране
         // (селектор пресета + тумблер у кнопки VPN). Здесь — только показывать ли этот селектор. По умолч. ВКЛ.
         val showPresets = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.mayak_settings_show_presets)

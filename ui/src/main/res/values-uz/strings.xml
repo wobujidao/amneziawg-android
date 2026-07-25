@@ -22,6 +22,8 @@
     <string name="mayak_status_relay_switch">Toʻgʻridan-toʻgʻri yoʻl bloklangan — zaxiraga oʻtilmoqda…</string>
     <string name="mayak_status_fallback_switch">UDP oʻtmayapti — zaxira kanal yoqilmoqda…</string>
     <string name="mayak_fallback_badge">Zaxira</string>
+    <string name="mayak_settings_force_fallback">Doim zaxira kanaldan foydalanish</string>
+    <string name="mayak_settings_force_fallback_hint">Odatda kerak emas: UDP oʻtmasa, ilova zaxira kanalga oʻzi oʻtadi. Tarmogʻingizda UDP hech qachon ishlamasa yoqing. Zaxira kanal toʻgʻridan-toʻgʻri yoʻldan sekinroq.</string>
     <string name="mayak_status_no_egress">Ikkala yoʻl ham internetga chiqa olmadi</string>
     <string name="mayak_status_disconnected">Uzildi</string>
     <string name="mayak_err_fill_login">Login va parolni kiriting</string>

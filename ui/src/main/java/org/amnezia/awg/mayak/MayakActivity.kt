@@ -1140,9 +1140,7 @@ class MayakActivity : AppCompatActivity() {
                 // поэтому пробу egress повторяем несколько раз, прежде чем сдаться.
                 if (direct != null) {
                     GoTunnel.connectedServerHost = MayakPing.hostOf(paths.directEndpoint) // сервер для пинга
-                    tunnel.up(prepareConf(direct))
-                    setStatus(getString(R.string.mayak_status_probing))
-                    val ip = probeOrFallback(direct, paths.directFallback)
+                    val ip = bringUpPath(direct, paths.directFallback)
                     if (ip != null) { session.rememberWorking(d.id, paths); onConnected(ip, d); return@launch }
                 }
 
@@ -1152,8 +1150,7 @@ class MayakActivity : AppCompatActivity() {
                 // Резерв: прямого не было вовсе или он не прошёл пробу.
                 if (direct != null) setStatus(getString(R.string.mayak_status_relay_switch))
                 GoTunnel.connectedServerHost = MayakPing.hostOf(paths.relayEndpoint) // сервер для пинга
-                tunnel.up(prepareConf(relay))
-                val ip = probeOrFallback(relay, paths.relayFallback)
+                val ip = bringUpPath(relay, paths.relayFallback)
                 if (ip != null) { session.rememberWorking(d.id, paths); onConnected(ip, d) }
                 // Проба relay не прошла — тоже ГАСИМ туннель (иначе тихий no-internet, см. выше).
                 else { runCatching { tunnel.down() }; fail(getString(R.string.mayak_status_no_egress)) }
@@ -1171,6 +1168,19 @@ class MayakActivity : AppCompatActivity() {
                 connectJob = null
             }
         }
+    }
+
+    /**
+     * Поднимает плечо и доводит его до подтверждённого выхода. Обычный порядок — сначала UDP, при
+     * отказе запасной канал (SPEC-0039). Если пользователь включил «Всегда запасной канал», UDP не
+     * пробуем вовсе: там, где оператор режет UDP наглухо, эта попытка — гарантированные ~6с ожидания
+     * на каждом подключении.
+     */
+    private suspend fun bringUpPath(conf: String, fb: Fallback?): String? {
+        if (fb != null && fb.usable() && MayakPrefs.forceFallback(this)) return switchToFallback(conf, fb)
+        tunnel.up(prepareConf(conf))
+        setStatus(getString(R.string.mayak_status_probing))
+        return probeOrFallback(conf, fb)
     }
 
     /**

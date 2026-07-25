@@ -265,6 +265,8 @@
     <string name="mayak_status_relay_switch">Voie directe bloquée — passage au secours…</string>
     <string name="mayak_status_fallback_switch">UDP bloqué — passage au canal de secours…</string>
     <string name="mayak_fallback_badge">Secours</string>
+    <string name="mayak_settings_force_fallback">Toujours utiliser le canal de secours</string>
+    <string name="mayak_settings_force_fallback_hint">Normalement inutile : l’application passe seule au canal de secours quand l’UDP est bloqué. Activez si l’UDP ne marche jamais sur votre réseau. Le canal de secours est plus lent que la voie directe.</string>
     <string name="mayak_status_no_egress">Les deux voies n\'ont pas atteint Internet</string>
     <string name="mayak_status_disconnected">Déconnecté</string>
     <string name="mayak_err_fill_login">Saisissez identifiant et mot de passe</string>

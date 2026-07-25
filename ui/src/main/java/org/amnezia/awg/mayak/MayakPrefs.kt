@@ -15,6 +15,7 @@ object MayakPrefs {
     private const val KEY_LAST_DIR = "last_direction_id"
     private const val KEY_UPDATE_DISMISSED = "update_dismissed_code" // versionCode, для которого нажали «Позже»
     private const val KEY_USE_IPV6 = "use_ipv6" // тумблер «использовать IPv6 в туннеле» (по умолч. ВКЛ)
+    private const val KEY_FORCE_FALLBACK = "force_fallback" // «всегда запасной канал» (SPEC-0039, по умолч. ВЫКЛ)
     private const val KEY_SHOW_SPEED = "show_speed" // тумблер «показывать скорость передачи» (по умолч. ВЫКЛ)
     private const val KEY_SPLIT_APPS = "split_apps" // split-туннель: package-имена приложений (StringSet)
     private const val KEY_SPLIT_EXCLUDED = "split_excluded" // split-туннель: true=исключить эти, false=только эти
@@ -78,6 +79,18 @@ object MayakPrefs {
 
     fun setUseIpv6(context: Context, enabled: Boolean) {
         prefs(context).edit().putBoolean(KEY_USE_IPV6, enabled).apply()
+    }
+
+    /** Всегда идти через ЗАПАСНОЙ канал (SPEC-0039), не пробуя UDP. По умолчанию ВЫКЛ: прямой путь
+     *  быстрее, и в норме автоматика сама уходит на запасной, когда UDP не проходит. Тумблер нужен
+     *  там, где UDP не работает ВСЕГДА (оператор режет наглухо): человек экономит ~6с ожидания на
+     *  каждом подключении. Заодно это единственный способ проверить запасной канал на сети, где UDP
+     *  ходит нормально. Если у линии запасного канала нет — тумблер ни на что не влияет. */
+    fun forceFallback(context: Context): Boolean =
+        prefs(context).getBoolean(KEY_FORCE_FALLBACK, false)
+
+    fun setForceFallback(context: Context, enabled: Boolean) {
+        prefs(context).edit().putBoolean(KEY_FORCE_FALLBACK, enabled).apply()
     }
 
     /** Показывать ли скорость передачи в туннеле (↓/↑, обновление раз в секунду). По умолчанию ВЫКЛ. */

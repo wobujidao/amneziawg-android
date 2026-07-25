@@ -265,6 +265,8 @@
     <string name="mayak_status_relay_switch">Direkter Weg blockiert — wechsle zur Reserve…</string>
     <string name="mayak_status_fallback_switch">UDP blockiert — schalte auf Ersatzkanal um…</string>
     <string name="mayak_fallback_badge">Ersatz</string>
+    <string name="mayak_settings_force_fallback">Immer Ersatzkanal verwenden</string>
+    <string name="mayak_settings_force_fallback_hint">Normalerweise nicht nötig: Die App wechselt selbst auf den Ersatzkanal, wenn UDP blockiert ist. Einschalten, wenn UDP in deinem Netz nie funktioniert. Der Ersatzkanal ist langsamer als der direkte Weg.</string>
     <string name="mayak_status_no_egress">Beide Wege erreichten das Internet nicht</string>
     <string name="mayak_status_disconnected">Getrennt</string>
     <string name="mayak_err_fill_login">Login und Passwort eingeben</string>

@@ -110,6 +110,8 @@
     <string name="mayak_status_relay_switch">Direct path blocked — switching to reserve…</string>
     <string name="mayak_status_fallback_switch">UDP is blocked — switching to backup channel…</string>
     <string name="mayak_fallback_badge">Backup</string>
+    <string name="mayak_settings_force_fallback">Always use backup channel</string>
+    <string name="mayak_settings_force_fallback_hint">Normally not needed: the app switches to the backup channel by itself when UDP is blocked. Turn on if UDP never works on your network — saves the wait on every connect. Slower than the direct path.</string>
     <string name="mayak_status_offline_lastgood">Core unavailable — connecting to %1$s with the last saved config…</string>
     <string name="mayak_status_no_egress">Both paths failed to reach the internet</string>
     <string name="mayak_status_disconnected">Unprotected</string>

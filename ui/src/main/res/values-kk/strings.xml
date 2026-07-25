@@ -22,6 +22,8 @@
     <string name="mayak_status_relay_switch">Тікелей жол бөгелген — резервке ауысу…</string>
     <string name="mayak_status_fallback_switch">UDP өтпейді — қосалқы арнаны қосамын…</string>
     <string name="mayak_fallback_badge">Қосалқы</string>
+    <string name="mayak_settings_force_fallback">Әрқашан қосалқы арнаны пайдалану</string>
+    <string name="mayak_settings_force_fallback_hint">Әдетте қажет емес: UDP өтпесе, қосымша қосалқы арнаға өзі ауысады. Желіңізде UDP мүлде жұмыс істемесе қосыңыз. Қосалқы арна тікелей жолдан баяу.</string>
     <string name="mayak_status_no_egress">Екі жол да интернетке шыға алмады</string>
     <string name="mayak_status_disconnected">Ажыратылды</string>
     <string name="mayak_err_fill_login">Логин мен құпиясөзді енгізіңіз</string>
