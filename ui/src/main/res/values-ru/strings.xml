@@ -438,6 +438,8 @@
     <string name="mayak_oss_licenses_body">Встроенные компоненты с открытым кодом:\n\n• amneziawg-android — Apache-2.0\n• amneziawg-go — MIT\n• WireGuard® (базовый протокол) — GPLv2 / прочие; «основано на WireGuard®», без аффилиации\n• библиотеки AndroidX — Apache-2.0\n• Material Components for Android — Apache-2.0\n• ZXing (сканер QR) — Apache-2.0\n• kotlinx (coroutines, serialization) — Apache-2.0\n\nПолные тексты лицензий доступны в репозиториях соответствующих проектов.</string>
     <string name="mayak_privacy_policy">Политика конфиденциальности</string>
     <string name="mayak_terms">Условия использования</string>
+    <string name="mayak_delete_account">Удалить аккаунт</string>
+    <string name="mayak_delete_account_hint">Удаление аккаунта и данных выполняется в личном кабинете: понадобится пароль. Действие необратимо.</string>
     <string name="mayak_soon">Скоро</string>
 
     <!-- SPEC-0028: редактор пресета сплит-туннеля (полноэкранный) -->
