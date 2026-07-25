@@ -89,6 +89,34 @@ class WsUdpShimTest {
             shim.close(); srv.close()
         }
     }
+
+    /**
+     * Причина неудачной попытки обязана доходить до вызывающего. Без этого разбор упирается в стену:
+     * в живом тесте 2026-07-25 канал рвался каждые полсекунды, а почему — в логе не было ни слова
+     * (исключение проглатывалось здесь). Диагноз тогда стоил лишнего круга сборок.
+     */
+    @Test
+    fun `причина неудачного подключения уходит в колбэк`() {
+        val errors = java.util.Collections.synchronizedList(ArrayList<Throwable>())
+        val shim = WsUdpShim(
+            connectClient = { throw java.io.IOException("мост не пустил: 404") },
+            onError = { errors.add(it) },
+            reconnectDelaysMs = listOf(0, 20),
+        )
+        try {
+            shim.start()
+            val engine = DatagramSocket()
+            val target = InetSocketAddress(InetAddress.getByName("127.0.0.1"), shim.localPort)
+            engine.send(DatagramPacket(ByteArray(4), 4, target))
+            val deadline = System.currentTimeMillis() + 3_000
+            while (errors.isEmpty() && System.currentTimeMillis() < deadline) Thread.sleep(20)
+            engine.close()
+        } finally {
+            shim.close()
+        }
+        assertTrue("причина отказа должна быть отдана наружу", errors.isNotEmpty())
+        assertTrue("и содержать сообщение", errors.first().message?.contains("404") == true)
+    }
 }
 
 /** WS-сервер-эхо: тот же протокол, что у боевого моста, но без TLS. dropAfter>0 — рвать после N сообщений. */
