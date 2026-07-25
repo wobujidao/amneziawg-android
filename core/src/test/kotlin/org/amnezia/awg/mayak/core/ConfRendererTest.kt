@@ -214,6 +214,37 @@ class ConfRendererTest {
     }
 
     @Test
+    fun withEndpoint_pointsPeerToLocalShim() {
+        // Запасной канал (SPEC-0039 T5): движок должен слать датаграммы в локальный шим, а не на сервер.
+        val cfg = ClientConfig(
+            address = "10.8.0.2", dns = "1.1.1.1", mtu = 1280, obfuscation = null,
+            serverPubkey = "c2VydmVyLXB1YmtleS1mYWtlLTQ0LWNoYXJzLTAwMDAwMDA=",
+            endpoint = "203.0.113.7:51820", allowedIps = "0.0.0.0/0", persistentKeepalive = 25,
+        )
+        val out = ConfRenderer.withEndpoint(ConfRenderer.render(cfg, priv), "127.0.0.1:42123")
+
+        assertTrue(out.contains("Endpoint = 127.0.0.1:42123"))
+        assertFalse(out.contains("203.0.113.7")) // старого адреса не остаётся НИГДЕ
+        // всё остальное — как было: ключи, адреса, маршруты, keepalive
+        assertTrue(out.contains("PrivateKey = $priv"))
+        assertTrue(out.contains("Address = 10.8.0.2"))
+        assertTrue(out.contains("AllowedIPs = 0.0.0.0/0"))
+        assertTrue(out.contains("PersistentKeepalive = 25"))
+        assertEquals(1, out.lineSequence().count { it.trim().startsWith("Endpoint") })
+    }
+
+    @Test
+    fun withEndpoint_survivesSpacingVariants_andKeepsOtherLines() {
+        // Конфиг может прийти не только от нашего рендерера (сохранённый на диск last-good, чужие пробелы).
+        val conf = "[Peer]\nEndpoint=203.0.113.7:51820\nAllowedIPs = 0.0.0.0/0\n"
+        val out = ConfRenderer.withEndpoint(conf, "127.0.0.1:1234")
+        assertTrue(out.contains("Endpoint = 127.0.0.1:1234"))
+        assertTrue(out.contains("AllowedIPs = 0.0.0.0/0"))
+        // «EndpointFoo» — не наш ключ, трогать нельзя
+        assertTrue(ConfRenderer.withEndpoint("EndpointFoo = x\n", "127.0.0.1:1").contains("EndpointFoo = x"))
+    }
+
+    @Test
     fun hostProvider_rotatesAndIsSticky() {
         val hp = HostProvider(listOf("https://a.example/", "https://b.example"))
         assertEquals("https://a.example", hp.current())

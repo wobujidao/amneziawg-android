@@ -91,6 +91,23 @@ object ConfRenderer {
     }
 
     /**
+     * Запасной канал (SPEC-0039 T5): подменяет `Endpoint` в готовом .conf на локальный шим
+     * (`127.0.0.1:<порт>`). Движок AmneziaWG остаётся нетронутым — он просто шлёт датаграммы на
+     * loopback, а в WSS их перекладывает [WsUdpShim]. Остальные строки не трогаем: ключи, адреса,
+     * маршруты и keepalive у запасного пути ровно те же, что у прямого.
+     *
+     * Ключ ищем по имени, а не подстрокой: `EndpointFoo` — не наш ключ. Пробелы вокруг `=` бывают
+     * любые (конфиг мог прийти не от нашего рендерера — например, last-good с диска).
+     */
+    fun withEndpoint(conf: String, endpoint: String): String = buildString {
+        for (line in conf.lineSequence()) {
+            val eq = line.indexOf('=')
+            val key = if (eq > 0) line.substring(0, eq).trim() else ""
+            if (key == "Endpoint") appendLine("Endpoint = $endpoint") else appendLine(line)
+        }
+    }.trimEnd('\n') + "\n"
+
+    /**
      * Split-туннель (SPEC-0018 F1): добавляет строку `ExcludedApplications`/`IncludedApplications` в
      * секцию [Interface] готового .conf. Режимы:
      *  - excluded=true (по умолч.): перечисленные приложения идут МИМО туннеля (напр. банки/госуслуги,
