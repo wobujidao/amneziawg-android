@@ -42,10 +42,10 @@ class MayakAboutActivity : AppCompatActivity() {
 
         // Правовые разделы открываем в вебе (единый источник истины — кабинет mayakvpn.ru).
         findViewById<MaterialButton>(R.id.mayak_about_privacy).setOnClickListener {
-            openUrl(MayakActivity.PRIVACY_URL)
+            openUrl(MayakHostList.privacyUrl(this))
         }
         findViewById<MaterialButton>(R.id.mayak_about_terms).setOnClickListener {
-            openUrl(MayakActivity.TERMS_URL)
+            openUrl(MayakHostList.termsUrl(this))
         }
         // Удаление аккаунта: требование Google Play — путь из приложения обязателен. Предупреждаем о
         // необратимости и уводим в кабинет, где операция подтверждается паролем (вторую реализацию
@@ -54,7 +54,7 @@ class MayakAboutActivity : AppCompatActivity() {
             AlertDialog.Builder(this)
                 .setTitle(getString(R.string.mayak_delete_account))
                 .setMessage(getString(R.string.mayak_delete_account_hint))
-                .setPositiveButton(getString(R.string.mayak_open_cabinet)) { _, _ -> openUrl(DELETE_ACCOUNT_URL) }
+                .setPositiveButton(getString(R.string.mayak_open_cabinet)) { _, _ -> openUrl(MayakHostList.cabinetLoginUrl(this)) }
                 .setNegativeButton(getString(R.string.mayak_cancel), null)
                 .show()
         }
@@ -67,8 +67,5 @@ class MayakAboutActivity : AppCompatActivity() {
     companion object {
         // Должно совпадать с tunnel/tools/libwg-go/go.mod (github.com/amnezia-vpn/amneziawg-go).
         private const val AMNEZIAWG_GO_VERSION = "v0.2.18"
-
-        // Кабинет открывается на входе: там же, после логина, в «Настройках» лежит удаление аккаунта.
-        private const val DELETE_ACCOUNT_URL = "https://cabinet.mayakvpn.ru/#/login"
     }
 }

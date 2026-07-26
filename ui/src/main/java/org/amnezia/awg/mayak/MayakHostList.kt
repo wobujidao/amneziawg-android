@@ -32,10 +32,33 @@ object MayakHostList {
         return out.toList()
     }
 
+    /**
+     * Адрес веб-кабинета (регистрация, политика, продление). Из реестра, если ядро его прислало;
+     * иначе зашитый в сборку. Хардкодить нельзя по той же причине, что и адрес ядра: сменится домен
+     * (или его заблокируют) — установленные приложения будут вести людей в никуда до релиза в маркете.
+     */
+    fun cabinetUrl(context: Context): String {
+        val learned = MayakPrefs.learnedCabinet(context).trim().removeSuffix("/")
+        val host = learned.ifEmpty { MayakHosts.bakedCabinet }
+        return if (host.startsWith("http")) host else "https://$host"
+    }
+
+    /** Политика конфиденциальности и Условия — страницы того же кабинета. */
+    fun privacyUrl(context: Context): String = cabinetUrl(context) + "/#/privacy"
+
+    fun termsUrl(context: Context): String = cabinetUrl(context) + "/#/terms"
+
+    /** Вход в кабинет: туда уводим за тем, чего в приложении нет (удаление аккаунта, продление). */
+    fun cabinetLoginUrl(context: Context): String = cabinetUrl(context) + "/#/login"
+
     /** Спросить у ядра актуальный реестр и запомнить. Best-effort: ошибка/пустой ответ — молча оставляем
      *  прежний список (пустой список от сервера означал бы «адресов нет» и отрезал бы клиента от ядра). */
     suspend fun refresh(context: Context, backend: MayakBackend) {
         val list = backend.hosts() ?: return
+        // Кабинет приходит тем же ответом; пустое поле (старое ядро) не затираем — останется зашитый.
+        list.cabinet.trim().removeSuffix("/").takeIf { it.isNotEmpty() }?.let {
+            if (it != MayakPrefs.learnedCabinet(context)) MayakPrefs.setLearnedCabinet(context, it)
+        }
         val urls = list.api.mapNotNull { h ->
             val host = h.trim().removeSuffix("/")
             if (host.isEmpty()) null else if (host.startsWith("http")) host else "https://$host"

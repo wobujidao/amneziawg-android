@@ -26,6 +26,7 @@ object MayakPrefs {
     private const val KEY_PRESET_ENABLED = "preset_enabled"    // тумблер «применять активный пресет» (по умолч. ВЫКЛ)
     private const val KEY_PRESET_SHOW = "preset_show_on_home"   // показывать селектор пресетов на главном (по умолч. ВКЛ)
     private const val KEY_LEARNED_HOSTS = "learned_hosts" // адреса ядра, полученные от сервера (реестр доменов), CSV
+    private const val KEY_LEARNED_CABINET = "learned_cabinet" // адрес кабинета из того же реестра (роль cabinet)
     private const val KEY_AUTOCONNECT = "autoconnect" // F3: автоподнятие последнего рабочего туннеля (по умолч. ВЫКЛ)
     private const val KEY_APP_LOCK = "app_lock" // блокировка приложения по биометрии/PIN устройства (по умолч. ВЫКЛ)
     private const val KEY_SORT_MODE = "dir_sort_mode" // SPEC-0031: 0=авто(сервер), 1=пинг, 2=свои (по умолч. 0)
@@ -66,6 +67,14 @@ object MayakPrefs {
 
     fun setLearnedHosts(context: Context, hosts: List<String>) {
         prefs(context).edit().putString(KEY_LEARNED_HOSTS, hosts.joinToString(",")).apply()
+    }
+
+    /** Адрес кабинета из того же реестра доменов. Пусто = сервер ещё не отвечал → берём зашитый. */
+    fun learnedCabinet(context: Context): String =
+        prefs(context).getString(KEY_LEARNED_CABINET, "").orEmpty()
+
+    fun setLearnedCabinet(context: Context, host: String) {
+        prefs(context).edit().putString(KEY_LEARNED_CABINET, host).apply()
     }
 
     fun autoConnect(context: Context): Boolean =

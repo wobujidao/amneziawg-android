@@ -80,7 +80,7 @@ class MayakSettingsActivity : AppCompatActivity() {
             session.email() ?: getString(R.string.mayak_settings_account_none),
         )
         findViewById<MaterialButton>(R.id.mayak_settings_cabinet).setOnClickListener {
-            openUrl(MayakActivity.CABINET_URL)
+            openUrl(MayakHostList.cabinetUrl(this))
         }
 
         // Фильтрация DNS и срок доступа — оба живут на АККАУНТЕ (ядро), поэтому только после входа.

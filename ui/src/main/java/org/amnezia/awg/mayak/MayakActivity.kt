@@ -158,9 +158,24 @@ class MayakActivity : AppCompatActivity() {
             showHome(); loadDirections()
             checkAppUpdate() // мягкий нудж, если вышла новая версия (Вариант А)
             refreshRuDirect() // OTA-подтяжка РФ-списка split-туннеля (в фоне, best-effort)
+            refreshHosts()    // адреса ядра и кабинета из реестра доменов (в фоне, best-effort)
         } else {
             showLogin()
         }
+    }
+
+    /**
+     * Освежить адреса ядра/кабинета из реестра доменов (ADR-0013, миграция 0089). Раз на процесс,
+     * в фоне, best-effort. Раньше это делал ТОЛЬКО еженедельный телеметри-воркер — то есть свежий
+     * резервный домен доезжал до устройства в худшем случае через неделю, а на телефонах с
+     * прибитой фоновой активностью не доезжал вовсе. Запрос крошечный и идёт на тот же домен, что и
+     * остальные вызовы, — отдельного следа для DPI не создаёт.
+     */
+    private fun refreshHosts() {
+        if (hostsRefreshedThisProcess) return
+        hostsRefreshedThisProcess = true
+        val b = backend ?: return
+        lifecycleScope.launch { runCatching { MayakHostList.refresh(this@MayakActivity, b) } }
     }
 
     /** Синхрон пресетов split-туннеля с ядра (SPEC-0028): системные «РФ напрямую» + пользовательские.
@@ -350,7 +365,7 @@ class MayakActivity : AppCompatActivity() {
             showForgotPasswordDialog(emailField.text?.toString()?.trim().orEmpty())
         }
         // Регистрация и личный кабинет — в вебе (там же подтверждение email).
-        findViewById<MaterialButton>(R.id.mayak_register).setOnClickListener { openUrl(CABINET_URL) }
+        findViewById<MaterialButton>(R.id.mayak_register).setOnClickListener { openUrl(MayakHostList.cabinetUrl(this)) }
         findViewById<MaterialButton>(R.id.mayak_scan_qr).setOnClickListener {
             scanQr.launch(ScanOptions().setOrientationLocked(false).setBeepEnabled(false))
         }
@@ -533,7 +548,7 @@ class MayakActivity : AppCompatActivity() {
         setStatus(getString(R.string.mayak_err_email_not_verified))
         AlertDialog.Builder(this)
             .setMessage(getString(R.string.mayak_err_email_not_verified))
-            .setPositiveButton(getString(R.string.mayak_open_cabinet)) { _, _ -> openUrl(CABINET_URL) }
+            .setPositiveButton(getString(R.string.mayak_open_cabinet)) { _, _ -> openUrl(MayakHostList.cabinetUrl(this)) }
             .setNegativeButton(getString(R.string.mayak_cancel), null)
             .show()
     }
@@ -1876,10 +1891,8 @@ class MayakActivity : AppCompatActivity() {
         // оно стартует «из коробки» и к чему всегда может вернуться.
         val DEFAULT_HOSTS: List<String> = MayakHosts.baked
 
-        // Веб-кабинет: регистрация, подтверждение email, политика/условия.
-        const val CABINET_URL = "https://cabinet.mayakvpn.ru"
-        const val PRIVACY_URL = "https://cabinet.mayakvpn.ru/#/privacy"
-        const val TERMS_URL = "https://cabinet.mayakvpn.ru/#/terms"
+        // Адрес кабинета больше не константа: он приходит из реестра доменов вместе с адресами ядра
+        // (MayakHostList.cabinetUrl). Зашитый в сборку стартовый адрес — MayakHosts.bakedCabinet.
 
         // Сервер добавляет пира sync-таймером нод (теперь 5с, было 15с — перф-2026-07-07) → пробуем плотнее:
         // таймаут пробы 4с + пауза 2с ловят пир около t≈5с (было 8+4 → первый ретрай лишь t≈12с). 6 попыток.
@@ -1900,6 +1913,7 @@ class MayakActivity : AppCompatActivity() {
         // Проверку обновления делаем раз на запуск процесса (пересоздание Activity — смена темы — не дёргает).
         @Volatile private var updateCheckedThisProcess = false
         @Volatile private var ruDirectRefreshedThisProcess = false // OTA-подтяжка РФ-списка split-туннеля — раз на процесс
+        @Volatile private var hostsRefreshedThisProcess = false    // реестр доменов (ядро + кабинет) — раз на процесс
 
         // Тёплый /connect-кэш (DPI: не дёргать api.mayakvpn.ru рядом с хендшейком) греем один раз за процесс
         // при первом входе на главный. Пересоздание Activity (смена темы) уже НЕ греет (баг владельца 2026-07-06).
