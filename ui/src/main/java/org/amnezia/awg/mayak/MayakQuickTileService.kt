@@ -64,7 +64,8 @@ class MayakQuickTileService : TileService() {
         } else {
             getString(R.string.mayak_status_disconnected)
         }
-        tile.icon = Icon.createWithResource(this, R.drawable.ic_tile)
+        // Маяк, а не логотип AmneziaWG: в списке плиток Android показывает именно эту иконку.
+        tile.icon = Icon.createWithResource(this, R.drawable.ic_stat_mayak)
         tile.updateTile()
     }
 
