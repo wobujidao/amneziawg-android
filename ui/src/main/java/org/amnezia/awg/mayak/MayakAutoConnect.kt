@@ -22,9 +22,18 @@ object MayakAutoConnect {
     /** Поднять последний рабочий туннель, если включено автоподключение и есть сохранённый конфиг.
      *  Ничего не делает (и НЕ бросает) при: выкл автоподключении, уже поднятом туннеле, отсутствии
      *  сохранённого рабочего конфига, любой ошибке подъёма. Возвращает true, если туннель в итоге поднят. */
-    suspend fun bringUpIfEnabled(context: Context): Boolean = withContext(Dispatchers.IO) {
+    suspend fun bringUpIfEnabled(context: Context): Boolean = bringUp(context, force = false)
+
+    /**
+     * То же самое, но по ЯВНОМУ действию пользователя (плитка в шторке): тумблер автоподключения
+     * тогда ни при чём — человек прямо сейчас нажал «подключить», и отказ «у вас выключено
+     * автоподключение» выглядел бы как поломка.
+     */
+    suspend fun bringUpOnDemand(context: Context): Boolean = bringUp(context, force = true)
+
+    private suspend fun bringUp(context: Context, force: Boolean): Boolean = withContext(Dispatchers.IO) {
         val ctx = context.applicationContext
-        if (!MayakPrefs.autoConnect(ctx)) {
+        if (!force && !MayakPrefs.autoConnect(ctx)) {
             Log.i(TAG, "автоподключение выключено — пропуск")
             return@withContext false
         }

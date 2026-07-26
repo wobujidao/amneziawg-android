@@ -412,8 +412,8 @@
     <string name="mayak_settings_subscription_until">Доступ до %1$s · осталось %2$s</string>
     <string name="mayak_settings_subscription_until_plain">Доступ до %1$s</string>
     <string name="mayak_settings_subscription_active">Доступ активен</string>
-    <string name="mayak_settings_subscription_expired">Доступ закончился %1$s — продлите в кабинете</string>
-    <string name="mayak_settings_subscription_none">Доступ не выдан — оформите подписку в кабинете</string>
+    <string name="mayak_settings_subscription_expired">Доступ закончился %1$s</string>
+    <string name="mayak_settings_subscription_none">Доступ пока не выдан</string>
     <string name="mayak_settings_devices_used">Устройства: %1$d из %2$d</string>
     <plurals name="mayak_days">
         <item quantity="one">%d день</item>
@@ -421,6 +421,10 @@
         <item quantity="many">%d дней</item>
         <item quantity="other">%d дня</item>
     </plurals>
+    <string name="mayak_status_access_expired">Доступ закончился</string>
+    <string name="mayak_status_device_limit">Занято максимум устройств</string>
+    <string name="mayak_device_limit_msg">На аккаунте уже подключено максимум устройств, поэтому это добавить не получается. Отключите ненужное устройство в кабинете и попробуйте снова.</string>
+    <string name="mayak_access_expired_msg">Срок доступа к сервису закончился, поэтому подключение недоступно. Статус аккаунта виден в кабинете.</string>
     <string name="mayak_settings_reset">Сбросить все настройки</string>
     <string name="mayak_settings_reset_confirm">Сбросить все настройки приложения к значениям по умолчанию? Из аккаунта не выйдете.</string>
     <string name="mayak_settings_reset_done">Настройки сброшены</string>

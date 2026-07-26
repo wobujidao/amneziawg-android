@@ -544,6 +544,42 @@ class MayakActivity : AppCompatActivity() {
     }
 
     /** 403 email_not_verified: понятное сообщение + предложение открыть кабинет для подтверждения. */
+    /**
+     * Конец срока доступа (402 на /connect). Отдельно от общей ошибки: это не сбой, чинить его в
+     * приложении нечем, и диаг-лог на него заливать незачем — человеку нужен понятный текст и вход
+     * в кабинет, где виден статус аккаунта.
+     */
+    private fun showAccessExpired() = runOnUiThread {
+        connState = ConnState.DISCONNECTED
+        connectedDir = null
+        renderState(ConnState.DISCONNECTED)
+        setStatus(getString(R.string.mayak_status_access_expired))
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.mayak_status_access_expired))
+            .setMessage(getString(R.string.mayak_access_expired_msg))
+            .setPositiveButton(getString(R.string.mayak_open_cabinet)) { _, _ -> openUrl(MayakHostList.cabinetUrl(this)) }
+            .setNegativeButton(getString(R.string.mayak_cancel), null)
+            .show()
+    }
+
+    /**
+     * Все места под устройства заняты (409 при регистрации устройства). Частый бытовой случай: сменил
+     * телефон или переустановил приложение. Показываем, что делать (освободить место в кабинете), а не
+     * код ответа.
+     */
+    private fun showDeviceLimit() = runOnUiThread {
+        connState = ConnState.DISCONNECTED
+        connectedDir = null
+        renderState(ConnState.DISCONNECTED)
+        setStatus(getString(R.string.mayak_status_device_limit))
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.mayak_status_device_limit))
+            .setMessage(getString(R.string.mayak_device_limit_msg))
+            .setPositiveButton(getString(R.string.mayak_open_cabinet)) { _, _ -> openUrl(MayakHostList.cabinetUrl(this)) }
+            .setNegativeButton(getString(R.string.mayak_cancel), null)
+            .show()
+    }
+
     private fun showEmailNotVerified() = runOnUiThread {
         setStatus(getString(R.string.mayak_err_email_not_verified))
         AlertDialog.Builder(this)
@@ -1211,7 +1247,14 @@ class MayakActivity : AppCompatActivity() {
                 // Коннект упал — топология/направление могли измениться: сбрасываем кэш направлений,
                 // чтобы следующая загрузка пошла в ядро за свежим списком (фейловер).
                 session.invalidateDirections()
-                fail(humanError(e))
+                // 402 и 409 — не «ошибки ядра», а два штатных ответа про аккаунт: срок доступа
+                // закончился и все места под устройства заняты. Человеку нужен понятный текст и куда
+                // пойти, а не «Ошибка ядра (409): достигнут лимит устройств тарифа».
+                when {
+                    e is MayakApiException && e.status == 402 -> showAccessExpired()
+                    e is MayakApiException && e.status == 409 -> showDeviceLimit()
+                    else -> fail(humanError(e))
+                }
             } finally {
                 connectJob = null
             }
