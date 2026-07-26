@@ -29,6 +29,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.widget.ImageViewCompat
+import androidx.core.widget.doAfterTextChanged
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
@@ -320,15 +321,28 @@ class MayakActivity : AppCompatActivity() {
 
         val emailField = findViewById<TextInputEditText>(R.id.mayak_login)
         val passField = findViewById<TextInputEditText>(R.id.mayak_password)
+        val loginLayout = findViewById<TextInputLayout>(R.id.mayak_login_layout)
+        val passwordLayout = findViewById<TextInputLayout>(R.id.mayak_password_layout)
 
         setupThemeButton()
         findViewById<MaterialButton>(R.id.mayak_language_button).setOnClickListener { MayakLanguages.showDialog(this) }
 
+        // Ошибку показываем У ПОЛЯ, а не серой строкой под карточкой: с открытой клавиатурой низ экрана
+        // не виден, и нажатие «Войти» выглядело как «ничего не произошло» (замечание владельца 07-26).
+        // Пользователь начал править — ошибку убираем, иначе она висит и спорит с тем, что он вводит.
+        emailField.doAfterTextChanged { loginLayout.error = null }
+        passField.doAfterTextChanged { passwordLayout.error = null }
+
         findViewById<MaterialButton>(R.id.mayak_sign_in).setOnClickListener {
             val email = emailField.text?.toString()?.trim().orEmpty()
             val pass = passField.text?.toString().orEmpty()
+            loginLayout.error = null
+            passwordLayout.error = null
             if (email.isBlank() || pass.isBlank()) {
-                setStatus(getString(R.string.mayak_err_fill_login)); return@setOnClickListener
+                val target = if (email.isBlank()) loginLayout else passwordLayout
+                target.error = getString(R.string.mayak_err_fill_login)
+                shake(target)
+                return@setOnClickListener
             }
             doSignIn(email, pass)
         }
@@ -485,10 +499,32 @@ class MayakActivity : AppCompatActivity() {
             } catch (e: MayakApiException) {
                 when (e.status) {
                     403 -> showEmailNotVerified()
-                    401 -> setStatus(getString(R.string.mayak_err_bad_creds))
-                    else -> setStatus(humanError(e))
+                    401 -> showLoginError(getString(R.string.mayak_err_bad_creds))
+                    else -> showLoginError(humanError(e))
                 }
-            } catch (e: Exception) { setStatus(humanError(e)) }
+            } catch (e: Exception) { showLoginError(humanError(e)) }
+        }
+    }
+
+    /** Ошибка входа: красная подпись под полем пароля + короткая встряска. Раньше текст уходил в серую
+     *  строку под карточкой — на телефоне её закрывает клавиатура, и человек не понимал, что произошло.
+     *  Строку статуса тоже обновляем: она остаётся для тех, кто смотрит на большой экран без клавиатуры. */
+    private fun showLoginError(text: String) = runOnUiThread {
+        val passwordLayout = findViewById<TextInputLayout>(R.id.mayak_password_layout)
+        if (passwordLayout != null) {
+            passwordLayout.error = text
+            shake(passwordLayout)
+            setStatus("")
+        } else {
+            setStatus(text)
+        }
+    }
+
+    /** Короткая встряска элемента: движение читается боковым зрением быстрее любого текста. */
+    private fun shake(view: View) {
+        ObjectAnimator.ofFloat(view, View.TRANSLATION_X, 0f, -18f, 14f, -8f, 5f, 0f).apply {
+            duration = 320
+            start()
         }
     }
 
