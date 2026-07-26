@@ -19,11 +19,23 @@ import kotlinx.coroutines.launch
 import org.amnezia.awg.R
 import org.amnezia.awg.activity.LogViewerActivity
 import org.amnezia.awg.fragment.AppListDialogFragment
+import org.amnezia.awg.mayak.core.AccountSettings
 import org.amnezia.awg.mayak.core.HostProvider
 import org.amnezia.awg.mayak.core.MayakApiException
 import org.amnezia.awg.mayak.core.MayakBackend
 
 class MayakSettingsActivity : AppCompatActivity() {
+
+    // Сессия/хранилище нужны нескольким блокам экрана (фильтрация, подписка, диаг-лог, выход) —
+    // держим одну пару на активити вместо трёх одинаковых конструкторов по месту.
+    private val store by lazy { KeystoreSecureStore(this) }
+    private val session by lazy { MayakSession(store, AwgKeyProvider(), AndroidHwidProvider(this, store)) }
+
+    /** Текущие настройки аккаунта с ядра; null — ещё не загрузились или загрузка не удалась. */
+    private var accountSettings: AccountSettings? = null
+
+    private fun backend(): MayakBackend =
+        MayakBackend(HostProvider(MayakHostList.effective(this, store.get(MayakActivity.KEY_SERVER))))
 
     override fun onCreate(savedInstanceState: Bundle?) {
         MayakPrefs.applyTheme(this)
@@ -63,12 +75,25 @@ class MayakSettingsActivity : AppCompatActivity() {
         findViewById<MaterialButton>(R.id.mayak_settings_logout).setOnClickListener { confirmLogout() }
 
         // Показываем, под каким email выполнен вход (запрос владельца: в приложении не было видно аккаунта).
-        val acctStore = KeystoreSecureStore(this)
-        val accountEmail = MayakSession(acctStore, AwgKeyProvider(), AndroidHwidProvider(this, acctStore)).email()
         findViewById<TextView>(R.id.mayak_settings_account).text = getString(
             R.string.mayak_settings_account,
-            accountEmail ?: getString(R.string.mayak_settings_account_none),
+            session.email() ?: getString(R.string.mayak_settings_account_none),
         )
+        findViewById<MaterialButton>(R.id.mayak_settings_cabinet).setOnClickListener {
+            openUrl(MayakActivity.CABINET_URL)
+        }
+
+        // Фильтрация DNS и срок доступа — оба живут на АККАУНТЕ (ядро), поэтому только после входа.
+        findViewById<MaterialButton>(R.id.mayak_settings_dns).setOnClickListener {
+            if (accountSettings == null) loadFiltering() else showDnsDialog()
+        }
+        if (session.hasToken()) {
+            loadFiltering()
+            loadSubscription()
+        } else {
+            // Не вошли — карточка фильтрации бесполезна (менять нечего) и только путала бы.
+            findViewById<View>(R.id.mayak_settings_filtering_card).visibility = View.GONE
+        }
 
         // Тумблер «Использовать IPv6» (SPEC-0014): по умолч. ВКЛ. При выкл клиент срезает v6 из конфига
         // при следующем подключении (кэш конфига v6-полный, стрип на apply) → IPv6 идёт мимо туннеля.
@@ -225,6 +250,203 @@ class MayakSettingsActivity : AppCompatActivity() {
             .show()
     }
 
+    // ===== Фильтрация DNS (профиль аккаунта: обычный / реклама+трекеры / детский / свой резолвер) =====
+
+    /** Подтянуть текущий профиль с ядра. Ошибка — не молчим: кнопка сама предлагает повторить. */
+    private fun loadFiltering() {
+        val button = findViewById<MaterialButton>(R.id.mayak_settings_dns)
+        button.setText(R.string.mayak_settings_dns_loading)
+        lifecycleScope.launch {
+            val loaded = runCatching { session.settings(backend()) }.getOrNull()
+            if (loaded == null) {
+                accountSettings = null
+                button.setText(R.string.mayak_settings_dns_unavailable)
+                findViewById<TextView>(R.id.mayak_settings_dns_desc).visibility = View.GONE
+                return@launch
+            }
+            accountSettings = loaded
+            renderFiltering(loaded)
+        }
+    }
+
+    /** Кнопка показывает ВЫБРАННЫЙ профиль (для своего резолвера — сразу его адреса), под ней — что он делает. */
+    private fun renderFiltering(s: AccountSettings) {
+        val button = findViewById<MaterialButton>(R.id.mayak_settings_dns)
+        button.text = if (s.dnsMode == AccountSettings.DNS_CUSTOM && s.dnsCustom.isNotBlank()) {
+            getString(R.string.mayak_dns_custom_value, s.dnsCustom)
+        } else {
+            getString(dnsLabel(s.dnsMode))
+        }
+        val desc = findViewById<TextView>(R.id.mayak_settings_dns_desc)
+        desc.setText(dnsDescription(s.dnsMode))
+        desc.visibility = View.VISIBLE
+    }
+
+    private fun dnsLabel(mode: String): Int = when (mode) {
+        AccountSettings.DNS_ADBLOCK -> R.string.mayak_dns_adblock
+        AccountSettings.DNS_FAMILY -> R.string.mayak_dns_family
+        AccountSettings.DNS_CUSTOM -> R.string.mayak_dns_custom
+        else -> R.string.mayak_dns_default
+    }
+
+    private fun dnsDescription(mode: String): Int = when (mode) {
+        AccountSettings.DNS_ADBLOCK -> R.string.mayak_dns_adblock_desc
+        AccountSettings.DNS_FAMILY -> R.string.mayak_dns_family_desc
+        AccountSettings.DNS_CUSTOM -> R.string.mayak_dns_custom_desc
+        else -> R.string.mayak_dns_default_desc
+    }
+
+    /** Выбор профиля. «Свой DNS-сервер» ведёт в диалог ввода адресов — сохранять пустой custom нельзя. */
+    private fun showDnsDialog() {
+        val current = accountSettings ?: return
+        val modes = AccountSettings.MODES
+        val labels = modes.map { getString(dnsLabel(it)) }.toTypedArray()
+        val checked = modes.indexOf(current.dnsMode).coerceAtLeast(0)
+        AlertDialog.Builder(this)
+            .setTitle(R.string.mayak_settings_filtering)
+            .setSingleChoiceItems(labels, checked) { dialog, which ->
+                dialog.dismiss()
+                val mode = modes[which]
+                if (mode == AccountSettings.DNS_CUSTOM) showCustomDnsDialog(current.dnsCustom)
+                else saveDns(mode, custom = null)
+            }
+            .setNegativeButton(R.string.mayak_cancel, null)
+            .show()
+    }
+
+    /**
+     * Ввод адресов своего резолвера. Адреса валидирует ядро (только публичные IP) — его текст ошибки
+     * показываем ПОД полем и диалог НЕ закрываем: человек видит, что именно не так, прямо там, где
+     * это исправлять. Закрывается диалог только после успешного сохранения.
+     */
+    private fun showCustomDnsDialog(prefill: String) {
+        val view = layoutInflater.inflate(R.layout.dialog_mayak_dns, null)
+        val layout = view.findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.mayak_dns_input_layout)
+        val input = view.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.mayak_dns_input)
+        input.setText(prefill)
+        input.setSelection(input.text?.length ?: 0)
+        layout.helperText = getString(R.string.mayak_dns_custom_hint)
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.mayak_dns_custom)
+            .setView(view)
+            .setPositiveButton(R.string.mayak_ok, null) // слушатель ставим ниже: он не должен закрывать диалог
+            .setNegativeButton(R.string.mayak_cancel, null)
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                layout.error = null
+                saveDns(
+                    AccountSettings.DNS_CUSTOM,
+                    input.text.toString().trim(),
+                    onSaved = { dialog.dismiss() },
+                    onInvalid = { msg -> layout.error = msg },
+                )
+            }
+        }
+        dialog.show()
+    }
+
+    /**
+     * Сохранить профиль на ядре. custom = null — «адреса не трогать» (ядро сохранит прежние).
+     * Пока идёт запрос, кнопка заблокирована: два быстрых тапа = две гонки за один и тот же профиль.
+     *
+     * onInvalid получает текст ядра о негодном вводе (400) — диалог ввода показывает его под полем.
+     * Всё остальное (сеть, 5xx) — тостом: поля, к которому это относится, там нет.
+     */
+    private fun saveDns(
+        mode: String,
+        custom: String?,
+        onSaved: () -> Unit = {},
+        onInvalid: ((String) -> Unit)? = null,
+    ) {
+        val button = findViewById<MaterialButton>(R.id.mayak_settings_dns)
+        button.isEnabled = false
+        lifecycleScope.launch {
+            try {
+                val saved = session.updateSettings(backend(), mode, custom)
+                accountSettings = saved
+                renderFiltering(saved)
+                onSaved()
+                Toast.makeText(this@MayakSettingsActivity, R.string.mayak_dns_saved, Toast.LENGTH_LONG).show()
+            } catch (e: MayakApiException) {
+                // 400 от ядра — это разбор ВВОДА («не IP-адрес», «адрес не публичный»): показываем как есть.
+                val msg = e.message ?: "HTTP ${e.status}"
+                if (e.status == 400 && onInvalid != null) onInvalid(msg)
+                else Toast.makeText(
+                    this@MayakSettingsActivity,
+                    getString(R.string.mayak_dns_save_err, msg),
+                    Toast.LENGTH_LONG,
+                ).show()
+            } catch (e: Exception) {
+                Toast.makeText(
+                    this@MayakSettingsActivity,
+                    getString(R.string.mayak_dns_save_err, e.message ?: getString(R.string.mayak_settings_dns_unavailable)),
+                    Toast.LENGTH_LONG,
+                ).show()
+            } finally {
+                button.isEnabled = true
+            }
+        }
+    }
+
+    // ===== Подписка: до какой даты действует доступ и сколько устройств занято =====
+
+    /** Срок доступа с ядра (GET /v1/client/sync). Best-effort: нет сети — строку просто не показываем. */
+    private fun loadSubscription() {
+        lifecycleScope.launch {
+            val st = runCatching { session.accountStatus(backend()) }.getOrNull() ?: return@launch
+            val line = findViewById<TextView>(R.id.mayak_settings_subscription)
+            val until = st.validUntilMs()
+            val days = st.daysLeft()
+            val text = when {
+                st.access == "none" -> getString(R.string.mayak_settings_subscription_none)
+                st.access == "expired" -> getString(
+                    R.string.mayak_settings_subscription_expired,
+                    until?.let { formatDate(it) } ?: "",
+                )
+                // Обратный отсчёт показываем, только когда он что-то значит: «осталось 3652 дня» —
+                // это шум, а «осталось 3 дня» — повод продлить.
+                until != null && days != null && days <= COUNTDOWN_FROM_DAYS -> getString(
+                    R.string.mayak_settings_subscription_until,
+                    formatDate(until),
+                    resources.getQuantityString(R.plurals.mayak_days, days, days),
+                )
+                until != null -> getString(R.string.mayak_settings_subscription_until_plain, formatDate(until))
+                // Доступ без срока (выдан админом бессрочно) — «до какого числа» тут не существует.
+                else -> getString(R.string.mayak_settings_subscription_active)
+            }
+            // Кончается на днях или уже кончился — красим строку: это единственное место в приложении,
+            // где человек об этом узнаёт до неудачного подключения.
+            val alarming = st.access != "active" || (days != null && days <= WARN_FROM_DAYS)
+            line.setTextColor(
+                androidx.core.content.ContextCompat.getColor(
+                    this@MayakSettingsActivity,
+                    if (alarming) R.color.mayak_red else R.color.mayak_on_surface,
+                )
+            )
+            val devices = if (st.deviceLimit > 0) {
+                "\n" + getString(R.string.mayak_settings_devices_used, st.devicesUsed, st.deviceLimit)
+            } else ""
+            line.text = text + devices
+            line.visibility = View.VISIBLE
+        }
+    }
+
+    /** Дата в языке телефона («2 авг. 2026 г.»). Год оставляем: без него «до 2 авг.» двусмысленно. */
+    private fun formatDate(epochMs: Long): String =
+        java.time.Instant.ofEpochMilli(epochMs)
+            .atZone(java.time.ZoneId.systemDefault())
+            .format(
+                java.time.format.DateTimeFormatter
+                    .ofLocalizedDate(java.time.format.FormatStyle.MEDIUM)
+                    .withLocale(java.util.Locale.getDefault())
+            )
+
+    private fun openUrl(url: String) {
+        runCatching { startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))) }
+    }
+
     /**
      * Сбор и отправка диагностического лога на сервер (главное действие диагностики). Собираем
      * контекст устройства/сети + дамп logcat движка → POST /v1/client/diag-log. Требует входа.
@@ -256,6 +478,14 @@ class MayakSettingsActivity : AppCompatActivity() {
             button.text = original
             Toast.makeText(this@MayakSettingsActivity, msg, Toast.LENGTH_LONG).show()
         }
+    }
+
+    companion object {
+        /** С какого остатка показываем обратный отсчёт (иначе только дату окончания). */
+        private const val COUNTDOWN_FROM_DAYS = 30
+
+        /** С какого остатка строка становится тревожной (красной). */
+        private const val WARN_FROM_DAYS = 3
     }
 
     /** Выход из аккаунта: гасим туннель, чистим сессию, возвращаемся на экран входа. */

@@ -1877,7 +1877,7 @@ class MayakActivity : AppCompatActivity() {
         val DEFAULT_HOSTS: List<String> = MayakHosts.baked
 
         // Веб-кабинет: регистрация, подтверждение email, политика/условия.
-        private const val CABINET_URL = "https://cabinet.mayakvpn.ru"
+        const val CABINET_URL = "https://cabinet.mayakvpn.ru"
         const val PRIVACY_URL = "https://cabinet.mayakvpn.ru/#/privacy"
         const val TERMS_URL = "https://cabinet.mayakvpn.ru/#/terms"
 

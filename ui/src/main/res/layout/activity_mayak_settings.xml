@@ -249,6 +249,60 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
+            <!-- ===== Фильтрация (DNS-профиль аккаунта, миграции 0086/0088) =====
+                 Настройка живёт на АККАУНТЕ (ядро отдаёт её в каждом конфиге), поэтому здесь только
+                 кнопка-значение: текущий профиль тянем у ядра, выбор шлём обратно. -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/mayak_settings_filtering_card"
+                style="@style/Mayak.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/mayak_settings_filtering"
+                        android:textAppearance="@style/Mayak.CardTitle" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/mayak_settings_dns"
+                        style="@style/Mayak.Button.Outlined"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        app:icon="@drawable/ic_settings"
+                        app:iconGravity="textStart"
+                        app:iconTint="@color/mayak_outline"
+                        android:text="@string/mayak_settings_dns_loading" />
+
+                    <!-- Что делает ВЫБРАННЫЙ сейчас профиль: в диалоге выбора помещаются только короткие
+                         названия, а «детский режим» без пояснения понимают все по-разному. -->
+                    <TextView
+                        android:id="@+id/mayak_settings_dns_desc"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:visibility="gone"
+                        android:textColor="@color/mayak_on_surface"
+                        android:textAppearance="@style/Mayak.Tagline" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="@string/mayak_settings_dns_hint"
+                        android:textColor="@color/mayak_on_surface"
+                        android:alpha="0.8"
+                        android:textAppearance="@style/Mayak.Tagline" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
             <!-- ===== Защита / Kill-switch (SPEC-0018 F3) ===== -->
             <com.google.android.material.card.MaterialCardView
                 style="@style/Mayak.Card"
@@ -405,6 +459,29 @@
                 android:layout_marginTop="14dp"
                 android:textColor="@color/mayak_on_surface"
                 android:textAppearance="@style/Mayak.Tagline" />
+
+            <!-- Подписка: до какой даты и сколько дней осталось (GET /v1/client/sync). Раньше это было
+                 видно только в веб-кабинете, и человек узнавал о конце доступа по неудачному коннекту.
+                 Пока данных нет — строка скрыта (gone), чтобы не мигать пустотой. -->
+            <TextView
+                android:id="@+id/mayak_settings_subscription"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:visibility="gone"
+                android:textColor="@color/mayak_on_surface"
+                android:textAppearance="@style/Mayak.Tagline" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/mayak_settings_cabinet"
+                style="@style/Mayak.Button.Outlined"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                app:icon="@drawable/ic_action_open"
+                app:iconGravity="textStart"
+                app:iconTint="@color/mayak_outline"
+                android:text="@string/mayak_open_cabinet" />
 
             <!-- Выход из аккаунта -->
             <com.google.android.material.button.MaterialButton

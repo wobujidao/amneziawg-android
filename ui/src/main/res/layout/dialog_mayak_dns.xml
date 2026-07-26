@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ввод адресов своего DNS-резолвера (диалог «Фильтрация» → «Свой DNS-сервер»).
+     Ошибку валидации показываем ПОД полем (TextInputLayout.error), а не тостом внизу экрана:
+     тост на телефоне пролетает мимо глаз — на этом уже обожглись на форме входа (правка 2026-07-26). -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingStart="24dp"
+    android:paddingEnd="24dp"
+    android:paddingTop="8dp">
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/mayak_dns_input_layout"
+        style="@style/Mayak.TextInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="@string/mayak_dns_custom">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/mayak_dns_input"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="textNoSuggestions"
+            android:maxLines="1" />
+    </com.google.android.material.textfield.TextInputLayout>
+</LinearLayout>

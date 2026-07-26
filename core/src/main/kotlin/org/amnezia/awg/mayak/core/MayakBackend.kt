@@ -182,6 +182,29 @@ class MayakBackend(
         call("DELETE", "/v1/client/presets/$id", token = token, body = null)
     }
 
+    /** Настройки аккаунта (профиль фильтрации DNS + адреса своего резолвера): GET /v1/client/settings. */
+    suspend fun settings(token: String): AccountSettings {
+        val resp = call("GET", "/v1/client/settings", token = token, body = null)
+        return json.decodeFromString(AccountSettings.serializer(), resp)
+    }
+
+    /**
+     * Смена профиля фильтрации: PUT /v1/client/settings. Ядро возвращает то, что РЕАЛЬНО легло в базу
+     * (адреса нормализованы) — отдаём его ответ, чтобы экран показывал сохранённое, а не введённое.
+     * Негодный ввод — 400 с человеческим текстом в MayakApiException.message: его и показываем.
+     */
+    suspend fun updateSettings(token: String, update: SettingsUpdate): AccountSettings {
+        val body = json.encodeToString(SettingsUpdate.serializer(), update)
+        val resp = call("PUT", "/v1/client/settings", token = token, body = body)
+        return json.decodeFromString(AccountSettings.serializer(), resp)
+    }
+
+    /** Состояние доступа аккаунта (GET /v1/client/sync): активен ли, до какой даты, сколько устройств. */
+    suspend fun accountStatus(token: String): AccountStatus {
+        val resp = call("GET", "/v1/client/sync", token = token, body = null)
+        return json.decodeFromString(AccountStatus.serializer(), resp)
+    }
+
     /**
      * Один HTTP-вызов с фейловером по доменам. На сетевой ошибке (домен недоступен/заблокирован)
      * крутим HostProvider и повторяем; на HTTP-ответе (в т.ч. 4xx/5xx) — НЕ переключаемся, а

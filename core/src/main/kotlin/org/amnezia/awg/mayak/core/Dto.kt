@@ -279,3 +279,68 @@ data class PresetWrite(
 
 @Serializable
 data class IdResponse(val id: Long = 0)
+
+/** Настройки аккаунта (GET /v1/client/settings, миграции 0086/0088): профиль фильтрации DNS и адреса
+ *  своего резолвера. Настройка живёт на аккаунте, а не на устройстве: применяется ко всем выдачам
+ *  конфигов этого пользователя — и в приложении, и на роутере. */
+@Serializable
+data class AccountSettings(
+    @SerialName("dns_mode") val dnsMode: String = DNS_DEFAULT,
+    // Адреса своего резолвера ядро отдаёт ВСЕГДА, даже когда выбран другой профиль: человек вернётся
+    // к «своему» — и вводить их заново не придётся.
+    @SerialName("dns_custom") val dnsCustom: String = "",
+) {
+    companion object {
+        const val DNS_DEFAULT = "default"
+        const val DNS_ADBLOCK = "adblock"
+        const val DNS_FAMILY = "family"
+        const val DNS_CUSTOM = "custom"
+
+        /** Профили в том порядке, в каком показываем их человеку. */
+        val MODES = listOf(DNS_DEFAULT, DNS_ADBLOCK, DNS_FAMILY, DNS_CUSTOM)
+    }
+}
+
+/** Тело PUT /v1/client/settings. dnsCustom = null («не трогай адреса») отличается от "" («сотри») —
+ *  ровно так это различает ядро (settingsReq.DNSCustom — указатель). */
+@Serializable
+data class SettingsUpdate(
+    @SerialName("dns_mode") val dnsMode: String,
+    @SerialName("dns_custom") val dnsCustom: String? = null,
+)
+
+/** Состояние доступа аккаунта (GET /v1/client/sync). access: active | expired | none («ничего не
+ *  выдано»). validUntil — RFC3339 от ядра; пусто = срок не задан (бессрочный доступ админом). */
+@Serializable
+data class AccountStatus(
+    val access: String = "",
+    @SerialName("valid_until") val validUntil: String = "",
+    @SerialName("devices_used") val devicesUsed: Int = 0,
+    @SerialName("device_limit") val deviceLimit: Int = 0,
+) {
+    /**
+     * Сколько ЦЕЛЫХ суток осталось до конца доступа, если ядро прислало срок. null — срока нет или
+     * он не разобрался (тогда UI покажет только словесный статус, а не «осталось N дней»).
+     * Округляем ВВЕРХ: пока не наступила дата окончания, у человека «остался день», а не «0 дней».
+     */
+    fun daysLeft(nowMs: Long = System.currentTimeMillis()): Int? {
+        val untilMs = validUntilMs() ?: return null
+        val left = untilMs - nowMs
+        if (left <= 0) return 0
+        return ((left + DAY_MS - 1) / DAY_MS).toInt()
+    }
+
+    /** Момент окончания доступа в мс эпохи; null — поля нет или оно не разбирается. */
+    fun validUntilMs(): Long? {
+        if (validUntil.isBlank()) return null
+        return runCatching { java.time.OffsetDateTime.parse(validUntil).toInstant().toEpochMilli() }
+            .getOrNull()
+    }
+
+    /** Доступ действует прямо сейчас (ядро уже посчитало это за нас — сверяем только по его ответу). */
+    fun active(): Boolean = access == "active"
+
+    companion object {
+        private const val DAY_MS = 24L * 60 * 60 * 1000
+    }
+}

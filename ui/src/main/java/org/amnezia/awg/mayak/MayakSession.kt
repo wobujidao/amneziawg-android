@@ -292,6 +292,35 @@ class MayakSession(
     suspend fun deletePreset(backend: MayakBackend, id: Long) =
         backend.deletePreset(requireToken(), id)
 
+    /** Настройки аккаунта (профиль фильтрации DNS + адреса своего резолвера). Требует входа. */
+    suspend fun settings(backend: MayakBackend): org.amnezia.awg.mayak.core.AccountSettings =
+        backend.settings(requireToken())
+
+    /**
+     * Сменить профиль фильтрации. custom = null — «адреса не трогать» (ядро сохранит прежние).
+     * После смены сбрасываем предзагруженные конфиги: DNS проставляется ядром В МОМЕНТ выдачи
+     * конфига, поэтому тёплый кэш /connect несёт СТАРЫЙ резолвер, и без сброса новый профиль
+     * включился бы только через час-другой — человек решил бы, что настройка не работает.
+     */
+    suspend fun updateSettings(
+        backend: MayakBackend,
+        mode: String,
+        custom: String?,
+    ): org.amnezia.awg.mayak.core.AccountSettings {
+        val saved = backend.updateSettings(
+            requireToken(),
+            org.amnezia.awg.mayak.core.SettingsUpdate(mode, custom),
+        )
+        // Сохранённый на диск last-good конфиг НЕ трогаем: это спасательный круг на случай, когда
+        // ядро недоступно, и лучше подняться со старым резолвером, чем не подняться вовсе.
+        connectCache.clear()
+        return saved
+    }
+
+    /** Состояние доступа аккаунта (активен/истёк, до какой даты, сколько устройств). Требует входа. */
+    suspend fun accountStatus(backend: MayakBackend): org.amnezia.awg.mayak.core.AccountStatus =
+        backend.accountStatus(requireToken())
+
     /** id устройства из хранилища (0 — ещё не зарегистрировано); для контекста диаг-лога. */
     fun deviceId(): Long = store.get(K_DEVICE)?.toLongOrNull() ?: 0L
 
