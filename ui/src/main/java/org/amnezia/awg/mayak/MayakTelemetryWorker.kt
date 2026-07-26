@@ -33,9 +33,14 @@ class MayakTelemetryWorker(
             val app = applicationContext
             val store = KeystoreSecureStore(app)
             val session = MayakSession(store, AwgKeyProvider(), AndroidHwidProvider(app, store))
+            val backend = MayakBackend(HostProvider(hostsFor(app, store)))
+            // Заодно обновляем список адресов ядра из реестра доменов: воркер и так ходит в сеть по
+            // расписанию, отдельный будильник ради этого заводить незачем. Смысл — узнать резервный
+            // домен ЗАРАНЕЕ, до того как основной где-то заблокируют.
+            MayakHostList.refresh(app, backend)
             // Не вошёл → тихо ничего не шлём (не крашимся, не ретраим).
             if (session.hasToken()) {
-                session.sendTelemetry(MayakBackend(HostProvider(hostsFor(store))), buildBeacon(app))
+                session.sendTelemetry(backend, buildBeacon(app))
             }
         }
         // Любой сбой (нет сети / ядро недоступно / 4xx-5xx) глотаем: бикон не критичен и не должен
@@ -43,14 +48,10 @@ class MayakTelemetryWorker(
         return Result.success()
     }
 
-    // Те же адреса ядра, что в MayakActivity.hostProvider()/LeaseKeepalive: сохранённый сервер (если задан
-    // рег-ссылкой/QR) первым, затем публичный домен + IP-фолбэк. :core делает фейловер по сетевым ошибкам.
-    private fun hostsFor(store: KeystoreSecureStore): List<String> {
-        val saved = store.get(MayakActivity.KEY_SERVER)?.trimEnd('/')
-        return if (saved != null && saved !in MayakActivity.DEFAULT_HOSTS)
-            listOf(saved) + MayakActivity.DEFAULT_HOSTS
-        else MayakActivity.DEFAULT_HOSTS
-    }
+    // Те же адреса ядра, что и везде (MayakHostList): сервер из настроек → полученные от ядра →
+    // зашитые в сборку. :core делает фейловер по сетевым ошибкам.
+    private fun hostsFor(context: Context, store: KeystoreSecureStore): List<String> =
+        MayakHostList.effective(context, store.get(MayakActivity.KEY_SERVER))
 
     private fun buildBeacon(context: Context): TelemetryRequest = TelemetryRequest(
         appVersion = BuildConfig.VERSION_NAME,

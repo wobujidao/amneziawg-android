@@ -48,10 +48,7 @@ object LeaseKeepalive {
     private suspend fun keepaliveOnce(app: Context) {
         val store = KeystoreSecureStore(app)
         val session = MayakSession(store, AwgKeyProvider(), AndroidHwidProvider(app, store))
-        val saved = store.get(MayakActivity.KEY_SERVER)?.trimEnd('/')
-        val hosts = if (saved != null && saved !in MayakActivity.DEFAULT_HOSTS)
-            listOf(saved) + MayakActivity.DEFAULT_HOSTS
-        else MayakActivity.DEFAULT_HOSTS
+        val hosts = MayakHostList.effective(app, store.get(MayakActivity.KEY_SERVER))
         session.keepalive(MayakBackend(HostProvider(hosts)))
     }
 }

@@ -236,9 +236,7 @@ class MayakSettingsActivity : AppCompatActivity() {
             Toast.makeText(this, R.string.mayak_settings_send_log_need_login, Toast.LENGTH_LONG).show()
             return
         }
-        val saved = store.get(MayakActivity.KEY_SERVER)?.trimEnd('/')
-        val hosts = if (saved != null && saved !in MayakActivity.DEFAULT_HOSTS)
-            listOf(saved) + MayakActivity.DEFAULT_HOSTS else MayakActivity.DEFAULT_HOSTS
+        val hosts = MayakHostList.effective(this, store.get(MayakActivity.KEY_SERVER))
         val backend = MayakBackend(HostProvider(hosts))
 
         val original = button.text

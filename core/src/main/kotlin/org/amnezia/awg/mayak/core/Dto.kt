@@ -242,6 +242,16 @@ data class RuDirectList(
     val apps: List<String> = emptyList(),
 )
 
+/** Адреса ядра из реестра доменов на сервере (GET /v1/client/hosts, миграция 0089). Приложение
+ *  запоминает их и ходит по списку сверху вниз: к моменту, когда основной домен где-то заблокируют,
+ *  резервный у него уже есть — без обновления из маркета. Без схемы («host» / «host:port»). */
+@Serializable
+data class HostList(
+    val api: List<String> = emptyList(),
+    val cabinet: String = "",
+    val site: String = "",
+)
+
 /** Пресет split-туннеля (SPEC-0028). mode: all|exclude|include. source: system|user. owned — можно править.
  *  Системный «РФ напрямую» — rule-based (regex/exceptions/apps); пользовательские — только apps (галочки). */
 @Serializable

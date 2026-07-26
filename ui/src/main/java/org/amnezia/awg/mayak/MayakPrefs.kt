@@ -25,6 +25,7 @@ object MayakPrefs {
     private const val KEY_PRESET_ACTIVE = "preset_active_id"   // id активного пресета (0 = нет)
     private const val KEY_PRESET_ENABLED = "preset_enabled"    // тумблер «применять активный пресет» (по умолч. ВЫКЛ)
     private const val KEY_PRESET_SHOW = "preset_show_on_home"   // показывать селектор пресетов на главном (по умолч. ВКЛ)
+    private const val KEY_LEARNED_HOSTS = "learned_hosts" // адреса ядра, полученные от сервера (реестр доменов), CSV
     private const val KEY_AUTOCONNECT = "autoconnect" // F3: автоподнятие последнего рабочего туннеля (по умолч. ВЫКЛ)
     private const val KEY_APP_LOCK = "app_lock" // блокировка приложения по биометрии/PIN устройства (по умолч. ВЫКЛ)
     private const val KEY_SORT_MODE = "dir_sort_mode" // SPEC-0031: 0=авто(сервер), 1=пинг, 2=свои (по умолч. 0)
@@ -55,6 +56,18 @@ object MayakPrefs {
     /** Автоподключение (SPEC-0018 F3): поднимать последний РАБОЧИЙ туннель при системном Always-On VPN и
      *  после загрузки устройства (из сохранённого на диске конфига, без сети). По умолчанию ВЫКЛ —
      *  включается пользователем в Настройках вместе с системным «блокировать интернет без VPN». */
+    /** Адреса ядра, которые прислал сервер (реестр доменов, миграция 0089). Пусто = ещё не спрашивали. */
+    fun learnedHosts(context: Context): List<String> =
+        prefs(context).getString(KEY_LEARNED_HOSTS, "")
+            ?.split(",")
+            ?.map { it.trim() }
+            ?.filter { it.isNotEmpty() }
+            ?: emptyList()
+
+    fun setLearnedHosts(context: Context, hosts: List<String>) {
+        prefs(context).edit().putString(KEY_LEARNED_HOSTS, hosts.joinToString(",")).apply()
+    }
+
     fun autoConnect(context: Context): Boolean =
         prefs(context).getBoolean(KEY_AUTOCONNECT, false)
 

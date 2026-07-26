@@ -55,6 +55,7 @@ import org.amnezia.awg.mayak.core.FallbackDecision
 import org.amnezia.awg.mayak.core.HostProvider
 import org.amnezia.awg.mayak.core.MayakApiException
 import org.amnezia.awg.mayak.core.MayakBackend
+import org.amnezia.awg.mayak.core.MayakHosts
 import org.amnezia.awg.mayak.core.NoReachableHostException
 
 class MayakActivity : AppCompatActivity() {
@@ -306,12 +307,8 @@ class MayakActivity : AppCompatActivity() {
      * недоступности :core сам переключится на IP). Рег-ссылка/QR могут сохранить свой адрес
      * (KEY_SERVER) — тогда используем его (а IP-фолбэк добавляем как страховку).
      */
-    private fun hostProvider(): HostProvider {
-        val saved = store.get(KEY_SERVER)?.trimEnd('/')
-        val hosts = if (saved != null && saved !in DEFAULT_HOSTS) listOf(saved) + DEFAULT_HOSTS
-        else DEFAULT_HOSTS
-        return HostProvider(hosts)
-    }
+    private fun hostProvider(): HostProvider =
+        HostProvider(MayakHostList.effective(this, store.get(KEY_SERVER)))
 
     // --- экран входа: логотип + название + карточка логин/пароль + QR + рег-ссылка ---
 
@@ -1836,17 +1833,12 @@ class MayakActivity : AppCompatActivity() {
         private const val SORT_PING = 1   // по клиентскому пингу (быстрейший вверху)
         private const val SORT_CUSTOM = 2 // пользовательский порядок (перетаскивание)
 
-        // Адреса ядра по умолчанию: публичный домен (LE-серт, система доверия) ПЕРВЫМ,
-        // затем IP-фолбэк (наш CA, см. network_security_config + res/raw/mayak_ca.pem).
-        // :core делает фейловер по сетевым ошибкам и «залипает» на рабочем — поэтому пока
-        // DNS домена не разъехался, всё едет через IP, а как только домен поднимется — через домен.
-        val DEFAULT_HOSTS = listOf( // доступен из настроек для сборки HostProvider (диаг-лог)
-            "https://api.mayakvpn.ru",
-            // IP-фолбэк на НОВОЕ ядро (с 2026-07-18). ⚠️ Требует, чтобы лиф-серт client-api :8443 на ядре
-            // имел SAN=IP:138.16.128.138 (перевыпустить от Mayak Core CA) — иначе Android-проверка hostname
-            // не пройдёт. Старый 45.132.18.167 выключен ~07-23. См. FINDING-app-ip-fallback-stale-core-2026-07-22.
-            "https://138.16.128.138:8443",
-        )
+        // Адреса ядра, ЗАШИТЫЕ в сборку, — генерируются из реестра доменов (админка → «Домены»)
+        // скриптом scripts/gen-app-hosts.sh в :core/MayakHosts. Домен идёт первым (LE-серт, системное
+        // доверие), прямой IP ядра — последним (наш CA, network_security_config + res/raw/mayak_ca.pem).
+        // Актуальный список приложение подхватывает живьём (MayakHostList.refresh); здесь — то, с чем
+        // оно стартует «из коробки» и к чему всегда может вернуться.
+        val DEFAULT_HOSTS: List<String> = MayakHosts.baked
 
         // Веб-кабинет: регистрация, подтверждение email, политика/условия.
         private const val CABINET_URL = "https://cabinet.mayakvpn.ru"

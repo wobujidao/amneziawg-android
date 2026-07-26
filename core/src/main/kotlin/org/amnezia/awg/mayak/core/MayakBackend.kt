@@ -150,6 +150,14 @@ class MayakBackend(
             json.decodeFromString(RuDirectList.serializer(), resp)
         }.getOrNull()
 
+    /** Адреса ядра из реестра доменов: публичный /v1/client/hosts, БЕЗ токена (список нужен и до входа,
+     *  и когда основной домен уже не отвечает). Любая ошибка → null: у клиента остаётся прежний список. */
+    suspend fun hosts(): HostList? =
+        runCatching {
+            val resp = call("GET", "/v1/client/hosts", token = null, body = null)
+            json.decodeFromString(HostList.serializer(), resp)
+        }.getOrNull()
+
     /** Пресеты split-туннеля (SPEC-0028): системные + пользователя (авторизованный). */
     suspend fun listPresets(token: String): List<Preset> {
         val resp = call("GET", "/v1/client/presets", token = token, body = null)
