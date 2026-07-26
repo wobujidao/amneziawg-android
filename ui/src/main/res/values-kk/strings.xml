@@ -4,6 +4,7 @@
     <string name="mayak_login_hint">Логин</string>
     <string name="mayak_password_hint">Құпиясөз</string>
     <string name="mayak_sign_in">Кіру</string>
+    <string name="mayak_other_ways">Кірудің басқа жолдары</string>
     <string name="mayak_scan_qr">QR-кодты сканерлеу</string>
     <string name="mayak_paste_link">Тіркеу сілтемесін қою</string>
     <string name="mayak_paste_link_title">Тіркеу сілтемесі</string>

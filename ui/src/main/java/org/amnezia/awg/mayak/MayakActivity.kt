@@ -366,6 +366,15 @@ class MayakActivity : AppCompatActivity() {
         }
         // Регистрация и личный кабинет — в вебе (там же подтверждение email).
         findViewById<MaterialButton>(R.id.mayak_register).setOnClickListener { openUrl(MayakHostList.cabinetUrl(this)) }
+        // «Другие способы входа» раскрывает QR и регистрационную ссылку — сценарий аккаунтов,
+        // заведённых админом или ботом-магазином. Сама строка после раскрытия не нужна: свернуть
+        // обратно незачем, а вторая одинаковая надпись сбивает.
+        val otherWays = findViewById<MaterialButton>(R.id.mayak_other_ways)
+        val otherWaysBox = findViewById<android.view.View>(R.id.mayak_other_ways_box)
+        otherWays.setOnClickListener {
+            otherWaysBox.visibility = android.view.View.VISIBLE
+            otherWays.visibility = android.view.View.GONE
+        }
         findViewById<MaterialButton>(R.id.mayak_scan_qr).setOnClickListener {
             scanQr.launch(ScanOptions().setOrientationLocked(false).setBeepEnabled(false))
         }

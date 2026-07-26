@@ -4,6 +4,7 @@
     <string name="mayak_login_hint">Login</string>
     <string name="mayak_password_hint">Parol</string>
     <string name="mayak_sign_in">Kirish</string>
+    <string name="mayak_other_ways">Kirishning boshqa usullari</string>
     <string name="mayak_scan_qr">QR-kodni skanerlash</string>
     <string name="mayak_paste_link">Roʻyxatdan oʻtish havolasini joylash</string>
     <string name="mayak_paste_link_title">Roʻyxatdan oʻtish havolasi</string>

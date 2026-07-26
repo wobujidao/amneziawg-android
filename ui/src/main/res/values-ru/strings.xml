@@ -296,6 +296,7 @@
     <string name="mayak_reset_doing">Меняем пароль…</string>
     <string name="mayak_reset_done">Пароль изменён — войдите с новым паролем.</string>
     <string name="mayak_reset_bad">Неверный/просроченный код или слишком слабый пароль.</string>
+    <string name="mayak_other_ways">Другие способы входа</string>
     <string name="mayak_scan_qr">Сканировать QR-код</string>
     <string name="mayak_paste_link">Вставить регистрационную ссылку</string>
     <string name="mayak_paste_link_title">Регистрационная ссылка</string>
@@ -452,7 +453,7 @@
     <string name="mayak_settings_account_none">вход не выполнен</string>
     <string name="mayak_ipv6_badge">IPv6</string>
     <string name="mayak_settings_diagnostics">Диагностика и помощь</string>
-    <string name="mayak_settings_diag_hint">Если что-то не работает — отправь нам лог, по нему мы быстро найдём причину. Данные обрабатываются согласно политике конфиденциальности.</string>
+    <string name="mayak_settings_diag_hint">Если что-то не работает — отправьте нам лог, по нему мы быстро найдём причину. Данные обрабатываются согласно политике конфиденциальности.</string>
     <string name="mayak_settings_send_log">Отправить лог</string>
     <string name="mayak_settings_logs_view">Посмотреть лог</string>
     <string name="mayak_settings_send_log_sending">Отправляю лог…</string>

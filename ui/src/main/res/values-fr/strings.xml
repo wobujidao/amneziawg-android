@@ -247,6 +247,7 @@
     <string name="mayak_login_hint">Identifiant</string>
     <string name="mayak_password_hint">Mot de passe</string>
     <string name="mayak_sign_in">Se connecter</string>
+    <string name="mayak_other_ways">Autres moyens de connexion</string>
     <string name="mayak_scan_qr">Scanner le QR-code</string>
     <string name="mayak_paste_link">Coller le lien d\'inscription</string>
     <string name="mayak_paste_link_title">Lien d\'inscription</string>

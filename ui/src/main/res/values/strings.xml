@@ -88,6 +88,7 @@
     <string name="mayak_reset_doing">Changing password…</string>
     <string name="mayak_reset_done">Password changed — sign in with the new one.</string>
     <string name="mayak_reset_bad">Invalid/expired code or password too weak.</string>
+    <string name="mayak_other_ways">Other ways to sign in</string>
     <string name="mayak_scan_qr">Scan QR code</string>
     <string name="mayak_paste_link">Paste registration link</string>
     <string name="mayak_paste_link_title">Registration link</string>

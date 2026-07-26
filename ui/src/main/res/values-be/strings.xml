@@ -4,6 +4,7 @@
     <string name="mayak_login_hint">Лагін</string>
     <string name="mayak_password_hint">Пароль</string>
     <string name="mayak_sign_in">Увайсці</string>
+    <string name="mayak_other_ways">Іншыя спосабы ўваходу</string>
     <string name="mayak_scan_qr">Сканаваць QR-код</string>
     <string name="mayak_paste_link">Уставіць рэгістрацыйную спасылку</string>
     <string name="mayak_paste_link_title">Рэгістрацыйная спасылка</string>
