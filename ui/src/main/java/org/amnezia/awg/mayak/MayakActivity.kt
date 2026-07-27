@@ -1458,8 +1458,12 @@ class MayakActivity : AppCompatActivity() {
         val local = MayakFallbackTransport.start(fb, bridgeIp) ?: return null // не пригоден/не поднялся — молча остаёмся ни с чем
         val up = runCatching { tunnel.up(prepareConf(org.amnezia.awg.mayak.core.ConfRenderer.withEndpoint(conf, local))) }
         if (up.isFailure) { MayakFallbackTransport.stop(); return null }
-        // По запасному каналу пир на сервере тот же, но путь длиннее (TCP+TLS+WS) — даём полный набор проб.
-        val ip = probeWithRetry()
+        // Подтверждение по запасному каналу — КОРОТКОЕ (FALLBACK_PROBE_ATTEMPTS), а не полный набор.
+        // Раньше здесь стоял полный (~34 с), и когда мост недостижим, человек смотрел на «Подключаюсь…»
+        // почти минуту: сначала UDP-фаза, потом ещё полминуты проб по мёртвому резерву (разбор 2026-07-27).
+        // Путь до моста короткий и наш: если за две пробы выход не подтвердился — он и не подтвердится,
+        // а честный отказ через 10 с полезнее молчания через 60.
+        val ip = probeWithRetry(attempts = FALLBACK_PROBE_ATTEMPTS)
         if (ip == null) { MayakFallbackTransport.stop(); return null }
         GoTunnel.connectedViaFallback = true
         return ip
@@ -2099,6 +2103,11 @@ class MayakActivity : AppCompatActivity() {
         // Сервер добавляет пира sync-таймером нод (теперь 5с, было 15с — перф-2026-07-07) → пробуем плотнее:
         // таймаут пробы 4с + пауза 2с ловят пир около t≈5с (было 8+4 → первый ретрай лишь t≈12с). 6 попыток.
         private const val PROBE_ATTEMPTS = 6
+
+        // Проб по ЗАПАСНОМУ каналу — меньше, чем по прямому пути. Прямому нужен запас на sync-таймер
+        // сервера (пир появляется до ~15 с), а к моменту переключения на резерв это время уже прошло:
+        // тут проверяется только сам мост, и он либо отвечает сразу, либо не отвечает вовсе.
+        private const val FALLBACK_PROBE_ATTEMPTS = 2
         private const val PROBE_DELAY_MS = 2_000L
         // v6-проба фоновая (не блокирует коннект, v4 уже подтверждён) → меньше попыток, чтобы не долбить
         // api6.ipify.org минуту, если IPv6 честно не работает. 4×(таймаут 8с + пауза 4с) ≈ до ~44с.

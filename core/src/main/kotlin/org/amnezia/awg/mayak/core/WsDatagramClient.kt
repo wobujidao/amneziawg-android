@@ -41,7 +41,13 @@ const val WS_MAX_MESSAGE = 64 * 1024
 class WsDatagramClient(
     private val url: String,
     private val token: String,
-    private val connectTimeoutMs: Int = 8_000,
+    // 3 с, а не 8. Это не микрооптимизация: запасной канал поднимается ТОЛЬКО когда человек уже
+    // сидит на экране «Подключаюсь…», а движок продолжает переспрашивать хендшейк — то есть каждая
+    // неудачная попытка ставится в очередь и складывается. Живой разбор 2026-07-27: мост был
+    // недостижим (ядро выдавало не тот адрес), и по 8 с на попытку набегала минута молчания вместо
+    // внятного отказа. До нашего же :443 из сотовой сети коннект укладывается в доли секунды —
+    // всё, что дольше трёх, это не «медленно», а «не туда».
+    private val connectTimeoutMs: Int = 3_000,
     private val openTcp: (host: String, port: Int, timeoutMs: Int) -> Socket = ::defaultOpenTcp,
     private val sslSocketFactory: SSLSocketFactory = SSLSocketFactory.getDefault() as SSLSocketFactory,
 ) : Closeable {
