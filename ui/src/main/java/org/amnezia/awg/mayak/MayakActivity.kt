@@ -1317,6 +1317,11 @@ class MayakActivity : AppCompatActivity() {
                 // пойти, а не «Ошибка ядра (409): достигнут лимит устройств тарифа».
                 when {
                     e is MayakApiException && e.status == 402 -> showAccessExpired()
+                    // Конфликт ключа устройства сессия чинит сама (перевыпуск пары + повтор). Если он
+                    // долетел СЮДА — повтор тоже не прошёл, и это точно не про лимит устройств:
+                    // молча показать «лимит» значило бы отправить человека чистить чужие слоты.
+                    e is MayakApiException && e.code == "pubkey_taken" ->
+                        fail(getString(R.string.mayak_err_device_key_conflict))
                     e is MayakApiException && e.status == 409 -> showDeviceLimit()
                     else -> fail(humanError(e))
                 }

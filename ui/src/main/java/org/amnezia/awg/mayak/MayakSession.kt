@@ -18,6 +18,7 @@ import org.amnezia.awg.mayak.core.DohResolver
 import org.amnezia.awg.mayak.core.HostProvider
 import org.amnezia.awg.mayak.core.HwidProvider
 import org.amnezia.awg.mayak.core.KeyProvider
+import org.amnezia.awg.mayak.core.MayakApiException
 import org.amnezia.awg.mayak.core.MayakBackend
 import org.amnezia.awg.mayak.core.SecureStore
 
@@ -189,8 +190,13 @@ class MayakSession(
     // Иначе DoH на главном потоке кидает NetworkOnMainThreadException (фича была мертва, фоллбэк на IP).
     suspend fun connect(backend: MayakBackend, direction: Direction): Paths = withContext(Dispatchers.IO) {
         val token = requireToken()
-        val priv = ensureKeys()
+        ensureKeys() // пара ключей должна существовать до регистрации устройства (она шлёт pubkey)
         val deviceId = ensureDevice(backend, token)
+        // Приватный ключ читаем ПОСЛЕ регистрации: она может перевыпустить пару (ключ оказался занят
+        // другим аккаунтом). Прочитанный раньше — старый, и .conf собрался бы на нём при том, что ядро
+        // знает уже НОВЫЙ публичный: туннель поднимется, а трафик никуда не пойдёт. Поймано живым
+        // проходом на эмуляторе 2026-07-27 («Туннель поднят, проверяю выход…» → «Не защищено»).
+        val priv = ensureKeys()
         // app_version — версия приложения «Маяк» (BuildConfig.VERSION_NAME). Заполняем на /connect, иначе
         // на ядре поле приходит пустым (2026-07-23). Не путать с версией движка AmneziaWG.
         val res = backend.connect(token, deviceId, direction.id, BuildConfig.VERSION_NAME)
@@ -356,9 +362,39 @@ class MayakSession(
             val resp = backend.registerDevice(token, pub, label = deviceName(), hwid = hwids.hwid())
             store.put(K_DEVICE, resp.deviceId.toString())
             resp.deviceId
+        } catch (e: MayakApiException) {
+            // Ключ этого телефона принадлежит ДРУГОМУ аккаунту: на аппарате сменился пользователь
+            // (ключ устройства при выходе намеренно сохраняется — это идентичность аппарата).
+            // Для нового аккаунта эта идентичность недоступна, и единственное осмысленное действие —
+            // завести новую пару ключей, как при чистой установке. Раньше ядро отдавало здесь голый
+            // 409, приложение считало его лимитом устройств и отправляло человека с НУЛЁМ устройств
+            // освобождать слоты (разбор 2026-07-27).
+            if (e.code == "pubkey_taken") {
+                val fresh = rotateDeviceKeys()
+                val resp = backend.registerDevice(token, fresh, label = deviceName(), hwid = hwids.hwid())
+                store.put(K_DEVICE, resp.deviceId.toString())
+                resp.deviceId
+            } else {
+                cached ?: throw e
+            }
         } catch (e: Exception) {
             cached ?: throw e
         }
+    }
+
+    /**
+     * Перевыпуск ключей устройства. Возвращает новый публичный ключ.
+     *
+     * Сохранённый конфиг обязателен к сбросу: он выписан на СТАРЫЙ приватный ключ и после смены пары
+     * поднимет туннель, который никуда не пропускает (молчаливое «подключено, но интернета нет»).
+     */
+    private fun rotateDeviceKeys(): String {
+        val km = keys.generate()
+        store.put(K_PRIV, km.privateKeyBase64)
+        store.put(K_PUB, km.publicKeyBase64)
+        store.remove(K_DEVICE)
+        store.remove(K_LAST_GOOD)
+        return km.publicKeyBase64
     }
 
     /** Человекочитаемое имя устройства для кабинета: «Производитель Модель · Android N»
