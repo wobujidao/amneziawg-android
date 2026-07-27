@@ -280,8 +280,9 @@
     <string name="mayak_err_email_not_verified">Подтвердите email на сайте.</string>
     <string name="mayak_err_bad_creds">Неверный email или пароль.</string>
     <string name="mayak_totp_hint">Код двухфакторной аутентификации</string>
-    <string name="mayak_totp_helper">Из приложения-аутентификатора или резервный код.</string>
-    <string name="mayak_totp_required">Пароль верный. Введите код двухфакторной аутентификации.</string>
+    <!-- Поле кода показывается ТОЛЬКО после ответа ядра «нужен код», поэтому подпись под ним отвечает
+         сразу на два вопроса: почему вход не прошёл (пароль-то верный) и где взять код. -->
+    <string name="mayak_totp_helper">Пароль верный — нужен код из приложения-аутентификатора (или резервный).</string>
     <string name="mayak_err_totp_invalid">Неверный код. Попробуйте ещё раз.</string>
     <string name="mayak_open_cabinet">Открыть кабинет</string>
     <string name="mayak_password_hint">Пароль</string>

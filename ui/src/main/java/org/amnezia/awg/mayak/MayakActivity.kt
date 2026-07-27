@@ -562,7 +562,9 @@ class MayakActivity : AppCompatActivity() {
         row.visibility = View.VISIBLE
         row.error = null
         findViewById<TextInputEditText>(R.id.mayak_totp)?.requestFocus()
-        setStatus(getString(R.string.mayak_totp_required))
+        // Toast'ом не мельтешим (правка владельца про промежуточные попапы): объяснение стоит подписью
+        // под самим полем, где его видно всегда, а строку статуса чистим от «Вхожу…».
+        setStatus("")
     }
 
     /** Код отклонён: чистим поле (иначе человек жмёт «Войти» с тем же протухшим кодом) и говорим прямо. */
