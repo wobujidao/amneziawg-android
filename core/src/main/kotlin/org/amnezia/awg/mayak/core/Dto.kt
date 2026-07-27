@@ -9,10 +9,15 @@ package org.amnezia.awg.mayak.core
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
+/**
+ * Вход. `totpCode` — код двухфакторной аутентификации ЛИБО резервный код; пустая строка = не слали
+ * (ядро в этом случае при включённой 2FA ответит 401 `totp_required`, и экран входа спросит код).
+ */
 @Serializable
 data class LoginRequest(
     val email: String,
     val password: String,
+    @SerialName("totp_code") val totpCode: String = "",
 )
 
 @Serializable
@@ -167,10 +172,18 @@ data class Obfuscation(
     val i5: String = "",
 )
 
-/** Тело ошибки ядра: {"error":"..."} (writeErr в clientapi). */
+/**
+ * Тело ошибки ядра: {"error":"...","code":"..."} (writeErr в clientapi).
+ *
+ * `code` — МАШИННЫЙ признак причины (`totp_required`, `email_not_verified`, …). Раньше его тут не
+ * было, и клиент различал причины только по русскому тексту — то есть не различал: любой 401 шёл в
+ * «Неверный email или пароль». Для человека с включённой 2FA это было прямой ложью (пароль верен),
+ * см. разбор 2026-07-27. Текст показываем, решения принимаем по `code`.
+ */
 @Serializable
 data class ApiError(
     val error: String = "",
+    val code: String = "",
 )
 
 /**

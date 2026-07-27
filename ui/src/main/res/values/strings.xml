@@ -71,6 +71,10 @@
     <string name="mayak_consent_note">By signing in you accept the Privacy Policy and Terms of Use.</string>
     <string name="mayak_err_email_not_verified">Please verify your email on the website.</string>
     <string name="mayak_err_bad_creds">Wrong email or password.</string>
+    <string name="mayak_totp_hint">Two-factor code</string>
+    <string name="mayak_totp_helper">From your authenticator app, or a recovery code.</string>
+    <string name="mayak_totp_required">Your password is correct. Enter the two-factor code.</string>
+    <string name="mayak_err_totp_invalid">Wrong code. Try again.</string>
     <string name="mayak_open_cabinet">Open cabinet</string>
     <string name="mayak_password_hint">Password</string>
     <string name="mayak_sign_in">Sign in</string>

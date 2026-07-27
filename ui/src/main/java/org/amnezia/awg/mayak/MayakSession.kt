@@ -119,9 +119,9 @@ class MayakSession(
         // ключи устройства оставляем — это идентичность устройства; токен/девайс перезаведём при логине
     }
 
-    /** Логин по email: получаем токен и кладём в защищённое хранилище. */
-    suspend fun login(backend: MayakBackend, email: String, password: String) {
-        val resp = backend.login(email, password)
+    /** Логин по email: получаем токен и кладём в защищённое хранилище. totpCode — код 2FA, если запрошен. */
+    suspend fun login(backend: MayakBackend, email: String, password: String, totpCode: String = "") {
+        val resp = backend.login(email, password, totpCode)
         store.put(K_TOKEN, resp.token)
         store.put(K_EMAIL, email.trim()) // показываем в Настройках, под кем вошли
         invalidateDirections() // смена логина → кэш направлений прошлого пользователя неактуален

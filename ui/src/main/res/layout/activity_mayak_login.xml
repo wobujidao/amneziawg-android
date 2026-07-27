@@ -135,6 +135,31 @@
                             android:maxLines="1" />
                     </com.google.android.material.textfield.TextInputLayout>
 
+                    <!-- Код двухфакторной аутентификации. Скрыт, пока ядро не ответит totp_required:
+                         у подавляющего большинства 2FA выключена, и лишнее поле на первом экране их
+                         бы только пугало. Показываем ровно тогда, когда пароль уже принят и не хватает
+                         только кода (та же одно-запросная модель, что в кабинете). -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/mayak_totp_layout"
+                        style="@style/Mayak.TextInput"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/mayak_space_4"
+                        android:visibility="gone"
+                        app:helperTextEnabled="true"
+                        app:helperText="@string/mayak_totp_helper"
+                        android:hint="@string/mayak_totp_hint">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/mayak_totp"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="text"
+                            android:autofillHints="smsOTPCode"
+                            android:imeOptions="actionDone"
+                            android:maxLines="1" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/mayak_sign_in"
                         style="@style/Mayak.Button.Primary"

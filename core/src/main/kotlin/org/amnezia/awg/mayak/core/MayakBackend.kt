@@ -11,8 +11,25 @@ import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 
-/** Ошибка вызова API: HTTP-код + сообщение (из тела {"error":...}, если ядро его прислало). */
-class MayakApiException(val status: Int, message: String) : IOException(message)
+/**
+ * Ошибка вызова API: HTTP-код + сообщение (из тела {"error":...}, если ядро его прислало).
+ *
+ * `code` — машинный признак причины из того же тела (`totp_required`, `email_not_verified`, …) или
+ * пустая строка, если ядро его не прислало. Ветвиться нужно ПО НЕМУ: по одному лишь HTTP-коду
+ * «нужен код 2FA» неотличим от «неверный пароль», и экран входа показывал человеку ложь про пароль.
+ */
+class MayakApiException(val status: Int, message: String, val code: String = "") : IOException(message)
+
+/**
+ * Разбор тела ошибки ядра в исключение. Вынесено из doRequest отдельной функцией, чтобы решение
+ * «что клиент понял из ответа» можно было проверить тестом без сети и TLS (doRequest ходит только
+ * по https, поднять его в юнит-тесте нечем).
+ */
+internal fun apiError(status: Int, body: String, json: Json): MayakApiException {
+    val parsed = runCatching { json.decodeFromString(ApiError.serializer(), body) }.getOrNull()
+    val msg = parsed?.error?.takeIf { it.isNotBlank() } ?: "HTTP $status"
+    return MayakApiException(status, msg, parsed?.code.orEmpty())
+}
 
 /** Все резервные домены недоступны (фейловер исчерпан). */
 class NoReachableHostException(message: String) : IOException(message)
@@ -63,9 +80,16 @@ class MayakBackend(
      * Вход по email (новая email-авторизация ядра). POST /v1/auth/login {email,password} → {token}.
      * 403 email_not_verified / 401 неверные данные приходят как MayakApiException (фейловера нет —
      * это ответ ядра). Регистрация и подтверждение email — в веб-кабинете.
+     *
+     * totpCode — код двухфакторной аутентификации или резервный код, если 2FA включена. При пустом
+     * коде и включённой 2FA ядро отвечает 401 с code=`totp_required`: это не ошибка пароля, а просьба
+     * спросить код и повторить вход (одно-запросная модель, как в кабинете).
      */
-    suspend fun login(email: String, password: String): LoginResponse {
-        val body = json.encodeToString(LoginRequest.serializer(), LoginRequest(email, password))
+    suspend fun login(email: String, password: String, totpCode: String = ""): LoginResponse {
+        val body = json.encodeToString(
+            LoginRequest.serializer(),
+            LoginRequest(email, password, totpCode.trim()),
+        )
         val resp = call("POST", "/v1/auth/login", token = null, body = body)
         return json.decodeFromString(LoginResponse.serializer(), resp)
     }
@@ -249,9 +273,7 @@ class MayakBackend(
             val stream = if (code in 200..299) conn.inputStream else (conn.errorStream ?: conn.inputStream)
             val text = stream.use { it.readBytes().toString(Charsets.UTF_8) }
             if (code !in 200..299) {
-                val msg = runCatching { json.decodeFromString(ApiError.serializer(), text).error }
-                    .getOrNull()?.takeIf { it.isNotBlank() } ?: "HTTP $code"
-                throw MayakApiException(code, msg)
+                throw apiError(code, text, json)
             }
             return text
         } finally {

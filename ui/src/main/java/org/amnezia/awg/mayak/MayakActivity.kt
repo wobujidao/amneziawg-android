@@ -348,6 +348,9 @@ class MayakActivity : AppCompatActivity() {
         emailField.doAfterTextChanged { loginLayout.error = null }
         passField.doAfterTextChanged { passwordLayout.error = null }
 
+        findViewById<TextInputEditText>(R.id.mayak_totp)?.doAfterTextChanged {
+            findViewById<TextInputLayout>(R.id.mayak_totp_layout)?.error = null
+        }
         findViewById<MaterialButton>(R.id.mayak_sign_in).setOnClickListener {
             val email = emailField.text?.toString()?.trim().orEmpty()
             val pass = passField.text?.toString().orEmpty()
@@ -359,7 +362,8 @@ class MayakActivity : AppCompatActivity() {
                 shake(target)
                 return@setOnClickListener
             }
-            doSignIn(email, pass)
+            // Код 2FA отправляем, только если поле уже показано (его раскрывает ответ ядра totp_required).
+            doSignIn(email, pass, totpCode = visibleTotpCode())
         }
         findViewById<MaterialButton>(R.id.mayak_forgot_password).setOnClickListener {
             showForgotPasswordDialog(emailField.text?.toString()?.trim().orEmpty())
@@ -510,24 +514,74 @@ class MayakActivity : AppCompatActivity() {
         }
     }
 
-    /** Вход по email. serverOverride (из рег-ссылки) сохраняем как приоритетный адрес ядра. */
-    private fun doSignIn(email: String, password: String, serverOverride: String? = null) {
+    /** Код 2FA из поля — только если поле показано. Скрытое поле кода считаем незаполненным. */
+    private fun visibleTotpCode(): String {
+        val row = findViewById<TextInputLayout>(R.id.mayak_totp_layout) ?: return ""
+        if (row.visibility != View.VISIBLE) return ""
+        return findViewById<TextInputEditText>(R.id.mayak_totp)?.text?.toString()?.trim().orEmpty()
+    }
+
+    /**
+     * Вход по email. serverOverride (из рег-ссылки) сохраняем как приоритетный адрес ядра.
+     *
+     * Про 2FA. Ветвимся по МАШИННОМУ признаку из тела ответа, а не по HTTP-коду: 401 может значить и
+     * «неверный пароль», и «пароль верен, нужен код». Пока их не различали, включивший 2FA в кабинете
+     * видел в приложении «Неверный email или пароль» — ложь, которая уводила его сбрасывать
+     * заведомо верный пароль (разбор 2026-07-27).
+     */
+    private fun doSignIn(
+        email: String,
+        password: String,
+        serverOverride: String? = null,
+        totpCode: String = "",
+    ) {
         if (serverOverride != null) store.put(KEY_SERVER, serverOverride)
         backend = MayakBackend(hostProvider())
         setStatus(getString(R.string.mayak_status_signing_in))
         lifecycleScope.launch {
             try {
-                session.login(backend!!, email, password)
+                session.login(backend!!, email, password, totpCode)
+                hideTotpField()
                 showHome(); loadDirections(forceRefresh = true)
                 refreshRuDirect() // OTA-подтяжка РФ-списка split-туннеля после входа
             } catch (e: MayakApiException) {
-                when (e.status) {
-                    403 -> showEmailNotVerified()
-                    401 -> showLoginError(getString(R.string.mayak_err_bad_creds))
+                when {
+                    e.status == 403 -> showEmailNotVerified()
+                    e.code == "totp_required" -> askTotpCode()
+                    e.code == "totp_invalid" -> showTotpError()
+                    e.status == 401 -> showLoginError(getString(R.string.mayak_err_bad_creds))
                     else -> showLoginError(humanError(e))
                 }
             } catch (e: Exception) { showLoginError(humanError(e)) }
         }
+    }
+
+    /** Пароль принят, не хватает кода: раскрываем поле и ставим в него фокус. Про пароль не ругаемся. */
+    private fun askTotpCode() = runOnUiThread {
+        val row = findViewById<TextInputLayout>(R.id.mayak_totp_layout) ?: return@runOnUiThread
+        row.visibility = View.VISIBLE
+        row.error = null
+        findViewById<TextInputEditText>(R.id.mayak_totp)?.requestFocus()
+        setStatus(getString(R.string.mayak_totp_required))
+    }
+
+    /** Код отклонён: чистим поле (иначе человек жмёт «Войти» с тем же протухшим кодом) и говорим прямо. */
+    private fun showTotpError() = runOnUiThread {
+        val row = findViewById<TextInputLayout>(R.id.mayak_totp_layout) ?: return@runOnUiThread
+        row.visibility = View.VISIBLE
+        findViewById<TextInputEditText>(R.id.mayak_totp)?.setText("")
+        row.error = getString(R.string.mayak_err_totp_invalid)
+        shake(row)
+        setStatus("")
+    }
+
+    /** После успешного входа поле кода не должно остаться на экране (например, при повторном выходе). */
+    private fun hideTotpField() = runOnUiThread {
+        findViewById<TextInputLayout>(R.id.mayak_totp_layout)?.let {
+            it.error = null
+            it.visibility = View.GONE
+        }
+        findViewById<TextInputEditText>(R.id.mayak_totp)?.setText("")
     }
 
     /** Ошибка входа: красная подпись под полем пароля + короткая встряска. Раньше текст уходил в серую
