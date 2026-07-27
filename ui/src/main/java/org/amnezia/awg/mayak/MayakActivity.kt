@@ -161,6 +161,11 @@ class MayakActivity : AppCompatActivity() {
             refreshHosts()    // адреса ядра и кабинета из реестра доменов (в фоне, best-effort)
         } else {
             showLogin()
+            // Пришли сюда из-за отозванного входа (см. sessionExpired) — объясняем, а не молчим.
+            if (intent?.getBooleanExtra(EXTRA_SESSION_EXPIRED, false) == true) {
+                setStatus(getString(R.string.mayak_session_expired))
+                Toast.makeText(this, R.string.mayak_session_expired, Toast.LENGTH_LONG).show()
+            }
         }
     }
 
@@ -514,6 +519,37 @@ class MayakActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Сессия закончилась: 401 на ручке, куда мы ходили С токеном. Значит вход отозван — обычно
+     * потому, что человек сменил пароль в кабинете (сброс гасит все сессии в той же транзакции).
+     *
+     * Раньше это показывалось как «Ошибка ядра (401): требуется авторизация» — строка, из которой
+     * человеку непонятно ни что случилось, ни что делать. Приложение при этом выглядело как вошедшее,
+     * но не работало ничего, а кнопки «войти заново» на экране нет: выход спрятан в самом низу
+     * настроек. То есть каждый, кто сбросил пароль на сайте, попадал в тупик (разбор 2026-07-27).
+     *
+     * Гасим туннель, чистим сессию и возвращаем на вход с человеческим объяснением.
+     *
+     * ПЕРЕЗАПУСКАЕМ точку входа, а не просто рисуем экран логина: часть состояния живёт в процессе
+     * (список направлений, кэш конфигов, флаги «уже загружали»). Показ экрана логина поверх живого
+     * процесса оставлял их от прошлого пользователя, и после повторного входа список стран не
+     * перерисовывался — экран навсегда застревал на «Загрузка стран…». Тот же приём, что у обычного
+     * выхода из настроек (поймано живым проходом 2026-07-27).
+     */
+    private fun sessionExpired() {
+        if (sessionExpiredHandled) return // 401 может прилететь из нескольких запросов сразу
+        sessionExpiredHandled = true
+        lifecycleScope.launch {
+            runCatching { tunnel.down() }
+            session.logout()
+            val intent = Intent(this@MayakActivity, MayakActivity::class.java)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                .putExtra(EXTRA_SESSION_EXPIRED, true)
+            startActivity(intent)
+            finish()
+        }
+    }
+
     /** Код 2FA из поля — только если поле показано. Скрытое поле кода считаем незаполненным. */
     private fun visibleTotpCode(): String {
         val row = findViewById<TextInputLayout>(R.id.mayak_totp_layout) ?: return ""
@@ -541,6 +577,7 @@ class MayakActivity : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 session.login(backend!!, email, password, totpCode)
+                sessionExpiredHandled = false // новый вход — следующий отзыв снова должен сработать
                 hideTotpField()
                 showHome(); loadDirections(forceRefresh = true)
                 refreshRuDirect() // OTA-подтяжка РФ-списка split-туннеля после входа
@@ -945,7 +982,11 @@ class MayakActivity : AppCompatActivity() {
                     }
                 }
             } catch (e: Exception) {
-                if (directions.isEmpty()) setStatus(humanError(e))
+                // Отозванный вход виден и здесь (список стран запрашивается с токеном). Показать
+                // «Ошибка ядра (401)» и оставить человека на экране, где всё мертво, — тупик:
+                // уводим на вход так же, как в коннекте.
+                if (e is MayakApiException && e.status == 401) sessionExpired()
+                else if (directions.isEmpty()) setStatus(humanError(e))
             }
         }
     }
@@ -1316,6 +1357,7 @@ class MayakActivity : AppCompatActivity() {
                 // закончился и все места под устройства заняты. Человеку нужен понятный текст и куда
                 // пойти, а не «Ошибка ядра (409): достигнут лимит устройств тарифа».
                 when {
+                    e is MayakApiException && e.status == 401 -> sessionExpired()
                     e is MayakApiException && e.status == 402 -> showAccessExpired()
                     // Конфликт ключа устройства сессия чинит сама (перевыпуск пары + повтор). Если он
                     // долетел СЮДА — повтор тоже не прошёл, и это точно не про лимит устройств:
@@ -2038,5 +2080,11 @@ class MayakActivity : AppCompatActivity() {
         // подхватываются перезапуском приложения ИЛИ кнопкой «Обновить» (forceRefresh) — она для этого и есть.
         // Флаг ставим только на УСПЕХ: если холодный старт не достучался — следующий вход/пересоздание повторит.
         @Volatile private var directionsFetchedThisProcess = false
+
+        /** Точку входа перезапустили из-за отозванного входа — на экране логина объясним, почему. */
+        private const val EXTRA_SESSION_EXPIRED = "mayak_session_expired"
+
+        /** Один отзыв входа — один перезапуск: 401 может прилететь сразу из нескольких запросов. */
+        @Volatile private var sessionExpiredHandled = false
     }
 }
