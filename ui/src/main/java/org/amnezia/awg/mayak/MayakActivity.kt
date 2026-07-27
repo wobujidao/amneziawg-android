@@ -1833,6 +1833,7 @@ class MayakActivity : AppCompatActivity() {
         if (host == null) { pingView?.visibility = View.GONE; return }
         pingView?.visibility = View.VISIBLE
         pingJob = lifecycleScope.launch {
+            var misses = 0
             while (isActive) {
                 val ms = MayakPing.ping(host)
                 GoTunnel.connectedPingMs = ms
@@ -1840,6 +1841,23 @@ class MayakActivity : AppCompatActivity() {
                 pingView?.apply {
                     text = getString(R.string.mayak_ping_label, shown)
                     setTextColor(pingColor(shown))
+                }
+                // Туннель поднят, а трафик через него не идёт — это самый неприятный из возможных
+                // исходов: у человека НЕТ интернета вообще (всё уходит в туннель), а приложение
+                // спокойно говорит «Защищено». Так бывает, например, если устройство удалили в
+                // кабинете: пир снимается с ноды за секунды, туннель остаётся поднятым (проверено
+                // вживую 2026-07-27 — «Защищено», «Пинг: 0 мс», интернета нет).
+                // Молчать про это нельзя. Сразу рвать тоже плохо: короткий провал бывает на мобильной
+                // сети, а обрыв туннеля отправил бы трафик в открытую сеть. Поэтому: несколько
+                // подряд неудач → честный статус и предложение переподключиться, туннель не трогаем.
+                if (ms == null) misses++ else misses = 0
+                if (connState == ConnState.CONNECTED) {
+                    if (misses >= PING_MISSES_TO_WARN) setStatus(getString(R.string.mayak_status_no_traffic))
+                    else if (misses == 0 && ::status.isInitialized &&
+                        status.text == getString(R.string.mayak_status_no_traffic)
+                    ) {
+                        setStatus(getString(R.string.mayak_connected)) // трафик вернулся сам
+                    }
                 }
                 // Когда включена скорость — уведомление ведёт SpeedNotifier (пинг+скорость, живёт при сворачивании).
                 if (!MayakPrefs.showSpeed(this@MayakActivity)) MayakNotification.show(this@MayakActivity, GoTunnel.connectedLabel, shown)
@@ -2062,6 +2080,10 @@ class MayakActivity : AppCompatActivity() {
 
         // Период пинга сервера текущего подключения (обновление показателя на главном экране).
         private const val PING_INTERVAL_MS = 5_000L
+
+        /** Сколько подряд пропущенных пингов считаем «трафик не идёт» (4 × 5с = ~20с). Меньше —
+         *  ловили бы обычные провалы мобильной сети и пугали зря. */
+        private const val PING_MISSES_TO_WARN = 4
         private const val SPEED_INTERVAL_MS = 1_000L
 
 

@@ -76,6 +76,7 @@
     <string name="mayak_err_totp_invalid">Wrong code. Try again.</string>
     <string name="mayak_err_device_key_conflict">This device key belongs to another account and could not be reissued. Try again or contact support.</string>
     <string name="mayak_session_expired">Your session has expired — please sign in again. This usually happens after a password change.</string>
+    <string name="mayak_status_no_traffic">Tunnel is up but no traffic is passing — please reconnect.</string>
     <string name="mayak_open_cabinet">Open cabinet</string>
     <string name="mayak_password_hint">Password</string>
     <string name="mayak_sign_in">Sign in</string>
