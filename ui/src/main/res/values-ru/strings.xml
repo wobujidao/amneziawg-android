@@ -287,6 +287,7 @@
     <string name="mayak_err_device_key_conflict">Ключ этого устройства занят другим аккаунтом, и перевыпустить его не удалось. Попробуйте ещё раз или напишите в поддержку.</string>
     <string name="mayak_session_expired">Вход устарел — войдите заново. Обычно это бывает после смены пароля.</string>
     <string name="mayak_status_no_traffic">Соединение есть, а трафик не идёт — переподключитесь.</string>
+    <string name="mayak_err_account_blocked">Аккаунт заблокирован. Напишите в поддержку: support@mayakvpn.ru</string>
     <string name="mayak_open_cabinet">Открыть кабинет</string>
     <string name="mayak_password_hint">Пароль</string>
     <string name="mayak_sign_in">Войти</string>
