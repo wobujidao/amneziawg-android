@@ -39,3 +39,23 @@ class FallbackDecisionTest {
         assertTrue(FallbackDecision.NO_EGRESS_MS < 20_000)
     }
 }
+
+// msLeft — остаток до порога: им ограничивают пробу, иначе порог фикция (проба на мёртвом туннеле
+// спотыкается о DNS и возвращается через десятки секунд — разбор 2026-07-27).
+class FallbackDecisionMsLeftTest {
+    @org.junit.Test
+    fun `остаток считается от нужного порога`() {
+        org.junit.Assert.assertEquals(6_000L, FallbackDecision.msLeft(0, false))
+        org.junit.Assert.assertEquals(10_000L, FallbackDecision.msLeft(0, true))
+        org.junit.Assert.assertEquals(1_000L, FallbackDecision.msLeft(5_000, false))
+        org.junit.Assert.assertEquals(4_000L, FallbackDecision.msLeft(6_000, true))
+    }
+
+    @org.junit.Test
+    fun `порог пройден — остаток положительный, но минимальный`() {
+        // Ноль или минус в withTimeoutOrNull означал бы «не ждать вовсе»: проба не успевала бы даже
+        // начаться, а решение всё равно принимается снаружи по shouldSwitch.
+        org.junit.Assert.assertEquals(1L, FallbackDecision.msLeft(6_000, false))
+        org.junit.Assert.assertEquals(1L, FallbackDecision.msLeft(99_000, true))
+    }
+}

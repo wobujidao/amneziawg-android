@@ -31,4 +31,15 @@ object FallbackDecision {
      */
     fun shouldSwitch(elapsedMs: Long, hasHandshake: Boolean): Boolean =
         elapsedMs >= if (hasHandshake) NO_EGRESS_MS else NO_HANDSHAKE_MS
+
+    /**
+     * Сколько ещё МОЖНО ждать до переключения (мс, не меньше 1).
+     *
+     * Нужен, чтобы порог был настоящим: проба egress ходит в сеть через туннель, который как раз не
+     * работает, и её собственный таймаут порогов не знает — при мёртвом DNS один вызов занимал ~37 с
+     * (живой разбор 2026-07-27). Вызывающий ограничивает пробу этим остатком, и решение принимается
+     * ровно тогда, когда обещано.
+     */
+    fun msLeft(elapsedMs: Long, hasHandshake: Boolean): Long =
+        ((if (hasHandshake) NO_EGRESS_MS else NO_HANDSHAKE_MS) - elapsedMs).coerceAtLeast(1L)
 }

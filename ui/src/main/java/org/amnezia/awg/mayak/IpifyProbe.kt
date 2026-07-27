@@ -40,15 +40,41 @@ class IpifyProbe(
             // Отдельно резолвим хост: если вернулись адреса (в т.ч. IPv6) — DNS ОК, значит спотыкается
             // маршрут/выход; если резолв провалился — проблема в DNS (не отдал AAAA/недоступен через туннель).
             val host = runCatching { URL(url).host }.getOrDefault(url)
-            val resolved = runCatching {
-                java.net.InetAddress.getAllByName(host).joinToString(",") { it.hostAddress ?: "?" }
-            }.getOrElse { "резолв провал: ${it.javaClass.simpleName}" }
+            val resolved = resolveForLog(host)
             Log.i(PROBE_TAG, "проба $url ПРОВАЛ: ${e.javaClass.simpleName}: ${e.message}; DNS($host)=$resolved")
             null
         }
     }
 
+    /**
+     * Резолв ХОСТА РАДИ СТРОЧКИ В ЛОГЕ — с жёстким потолком в секунду.
+     *
+     * Раньше здесь стоял голый `getAllByName`, и на мёртвом туннеле он сам ждал системный резолвер
+     * (тот уходит В туннель и перебирает серверы) — диагностика добавляла к КАЖДОЙ провалившейся
+     * пробе ещё десятки секунд. Разбор 2026-07-27: один вызов externalIp() занимал ~37 с, из них
+     * бо́льшая часть — вот это. Диагностика не имеет права быть дороже того, что диагностирует.
+     *
+     * Поток демонский и брошенный: если резолвер ответит позже, результат просто никому не нужен.
+     */
+    private fun resolveForLog(host: String): String {
+        val out = java.util.concurrent.atomic.AtomicReference("резолв не ответил за ${RESOLVE_LOG_MS}мс")
+        val t = Thread {
+            out.set(
+                runCatching {
+                    java.net.InetAddress.getAllByName(host).joinToString(",") { it.hostAddress ?: "?" }
+                }.getOrElse { "резолв провал: ${it.javaClass.simpleName}" },
+            )
+        }
+        t.isDaemon = true
+        t.start()
+        t.join(RESOLVE_LOG_MS)
+        return out.get()
+    }
+
     private companion object {
+        /** Потолок диагностического резолва: строка в логе не стоит секунды ожидания человека. */
+        const val RESOLVE_LOG_MS = 1_000L
+
         // Диагностика egress-пробы ОСТАВЛЕНА НАМЕРЕННО (решение владельца 2026-07-07): ~неск. строк/подключение,
         // без ПДн, полезно для дебага сети. Опционально позже — за скрытый тумблер «Диагностика». (docs/APP-BACKLOG.md)
         // Тег содержит «AmneziaWG» → DiagCollector.logcat включает эти строки в присланный лог.

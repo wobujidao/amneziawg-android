@@ -45,6 +45,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import org.amnezia.awg.BuildConfig
 import org.amnezia.awg.R
 import org.amnezia.awg.backend.GoBackend
@@ -1426,16 +1427,22 @@ class MayakActivity : AppCompatActivity() {
         if (fb == null || !fb.usable()) return probeWithRetry()
         val started = SystemClock.elapsedRealtime()
         while (true) {
-            val ip = probe.externalIp()
-            if (ip != null) return ip // UDP работает — запасной канал не нужен
-            // Хендшейк читаем из статистики движка (JNI) — не на главном потоке.
+            // Хендшейк читаем из статистики движка (JNI) — не на главном потоке. Читаем ДО пробы:
+            // от него зависит, сколько нам вообще осталось ждать.
             val handshake = withContext(Dispatchers.IO) { tunnel.hasHandshake() }
             val elapsed = SystemClock.elapsedRealtime() - started
             if (FallbackDecision.shouldSwitch(elapsed, handshake)) {
                 android.util.Log.i(PROBE_TAG, "UDP не пошёл за ${elapsed}мс (хендшейк=$handshake) → запасной канал")
                 return switchToFallback(conf, fb)
             }
-            delay(PROBE_DELAY_MS)
+            // Проба ограничена ОСТАТКОМ до порога, а не своим внутренним таймаутом. Иначе порог —
+            // фикция: при мёртвом туннеле проба спотыкается о DNS (системный резолвер уходит В туннель
+            // и перебирает серверы), один вызов занимал ~37 с, и решение принималось В ЧЕТЫРЕ РАЗА
+            // позже задуманных 10 с — человек столько смотрел на «Подключаюсь…» (разбор 2026-07-27).
+            val left = FallbackDecision.msLeft(elapsed, handshake)
+            val ip = withTimeoutOrNull(left) { probe.externalIp() }
+            if (ip != null) return ip // UDP работает — запасной канал не нужен
+            delay(minOf(PROBE_DELAY_MS, left))
         }
     }
 
