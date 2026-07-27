@@ -284,6 +284,7 @@
          сразу на два вопроса: почему вход не прошёл (пароль-то верный) и где взять код. -->
     <string name="mayak_totp_helper">Пароль верный — нужен код из приложения-аутентификатора (или резервный).</string>
     <string name="mayak_err_totp_invalid">Неверный код. Попробуйте ещё раз.</string>
+    <string name="mayak_err_totp_empty">Введите код двухфакторной аутентификации.</string>
     <string name="mayak_err_device_key_conflict">Ключ этого устройства занят другим аккаунтом, и перевыпустить его не удалось. Попробуйте ещё раз или напишите в поддержку.</string>
     <string name="mayak_session_expired">Вход устарел — войдите заново. Обычно это бывает после смены пароля.</string>
     <string name="mayak_status_no_traffic">Соединение есть, а трафик не идёт — переподключитесь.</string>

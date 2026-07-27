@@ -367,6 +367,14 @@ class MayakActivity : AppCompatActivity() {
                 shake(target)
                 return@setOnClickListener
             }
+            // Поле кода уже показано, но пустое — не шлём заведомо тот же запрос: ядро ответит
+            // «нужен код», экран перерисуется в то же состояние, и кнопка будет выглядеть мёртвой.
+            val totpRow = findViewById<TextInputLayout>(R.id.mayak_totp_layout)
+            if (totpRow != null && totpRow.visibility == View.VISIBLE && visibleTotpCode().isEmpty()) {
+                totpRow.error = getString(R.string.mayak_err_totp_empty)
+                shake(totpRow)
+                return@setOnClickListener
+            }
             // Код 2FA отправляем, только если поле уже показано (его раскрывает ответ ядра totp_required).
             doSignIn(email, pass, totpCode = visibleTotpCode())
         }
@@ -989,7 +997,7 @@ class MayakActivity : AppCompatActivity() {
                 // Отозванный вход виден и здесь (список стран запрашивается с токеном). Показать
                 // «Ошибка ядра (401)» и оставить человека на экране, где всё мертво, — тупик:
                 // уводим на вход так же, как в коннекте.
-                if (e is MayakApiException && e.status == 401) sessionExpired()
+                if (e is MayakApiException && e.code == "unauthorized") sessionExpired()
                 else if (directions.isEmpty()) setStatus(humanError(e))
             }
         }
@@ -1361,7 +1369,12 @@ class MayakActivity : AppCompatActivity() {
                 // закончился и все места под устройства заняты. Человеку нужен понятный текст и куда
                 // пойти, а не «Ошибка ядра (409): достигнут лимит устройств тарифа».
                 when {
-                    e is MayakApiException && e.status == 401 -> sessionExpired()
+                    // ТОЛЬКО по машинному признаку. По голому 401 выходить нельзя: ядро отвечало
+                    // им и на собственные сбои (например перезапуск базы) — тогда один блип разлогинил
+                    // бы всех, кто в этот момент открыл приложение, и погасил бы им туннели. Ядро
+                    // теперь отдаёт code=unauthorized только на реально отозванный вход, а на свои
+                    // беды — 5xx (разбор 2026-07-27). Без признака ведём себя как при обычной ошибке.
+                    e is MayakApiException && e.code == "unauthorized" -> sessionExpired()
                     e is MayakApiException && e.status == 402 -> showAccessExpired()
                     // Конфликт ключа устройства сессия чинит сама (перевыпуск пары + повтор). Если он
                     // долетел СЮДА — повтор тоже не прошёл, и это точно не про лимит устройств:
