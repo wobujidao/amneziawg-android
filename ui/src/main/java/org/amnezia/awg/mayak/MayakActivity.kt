@@ -548,8 +548,14 @@ class MayakActivity : AppCompatActivity() {
         if (sessionExpiredHandled) return // 401 может прилететь из нескольких запросов сразу
         sessionExpiredHandled = true
         lifecycleScope.launch {
+            // Гасим ИДУЩЕЕ подключение раньше туннеля: иначе живой bringUpPath поднимет его обратно
+            // уже после нашего down(), и туннель останется висеть над экраном входа — выключить его
+            // оттуда нечем, кнопки нет (найдено ревью 2026-07-27).
+            connectJob?.cancel()
+            connectJob = null
             runCatching { tunnel.down() }
             session.logout()
+            MayakPresets.clear(this@MayakActivity) // настройки прошлого аккаунта не наследуем
             val intent = Intent(this@MayakActivity, MayakActivity::class.java)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
                 .putExtra(EXTRA_SESSION_EXPIRED, true)
@@ -585,7 +591,13 @@ class MayakActivity : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 session.login(backend!!, email, password, totpCode)
+                // Новый аккаунт в ЖИВОМ процессе: сбрасываем флаги «уже сделали за этот процесс»,
+                // иначе вошедший вторым донашивает чужое — список РФ-приложений не перечитывается,
+                // а первое подключение идёт без предзагрузки (запрос к api рядом с хендшейком, чего
+                // специально избегаем). Перезапуск Activity эти флаги НЕ сбрасывает: они статические.
                 sessionExpiredHandled = false // новый вход — следующий отзыв снова должен сработать
+                ruDirectRefreshedThisProcess = false
+                homeWarmedThisProcess = false
                 hideTotpField()
                 showHome(); loadDirections(forceRefresh = true)
                 refreshRuDirect() // OTA-подтяжка РФ-списка split-туннеля после входа

@@ -499,6 +499,9 @@ class MayakSettingsActivity : AppCompatActivity() {
                 lifecycleScope.launch {
                     runCatching { tunnel.down() }
                     session.logout()
+                    // Пресеты сплит-туннеля принадлежат аккаунту: следующий вошедший на этом телефоне
+                    // не должен ни видеть, ни применять чужие правила (разбор 2026-07-27).
+                    MayakPresets.clear(this@MayakSettingsActivity)
                     // Перезапускаем точку входа — без токена покажется экран логина.
                     val intent = Intent(this@MayakSettingsActivity, MayakActivity::class.java)
                         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
