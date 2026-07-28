@@ -6,6 +6,7 @@ package org.amnezia.awg.mayak
 import android.content.Context
 import android.os.SystemClock
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.amnezia.awg.backend.Backend
 import org.amnezia.awg.backend.GoBackend
@@ -40,6 +41,14 @@ class GoTunnel(context: Context, tunnelName: String = "mayak") : MayakCoreTunnel
     companion object {
         // Тег диагностики конфига (содержит «AmneziaWG» → DiagCollector включает в присланный лог).
         private const val CFG_TAG = "AmneziaWG/mayak-cfg"
+
+        // Пауза между DOWN и UP: VpnService умирает асинхронно (в логе #67 — через 63 мс), и без
+        // паузы его onDestroy убивает уже поднятый нами туннель. Секунда с запасом.
+        private const val REBIND_SETTLE_MS = 1_200L
+
+        // Сколько ждём, прежде чем ПРОВЕРИТЬ, что туннель действительно стоит. Проверяем, а не верим:
+        // ровно на «поверил» и погорела первая версия.
+        private const val REBIND_VERIFY_MS = 1_500L
 
         @Volatile private var sharedBackend: Backend? = null
         @Volatile private var sharedTunnel: NamedTunnel? = null
@@ -181,14 +190,37 @@ class GoTunnel(context: Context, tunnelName: String = "mayak") : MayakCoreTunnel
             }
             val since = connectedSinceElapsed // сессию НЕ обнуляем: для человека это то же подключение
             android.util.Log.i(CFG_TAG, "смена сети: переподнимаю туннель тем же конфигом")
+            // ⚠️ ГОНКА, на которой первая версия этой починки провалилась (диаг-лог #67, 28-07).
+            // GoBackend.setState(DOWN) зовёт vpnService.stopSelf() — это АСИНХРОННО. Если сразу поднять
+            // туннель, приходит запоздалый VpnService.onDestroy, видит УЖЕ НОВЫЙ currentTunnel и глушит
+            // его: в логе туннель поднялся в 51.786 и был убит в 51.793, семь миллисекунд спустя.
+            // Итог был хуже, чем без починки: вместо мёртвого туннеля — отсутствующий.
+            // Поэтому ждём, пока служба реально доумрёт, и ПРОВЕРЯЕМ результат, а не верим ему.
+            val config = Config.parse(BufferedReader(StringReader(conf)))
             rebinding = true
             try {
                 runCatching { b.setState(t, Tunnel.State.DOWN, null) }
-                b.setState(t, Tunnel.State.UP, Config.parse(BufferedReader(StringReader(conf))))
+                delay(REBIND_SETTLE_MS)
+                runCatching { b.setState(t, Tunnel.State.UP, config) }
+                delay(REBIND_VERIFY_MS)
+                if (runCatching { b.getState(t) != Tunnel.State.UP }.getOrDefault(true)) {
+                    android.util.Log.w(CFG_TAG, "переподъём: туннель не удержался — пробую ещё раз")
+                    runCatching { b.setState(t, Tunnel.State.UP, config) }
+                    delay(REBIND_VERIFY_MS)
+                }
             } finally {
                 rebinding = false
             }
+            val ok = runCatching { b.getState(t) == Tunnel.State.UP }.getOrDefault(false)
+            if (!ok) {
+                // Не получилось — НЕ делаем вид, что всё хорошо. Пусть приложение честно покажет
+                // «отключено»: один тап человека лучше, чем значок «защищено» без интернета.
+                android.util.Log.w(CFG_TAG, "переподъём не удался — показываю честное «отключено»")
+                handleExternalDown()
+                return@withContext false
+            }
             connectedSinceElapsed = since ?: SystemClock.elapsedRealtime()
+            android.util.Log.i(CFG_TAG, "переподъём удался")
             true
         }
 
