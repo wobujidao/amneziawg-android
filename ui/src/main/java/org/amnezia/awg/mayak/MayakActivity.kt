@@ -1425,7 +1425,7 @@ class MayakActivity : AppCompatActivity() {
      * Поднимает UDP-плечо и доводит его до подтверждённого выхода. null — плечо не вышло в интернет.
      *
      * @param hasNextRung есть ли следующая ступень лестницы. Если есть — не досиживаем полный набор
-     * проб (~34с), а сдаёмся по порогам [FallbackDecision] (6с без хендшейка / 10с без выхода): пока
+     * проб (~34с), а сдаёмся по порогам [FallbackDecision] (6с без хендшейка / 10с ПОСЛЕ него): пока
      * человек смотрит на «Подключаюсь…», следующая ступень может уже работать. Если ступень
      * ПОСЛЕДНЯЯ — терпим до конца: сдаться некуда, а сервер добавляет пира ~15с (sync-таймер), и
      * ранний отказ здесь означал бы «не подключается» там, где надо было просто подождать.
@@ -1442,20 +1442,28 @@ class MayakActivity : AppCompatActivity() {
      */
     private suspend fun probeUntilThreshold(): String? {
         val started = SystemClock.elapsedRealtime()
+        // Момент ПЕРВОГО увиденного хендшейка. От него, а не от подъёма туннеля, отсчитывается время
+        // на подтверждение выхода: иначе медленное рукопожатие съедает бюджет пробы и мы бросаем
+        // рабочий путь (живой случай 2026-07-28, диаг-лог #63 — см. FallbackDecision).
+        var handshakeAt: Long? = null
         while (true) {
             // Хендшейк читаем из статистики движка (JNI) — не на главном потоке. Читаем ДО пробы:
             // от него зависит, сколько нам вообще осталось ждать.
             val handshake = withContext(Dispatchers.IO) { tunnel.hasHandshake() }
             val elapsed = SystemClock.elapsedRealtime() - started
-            if (FallbackDecision.shouldSwitch(elapsed, handshake)) {
-                android.util.Log.i(PROBE_TAG, "UDP не пошёл за ${elapsed}мс (хендшейк=$handshake) → следующая ступень")
+            if (handshake && handshakeAt == null) {
+                handshakeAt = elapsed
+                android.util.Log.i(PROBE_TAG, "рукопожатие за ${elapsed}мс — отсюда ${FallbackDecision.NO_EGRESS_MS}мс на проверку выхода")
+            }
+            if (FallbackDecision.shouldSwitch(elapsed, handshakeAt)) {
+                android.util.Log.i(PROBE_TAG, "UDP не пошёл за ${elapsed}мс (рукопожатие=$handshakeAt) → следующая ступень")
                 return null
             }
             // Проба ограничена ОСТАТКОМ до порога, а не своим внутренним таймаутом. Иначе порог —
             // фикция: при мёртвом туннеле проба спотыкается о DNS (системный резолвер уходит В туннель
             // и перебирает серверы), один вызов занимал ~37 с, и решение принималось В ЧЕТЫРЕ РАЗА
             // позже задуманных 10 с — человек столько смотрел на «Подключаюсь…» (разбор 2026-07-27).
-            val left = FallbackDecision.msLeft(elapsed, handshake)
+            val left = FallbackDecision.msLeft(elapsed, handshakeAt)
             val ip = withTimeoutOrNull(left) { probe.externalIp() }
             if (ip != null) return ip // UDP работает — запасной канал не нужен
             delay(minOf(PROBE_DELAY_MS, left))
