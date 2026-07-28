@@ -1350,25 +1350,43 @@ class MayakActivity : AppCompatActivity() {
                 if (direct == null && relay == null) {
                     fail(getString(R.string.mayak_status_no_egress)); return@launch
                 }
+                // Запасной канал (SPEC-0039) принадлежит плечу, но пробуется ПОСЛЕДНИМ (см. ниже),
+                // поэтому берём первый пригодный и держим рядом конфиг, к которому он относится.
+                val fb = paths.directFallback?.takeIf { it.usable() } ?: paths.relayFallback?.takeIf { it.usable() }
+                val fbConf = if (paths.directFallback?.usable() == true) direct else relay
 
-                // Прямой путь приоритетен. Сервер добавляет пира в течение ~15с (sync-таймер),
-                // поэтому пробу egress повторяем несколько раз, прежде чем сдаться.
-                if (direct != null) {
-                    GoTunnel.connectedServerHost = MayakPing.hostOf(paths.directEndpoint) // сервер для пинга
-                    val ip = bringUpPath(direct, paths.directFallback)
+                // ЛЕСТНИЦА ПОДКЛЮЧЕНИЯ (порядок задан владельцем 2026-07-28):
+                //   1. AWG напрямую к выходу;
+                //   2. AWG через российский вход (транзит РФ) — тот же выход, другой адрес входа;
+                //   3. запасной канал поверх :443.
+                // Раньше ступень 3 стояла ВНУТРИ каждого плеча, то есть мост пробовался РАНЬШЕ транзита.
+                // Это и было причиной жалобы: на МТС мост поднимался, но скорость на глазах падала до
+                // килобайт (внутри TCP едет UDP-туннель, потерю лечат оба слоя сразу), и человек
+                // оставался на заведомо худшем пути, хотя рабочий UDP-путь был рядом. Мост — последний
+                // вдох, а не транспорт: пока есть хоть один непроверенный UDP-путь, он ждёт.
+                if (!(fb != null && fbConf != null && MayakPrefs.forceFallback(this@MayakActivity))) {
+                    // Прямой путь приоритетен. Сервер добавляет пира в течение ~15с (sync-таймер),
+                    // поэтому на ПОСЛЕДНЕЙ ступени пробу egress повторяем несколько раз, прежде чем сдаться.
+                    if (direct != null) {
+                        GoTunnel.connectedServerHost = MayakPing.hostOf(paths.directEndpoint) // сервер для пинга
+                        val ip = bringUpUdp(direct, hasNextRung = relay != null || fb != null)
+                        if (ip != null) { session.rememberWorking(d.id, paths); onConnected(ip, d); return@launch }
+                    }
+                    if (relay != null) {
+                        if (direct != null) setStatus(getString(R.string.mayak_status_relay_switch))
+                        GoTunnel.connectedServerHost = MayakPing.hostOf(paths.relayEndpoint) // сервер для пинга
+                        val ip = bringUpUdp(relay, hasNextRung = fb != null)
+                        if (ip != null) { session.rememberWorking(d.id, paths); onConnected(ip, d); return@launch }
+                    }
+                }
+                if (fb != null && fbConf != null) {
+                    val ip = switchToFallback(fbConf, fb)
                     if (ip != null) { session.rememberWorking(d.id, paths); onConnected(ip, d); return@launch }
                 }
-
-                // Проба direct не прошла, резерва нет: ГАСИМ туннель (иначе VpnService остаётся
-                // активным и черной-холит весь трафик, а UI показывает «отключено» — тихий no-internet).
-                if (relay == null) { runCatching { tunnel.down() }; fail(getString(R.string.mayak_status_no_egress)); return@launch }
-                // Резерв: прямого не было вовсе или он не прошёл пробу.
-                if (direct != null) setStatus(getString(R.string.mayak_status_relay_switch))
-                GoTunnel.connectedServerHost = MayakPing.hostOf(paths.relayEndpoint) // сервер для пинга
-                val ip = bringUpPath(relay, paths.relayFallback)
-                if (ip != null) { session.rememberWorking(d.id, paths); onConnected(ip, d) }
-                // Проба relay не прошла — тоже ГАСИМ туннель (иначе тихий no-internet, см. выше).
-                else { runCatching { tunnel.down() }; fail(getString(R.string.mayak_status_no_egress)) }
+                // Не вышла ни одна ступень: ГАСИМ туннель (иначе VpnService остаётся активным и
+                // чёрной-холит весь трафик, а UI показывает «отключено» — тихий no-internet).
+                runCatching { tunnel.down() }
+                fail(getString(R.string.mayak_status_no_egress))
             } catch (e: kotlinx.coroutines.CancellationException) {
                 // пользователь отменил подключение (тап по кнопке) — гасим туннель, БЕЗ ошибки/инвалидации.
                 runCatching { tunnel.down() }
@@ -1404,27 +1422,25 @@ class MayakActivity : AppCompatActivity() {
     }
 
     /**
-     * Поднимает плечо и доводит его до подтверждённого выхода. Обычный порядок — сначала UDP, при
-     * отказе запасной канал (SPEC-0039). Если пользователь включил «Всегда запасной канал», UDP не
-     * пробуем вовсе: там, где оператор режет UDP наглухо, эта попытка — гарантированные ~6с ожидания
-     * на каждом подключении.
+     * Поднимает UDP-плечо и доводит его до подтверждённого выхода. null — плечо не вышло в интернет.
+     *
+     * @param hasNextRung есть ли следующая ступень лестницы. Если есть — не досиживаем полный набор
+     * проб (~34с), а сдаёмся по порогам [FallbackDecision] (6с без хендшейка / 10с без выхода): пока
+     * человек смотрит на «Подключаюсь…», следующая ступень может уже работать. Если ступень
+     * ПОСЛЕДНЯЯ — терпим до конца: сдаться некуда, а сервер добавляет пира ~15с (sync-таймер), и
+     * ранний отказ здесь означал бы «не подключается» там, где надо было просто подождать.
      */
-    private suspend fun bringUpPath(conf: String, fb: Fallback?): String? {
-        if (fb != null && fb.usable() && MayakPrefs.forceFallback(this)) return switchToFallback(conf, fb)
+    private suspend fun bringUpUdp(conf: String, hasNextRung: Boolean): String? {
         tunnel.up(prepareConf(conf))
         setStatus(getString(R.string.mayak_status_probing))
-        return probeOrFallback(conf, fb)
+        return if (hasNextRung) probeUntilThreshold() else probeWithRetry()
     }
 
     /**
-     * Ждём egress по уже поднятому туннелю. Если у плеча есть ПРИГОДНЫЙ запасной канал (SPEC-0039) —
-     * не досиживаем полный набор проб (~34с), а по порогам [FallbackDecision] уходим на него.
-     * Возвращает выходной IP или null, если не вышло ни так, ни так.
-     *
-     * Когда запасного канала нет — ведём себя ровно как раньше: полный набор проб по UDP.
+     * Ждём egress по уже поднятому туннелю, но не дольше порогов [FallbackDecision].
+     * Возвращает выходной IP или null, если за отведённое время путь себя не подтвердил.
      */
-    private suspend fun probeOrFallback(conf: String, fb: Fallback?): String? {
-        if (fb == null || !fb.usable()) return probeWithRetry()
+    private suspend fun probeUntilThreshold(): String? {
         val started = SystemClock.elapsedRealtime()
         while (true) {
             // Хендшейк читаем из статистики движка (JNI) — не на главном потоке. Читаем ДО пробы:
@@ -1432,8 +1448,8 @@ class MayakActivity : AppCompatActivity() {
             val handshake = withContext(Dispatchers.IO) { tunnel.hasHandshake() }
             val elapsed = SystemClock.elapsedRealtime() - started
             if (FallbackDecision.shouldSwitch(elapsed, handshake)) {
-                android.util.Log.i(PROBE_TAG, "UDP не пошёл за ${elapsed}мс (хендшейк=$handshake) → запасной канал")
-                return switchToFallback(conf, fb)
+                android.util.Log.i(PROBE_TAG, "UDP не пошёл за ${elapsed}мс (хендшейк=$handshake) → следующая ступень")
+                return null
             }
             // Проба ограничена ОСТАТКОМ до порога, а не своим внутренним таймаутом. Иначе порог —
             // фикция: при мёртвом туннеле проба спотыкается о DNS (системный резолвер уходит В туннель

@@ -332,7 +332,7 @@
     <string name="mayak_settings_force_fallback">Всегда использовать запасной канал</string>
     <string name="mayak_settings_force_fallback_hint">Обычно не нужно: приложение само уходит на запасной канал, когда UDP не проходит. Включи, если в твоей сети UDP не работает никогда — не будешь ждать распознавания при каждом подключении. Запасной канал медленнее прямого.</string>
     <string name="mayak_status_offline_lastgood">Ядро недоступно — подключаюсь к %1$s по последнему сохранённому конфигу…</string>
-    <string name="mayak_status_no_egress">Оба пути не вышли в интернет</string>
+    <string name="mayak_status_no_egress">Ни один путь не вышел в интернет</string>
     <string name="mayak_status_disconnected">Не защищено</string>
     <string name="mayak_status_cancelled">Подключение отменено</string>
     <string name="mayak_connected">Защищено</string>
