@@ -83,6 +83,10 @@ class MayakActivity : AppCompatActivity() {
     private var connectJob: Job? = null // корутина текущего подключения — чтобы можно было ОТМЕНИТЬ тапом
     // Когда показали текущую надпись шага подключения (SystemClock). 0 = ещё ничего не показывали.
     private var statusShownAt = 0L
+    // Поколение подключения: растёт на КАЖДОМ подъёме и КАЖДОМ обрыве. Фоновые пробы запоминают своё
+    // и молча выбрасывают результат, если он вернулся уже к другому подключению (диаг #64).
+    private var connGeneration = 0
+    private var ipv6ProbeJob: Job? = null
     // Кэш конфигов /connect по направлению живёт в MayakSession (процесс-скоупный, ПЕРЕЖИВАЕТ пересоздание
     // Activity) — предзагружается при выборе страны, берётся ОДНОРАЗОВО в момент коннекта (нет
     // переиспользования устаревшего lease; провал → след. коннект тянет свежий). Раньше это было поле
@@ -1285,6 +1289,7 @@ class MayakActivity : AppCompatActivity() {
         setStatus(getString(R.string.mayak_status_connecting, d.name))
         lifecycleScope.launch {
             runCatching { tunnel.down() }
+            connGeneration++; ipv6ProbeJob?.cancel()
             stopTimer(); stopPing(); stopKeepalive()
             connState = ConnState.DISCONNECTED
             connectedDir = null
@@ -1334,6 +1339,8 @@ class MayakActivity : AppCompatActivity() {
         renderState(ConnState.CONNECTING)
         setStatus(getString(R.string.mayak_status_connecting, d.name))
         statusShownAt = SystemClock.elapsedRealtime() // отсюда считается читаемость следующей надписи
+        connGeneration++ // новое подключение → результаты фоновых проб от прошлого больше не наши
+        ipv6ProbeJob?.cancel()
         connectJob = lifecycleScope.launch {
             try {
                 // Конфиг берём из ПРЕДЗАГРУЖЕННОГО кэша (наполняется при выборе страны), чтобы в момент
@@ -1577,20 +1584,45 @@ class MayakActivity : AppCompatActivity() {
 
     /** Фоновая IPv6-проба выхода после коннекта: значок «IPv6» зажигаем ТОЛЬКО при реальном egress
      *  (api6.ipify.org вернул адрес). Не блокирует коннект (v4 уже подтверждён). Честно (SPEC-0014). */
+    /**
+     * Фоновая проба IPv6-выхода. Живёт до ~12 с (6 попыток с паузами), поэтому ОБЯЗАНА быть привязана
+     * к своему подключению.
+     *
+     * Чем это кончилось без привязки (диаг-лог владельца #64, 0.3.74): человек переподключался
+     * несколько раз подряд. Проба от ПРЕДЫДУЩЕГО подключения продолжала работать в промежутке, когда
+     * туннель уже опущен, — и в этот момент честно дотянулась до интернета по НАТИВНОМУ IPv6 оператора
+     * (`2a03:d000:…`, Мегафон). Вернулась она уже после подъёма нового туннеля, увидела
+     * `connState == CONNECTED` и записала бы этот адрес как НАШ выходной IPv6.
+     *
+     * Цена ошибки максимальная из возможных: на экране «Выходной IPv6» показался бы собственный адрес
+     * человека, то есть ровно картина утечки — при том что утечки нет. А в обратную сторону это
+     * прикрыло бы настоящую утечку, если бы она была. У нашего NL-выхода IPv6 нет вовсе
+     * (VPSVille не маршрутизирует блок), поэтому ЛЮБОЙ IPv6-ответ через этот туннель — заведомо мимо него.
+     *
+     * Поэтому: старую пробу отменяем, а результат применяем, только если поколение подключения не
+     * сменилось. Одной отмены мало — корутина может дойти до записи между отменой и проверкой.
+     */
     private fun startIpv6Probe() {
+        ipv6ProbeJob?.cancel()
         GoTunnel.egressIpv6 = null
         setIpv6Badge(false)
         if (!MayakPrefs.useIpv6(this)) {
             android.util.Log.i(PROBE_TAG, "IPv6-проба ПРОПУЩЕНА: тумблер «Использовать IPv6» ВЫКЛючен") // диаг
             return // пользователь выключил IPv6 — не пробуем и не зажигаем
         }
-        lifecycleScope.launch {
+        val gen = connGeneration // поколение ЭТОГО подключения — результат чужого сюда не попадёт
+        ipv6ProbeJob = lifecycleScope.launch {
             // РЕТРАИМ (как v4-пробу): v6-выход МОЖЕТ не пройти с первого раза даже когда IPv6 реально работает —
             // AAAA-резолв через туннель, прогрев conntrack NAT66 на экзите, лаг соты. Одиночная проба давала
             // ЛОЖНОЕ «нет IPv6» на всю сессию (баг 2026-07-07: диаг-лог #30 v6 есть, #31 нет; на ноде IPv6 жив).
             val v6 = probeWithRetry(probe6, IPV6_PROBE_ATTEMPTS) // api6-only host: успех = реальный IPv6-выход
             android.util.Log.i(PROBE_TAG, // диаг: итог v6-пробы (причины провала каждой попытки — в IpifyProbe)
-                if (v6 != null) "IPv6-проба OK: $v6" else "IPv6-проба НЕ прошла ($IPV6_PROBE_ATTEMPTS попыток)")
+                if (v6 != null) "IPv6-проба OK: $v6 (поколение $gen)"
+                else "IPv6-проба НЕ прошла ($IPV6_PROBE_ATTEMPTS попыток, поколение $gen)")
+            if (gen != connGeneration) {
+                android.util.Log.i(PROBE_TAG, "результат IPv6-пробы отброшен: подключение сменилось ($gen → $connGeneration)")
+                return@launch
+            }
             if (v6 != null && connState == ConnState.CONNECTED) {
                 GoTunnel.egressIpv6 = v6
                 setIpv6Badge(true)
@@ -1737,6 +1769,7 @@ class MayakActivity : AppCompatActivity() {
         renderState(ConnState.CONNECTING)
         lifecycleScope.launch {
             runCatching { tunnel.down() }
+            connGeneration++; ipv6ProbeJob?.cancel()
             stopTimer()
             stopPing()
             stopKeepalive()

@@ -150,7 +150,29 @@ class GoTunnel(context: Context, tunnelName: String = "mayak") : MayakCoreTunnel
             .map { it.trim() }
             .filter { line -> keys.any { line.startsWith("$it ") || line.startsWith("$it=") } }
             .joinToString(" | ")
-        android.util.Log.i(CFG_TAG, "конфиг туннеля: $summary")
+        android.util.Log.i(CFG_TAG, "конфиг туннеля: $summary | маска=${maskKind(confText)}")
+    }
+
+    /**
+     * Какая маска мимикрии пришла в конфиге — по «шапке» I1, без самой строки.
+     *
+     * Нужно для разбора жалоб: с 2026-07-28 ядро выдаёт маску СЛУЧАЙНО из набора на каждую выдачу, и
+     * без этой пометки нельзя сказать, с какой именно человек сидел. А это ровно тот вопрос, который
+     * встал сразу же: скорость на одном и том же выходе гуляет от 2,9 до 97 Мбит/с, и надо развести
+     * «плохая сота» и «эту маску оператор придушил». Логируем ВИД, а не строку: строка длинная и
+     * содержит случайные байты, в логе от неё пользы нет.
+     */
+    private fun maskKind(confText: String): String {
+        val i1 = confText.lineSequence().map { it.trim() }
+            .firstOrNull { it.startsWith("I1 ") || it.startsWith("I1=") }
+            ?.substringAfter('=')?.trim() ?: return "нет"
+        return when {
+            i1.startsWith("<b 0xc30000000108>") -> "quic"
+            i1.startsWith("<b 0x000100002112a442>") -> "stun"
+            i1.startsWith("<b 0x4f5054494f4e53") -> "sip" // "OPTIONS" в hex
+            Regex("^<r \\d+>$").matches(i1) -> "шум"
+            else -> "иная(${i1.take(14)})"
+        }
     }
 
     // Диагностика: адреса, реально вставшие на tun-интерфейс. Дельта с logConfigSummary («в конфиге v6 есть,
