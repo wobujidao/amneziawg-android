@@ -158,10 +158,6 @@ class Application : android.app.Application() {
      * Called when network changes (e.g., WiFi to Mobile or vice versa).
      * Reconnects active tunnels to ensure VPN connection works on new network.
      */
-    // Когда в последний раз переподнимали туннель по смене сети (SystemClock) + минимальный
-    // промежуток. События смены сети приходят пачкой, а дёргать туннель на каждое — вредно.
-    private var lastRebindAt = 0L
-
     private fun onNetworkChange(oldType: NetworkType, newType: NetworkType) {
         Log.i(TAG, "onNetworkChange called: $oldType -> $newType")
         
@@ -170,48 +166,31 @@ class Application : android.app.Application() {
             return
         }
 
-        // ИСТОРИЯ, без неё этот код читается неправильно.
+        // ⛔ АВТО-ПЕРЕПОДЪЁМ ОТКЛЮЧЁН. Дважды пробовали, дважды сделали ХУЖЕ — оба раза видно в логах.
         //
-        // Апстримный обработчик (PR #53) на КАЖДУЮ смену сети дёргал TunnelManager DOWN→UP. У нас конфиг
-        // приходит из /connect и живёт в MayakActivity/GoTunnel, а НЕ в FileConfigStore — поэтому DOWN
-        // срабатывал, а UP не мог случиться в принципе: на хендовере соты VPN отваливался навсегда
-        // (баг владельца 2026-07-06). Его отключили с формулировкой «WireGuard роумит сам».
+        // Зачем пробовали: диаг-лог #66 («зашёл в лифт») показал, что после полной потери сети с
+        // появлением НОВОЙ движок не оживает сам — девять рукопожатий за 45 с без ответа, сокет остался
+        // на умершей сети. Хотелось починить это без участия человека.
         //
-        // Диаг-лог #66 (28-07) показал, что «сам» — только про МЯГКИЙ хендовер. Живой случай «зашёл в
-        // лифт»: сеть пропала (onLost), появилась ДРУГАЯ (новый id), и дальше девять рукопожатий за 45
-        // секунд без единого ответа — сокет остался на умершей сети. Помог только ручной переподключение.
-        // Для человека это выглядит как «интернета нет», хотя приложение показывает «подключено».
+        // Попытка 1 (0.3.76): DOWN→UP сразу. Диаг #67: туннель встал в 51.786 и был убит в 51.793 —
+        // vpnService.stopSelf() асинхронный, запоздалый onDestroy глушит УЖЕ НОВЫЙ туннель.
         //
-        // Поэтому переподнимаем — но НЕ старым способом: конфиг теперь лежит рядом с туннелем
-        // (GoTunnel.lastConfText), переподъём идёт без сети и без похода в ядро, и работает в фоне.
-        // Если наш туннель не поднят, rebindAfterNetworkChange() сам ничего не делает.
-        val now = SystemClock.elapsedRealtime()
-        if (now - lastRebindAt < REBIND_DEBOUNCE_MS) {
-            // Смена сети приходит пачкой (validated=false → validated=true и т.п.). Дёргать туннель на
-            // каждое событие — вернуть себе тот же баг 06-07, только другим путём.
-            Log.i(TAG, "Network change ($oldType -> $newType): переподъём пропущен, был ${now - lastRebindAt} мс назад")
-            return
-        }
-        lastRebindAt = now
-        val changedAtEpoch = System.currentTimeMillis()
-        coroutineScope.launch(Dispatchers.IO) {
-            // Фора движку: сначала даём ему самому переехать на новую сеть. Если получилось —
-            // рукопожатие обновится, и переподъём не понадобится. Только если за это время связи с
-            // сервером так и нет, лечим руками. В логе владельца #66 движок за 45 секунд не справился.
-            kotlinx.coroutines.delay(REBIND_GRACE_MS)
-            runCatching { GoTunnel.rebindAfterNetworkChange(changedAtEpoch) }
-                .onSuccess { if (it) Log.i(TAG, "Network change ($oldType -> $newType): туннель переподнят") }
-                .onFailure { Log.w(TAG, "Network change: переподъём не удался: ${it.javaClass.simpleName}") }
-        }
+        // Попытка 2 (0.3.77): DOWN → пауза 1,2 с → UP → проверка. Диаг #68: за эту паузу Android
+        // УБИВАЕТ ПРОЦЕСС — VpnService остановлен, приложение ушло в фон, процесс больше ничем не
+        // держится. В логе pid меняется 12557 → 15523 → 22439, и UP делать уже некому. Для человека
+        // это выглядит как «приложение само отключается» — ровно так владелец и написал.
+        //
+        // ВЫВОД: пока единственный доступный способ пере-привязать сокет — turnOff+turnOn (нативного
+        // bindUpdate в форке нет), любая авто-починка обязана пережить остановку VpnService. В фоне
+        // это не гарантировано ничем. Следующая попытка — только с foreground-гарантией (например,
+        // чинить лишь когда экран приложения открыт) либо после появления bindUpdate в движке.
+        //
+        // Код переподъёма оставлен (GoTunnel.rebindAfterNetworkChange) — он рабочий, когда процесс
+        // выживает (в диаге #68 два раза подряд «переподъём удался»). Не вызывается намеренно.
+        Log.i(TAG, "Network change ($oldType -> $newType): авто-переподъём отключён (см. комментарий)")
     }
 
     companion object {
-        private const val REBIND_DEBOUNCE_MS = 3_000L
-
-        // Сколько ждём, прежде чем чинить туннель руками. Столько движку хватает на пару попыток
-        // рукопожатия (он повторяет раз в ~5 с) — если за это время сервер не ответил, сам он уже
-        // не оживёт, а человек в это время смотрит на «подключено» без интернета.
-        private const val REBIND_GRACE_MS = 10_000L
         val USER_AGENT = String.format(Locale.ENGLISH, "AmneziaWG/%s (Android %d; %s; %s; %s %s; %s)", BuildConfig.VERSION_NAME, Build.VERSION.SDK_INT, if (Build.SUPPORTED_ABIS.isNotEmpty()) Build.SUPPORTED_ABIS[0] else "unknown ABI", Build.BOARD, Build.MANUFACTURER, Build.MODEL, Build.FINGERPRINT)
         private const val TAG = "AmneziaWG/Application"
         private lateinit var weakSelf: WeakReference<Application>
