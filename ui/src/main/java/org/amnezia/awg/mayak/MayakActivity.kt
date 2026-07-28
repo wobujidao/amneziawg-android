@@ -37,8 +37,10 @@ import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
@@ -66,6 +68,15 @@ class MayakActivity : AppCompatActivity() {
     private lateinit var session: MayakSession
     private lateinit var tunnel: GoTunnel
     private val probe = IpifyProbe()
+
+    /**
+     * Своя область видимости для проб выхода — НЕ дочерняя корутине коннекта.
+     *
+     * Нужна ровно для одного: чтобы ожидание пробы можно было бросить по таймауту, не дожидаясь
+     * блокирующего резолва внутри неё (см. [awaitProbe]). Дочерняя задача такого не позволяет:
+     * `withTimeoutOrNull` обязан дождаться завершения своих детей.
+     */
+    private val probeScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     // IPv6-проба: api6.ipify.org резолвится ТОЛЬКО в IPv6 → успешный 200 = реальный IPv6-egress через
     // туннель. Честный сигнал для значка «IPv6» (SPEC-0014): зажигаем по факту выхода, не по наличию ::/0.
     private val probe6 = IpifyProbe(url = "https://api6.ipify.org?format=json")
@@ -1378,27 +1389,18 @@ class MayakActivity : AppCompatActivity() {
                     // Прямой путь приоритетен. Сервер добавляет пира в течение ~15с (sync-таймер),
                     // поэтому на ПОСЛЕДНЕЙ ступени пробу egress повторяем несколько раз, прежде чем сдаться.
                     if (direct != null) {
-                        GoTunnel.connectedRoute = GoTunnel.ROUTE_DIRECT
-                        GoTunnel.connectedServerHost = MayakPing.hostOf(paths.directEndpoint) // сервер для пинга
-                        val ip = bringUpUdp(direct, hasNextRung = relay != null || fb != null)
+                        val ip = bringUpUdp(direct, hasNextRung = relay != null || fb != null,
+                            route = GoTunnel.ROUTE_DIRECT, serverHost = MayakPing.hostOf(paths.directEndpoint))
                         if (ip != null) { session.rememberWorking(d.id, paths); holdStatus(); onConnected(ip, d); return@launch }
                     }
                     if (relay != null) {
                         if (direct != null) announce(getString(R.string.mayak_status_relay_switch))
-                        GoTunnel.connectedRoute = GoTunnel.ROUTE_RELAY
-                        GoTunnel.connectedServerHost = MayakPing.hostOf(paths.relayEndpoint) // сервер для пинга
-                        val ip = bringUpUdp(relay, hasNextRung = fb != null)
+                        val ip = bringUpUdp(relay, hasNextRung = fb != null,
+                            route = GoTunnel.ROUTE_RELAY, serverHost = MayakPing.hostOf(paths.relayEndpoint))
                         if (ip != null) { session.rememberWorking(d.id, paths); holdStatus(); onConnected(ip, d); return@launch }
                     }
                 }
                 if (fb != null && fbConf != null) {
-                    GoTunnel.connectedRoute = GoTunnel.ROUTE_FALLBACK
-                    // Сервер для пинга: у запасного канала это ХОСТ МОСТА, а не адрес ноды. Без этого в
-                    // подробностях оставались прочерки в «Сервер» и «Пинг» — человек видел пустоту вместо
-                    // ответа на «куда я вообще подключён» (жалоба владельца 2026-07-28).
-                    GoTunnel.connectedServerHost = fb.ip.ifBlank {
-                        runCatching { java.net.URI(fb.url).host }.getOrNull().orEmpty()
-                    }.ifBlank { null }
                     val ip = switchToFallback(fbConf, fb)
                     if (ip != null) { session.rememberWorking(d.id, paths); holdStatus(); onConnected(ip, d); return@launch }
                 }
@@ -1449,8 +1451,15 @@ class MayakActivity : AppCompatActivity() {
      * ПОСЛЕДНЯЯ — терпим до конца: сдаться некуда, а сервер добавляет пира ~15с (sync-таймер), и
      * ранний отказ здесь означал бы «не подключается» там, где надо было просто подождать.
      */
-    private suspend fun bringUpUdp(conf: String, hasNextRung: Boolean): String? {
+    private suspend fun bringUpUdp(conf: String, hasNextRung: Boolean, route: String, serverHost: String?): String? {
         tunnel.up(prepareConf(conf))
+        // Метку пути и хост сервера ставим ПОСЛЕ подъёма, а не до. `tunnel.up()` внутри сначала делает
+        // down() (иначе новый конфиг не применится — «Tunnel already up»), а down() сбрасывает всё
+        // состояние подключения, включая маршрут и сервер. Пока их выставляли ДО, их тут же стирало:
+        // владелец 2026-07-28 сидел на транзите через Россию, а «Путь» показывал «Напрямую», в
+        // «Сервер» и «Пинг» стояли прочерки (скриншот + диаг-лог #71). Интерфейс уверенно говорил не то.
+        GoTunnel.connectedRoute = route
+        GoTunnel.connectedServerHost = serverHost
         announce(getString(R.string.mayak_status_probing))
         return if (hasNextRung) probeUntilThreshold() else probeWithRetry()
     }
@@ -1508,11 +1517,32 @@ class MayakActivity : AppCompatActivity() {
             // и перебирает серверы), один вызов занимал ~37 с, и решение принималось В ЧЕТЫРЕ РАЗА
             // позже задуманных 10 с — человек столько смотрел на «Подключаюсь…» (разбор 2026-07-27).
             val left = FallbackDecision.msLeft(elapsed, handshakeAt)
-            val ip = withTimeoutOrNull(left) { probe.externalIp() }
+            val ip = awaitProbe(left)
             if (ip != null) return ip // UDP работает — запасной канал не нужен
             delay(minOf(PROBE_DELAY_MS, left))
         }
     }
+
+    /**
+     * Ждать пробу НЕ ДОЛЬШЕ [ms] — по-настоящему, а не на словах.
+     *
+     * Почему нельзя просто `withTimeoutOrNull { probe.externalIp() }` (так было до 2026-07-29):
+     * внутри пробы — блокирующий `HttpURLConnection`, и его `connectTimeout`/`readTimeout` НЕ
+     * покрывают резолв имени. При мёртвом туннеле системный резолвер уходит В туннель и перебирает
+     * серверы ~28 с. Отмена корутины кооперативная: `withContext(Dispatchers.IO)` не вернётся, пока
+     * блокирующий вызов не отработает сам, поэтому таймаут молча ждал вместе с ним.
+     *
+     * Чем это кончалось у людей (диаг-лог владельца #71, Мегафон, 0.3.78): бюджет на проверку выхода
+     * 5 с, а уход на следующую ступень случился через 29 034 мс — «UDP не пошёл за 29034мс». Человек
+     * полминуты смотрел на «Подключаюсь…», хотя транзит рядом поднимался за секунду. Порог считался
+     * ПРАВИЛЬНО и тест на него был зелёный ([FallbackDecision]) — он проверял намерение, а не эффект.
+     *
+     * Решение: пробу запускаем ОТДЕЛЬНОЙ задачей в своей области видимости, а ждём её `await()` —
+     * это настоящая точка приостановки, её таймаут прерывает мгновенно. Осиротевший поток досидит
+     * свой DNS сам и умрёт; нас он больше не держит, результат его нам не нужен.
+     */
+    private suspend fun awaitProbe(ms: Long): String? =
+        org.amnezia.awg.mayak.core.awaitAtMost(probeScope, ms) { probe.externalIp() }
 
     /**
      * Переключение на запасной канал: гасим туннель, поднимаем локальный шим (AWG внутри обычного HTTPS
@@ -1533,6 +1563,13 @@ class MayakActivity : AppCompatActivity() {
         val local = MayakFallbackTransport.start(fb, bridgeIp) ?: return null // не пригоден/не поднялся — молча остаёмся ни с чем
         val up = runCatching { tunnel.up(prepareConf(org.amnezia.awg.mayak.core.ConfRenderer.withEndpoint(conf, local))) }
         if (up.isFailure) { MayakFallbackTransport.stop(); return null }
+        // Метка пути и сервер — ПОСЛЕ подъёма: down() выше (и внутри up()) сбрасывает состояние
+        // подключения. Сервер для пинга у запасного канала — ХОСТ МОСТА, а не адрес ноды; без него в
+        // подробностях оставались прочерки в «Сервер» и «Пинг» (жалоба владельца 2026-07-28).
+        GoTunnel.connectedRoute = GoTunnel.ROUTE_FALLBACK
+        GoTunnel.connectedServerHost = fb.ip.ifBlank {
+            runCatching { java.net.URI(fb.url).host }.getOrNull().orEmpty()
+        }.ifBlank { null }
         // Подтверждение по запасному каналу — КОРОТКОЕ (FALLBACK_PROBE_ATTEMPTS), а не полный набор.
         // Раньше здесь стоял полный (~34 с), и когда мост недостижим, человек смотрел на «Подключаюсь…»
         // почти минуту: сначала UDP-фаза, потом ещё полминуты проб по мёртвому резерву (разбор 2026-07-27).
