@@ -9,7 +9,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 import android.os.ParcelFileDescriptor;
-import android.system.OsConstants;
 import android.util.Log;
 
 import org.amnezia.awg.backend.BackendException.Reason;
@@ -50,29 +49,18 @@ public final class GoBackend implements Backend {
     private static final String TAG = "AmneziaWG/GoBackend";
 
     /**
-     * Маяк (SPEC-0014): kill-switch по семействам. Возвращает {blockV4, blockV6} — какие семейства нужно
-     * заглушить через VpnService.Builder.allowFamily(), чтобы трафик семейства НЕ утекал мимо VPN.
+     * Маяк (SPEC-0014): kill-switch по семействам НЕ ТРЕБУЕТ КОДА — его обеспечивает сам Android.
      * <p>
-     * Семейство БЕЗ дефолт-маршрута (mask 0) в туннеле нужно заглушить: иначе Android пускает его по
-     * нативной сети в обход VPN. Классический баг — v4-only full-tunnel (AllowedIPs=0.0.0.0/0 без ::/0):
-     * нативный IPv6 телефона тёк наружу, светя реальный адрес. Заворачиваем целиком только то семейство,
-     * у которого есть дефолт-маршрут И один пир (full-tunnel); остальное — блокируем.
+     * Правило системы: семейство (IPv4/IPv6), для которого не добавлено ни адреса, ни маршрута, ни
+     * DNS-сервера, блокируется целиком. Поэтому при v4-only конфиге нативный IPv6 телефона наружу НЕ
+     * уходит — если мы сами его не разблокируем.
      * <p>
-     * Чистая функция (без Android-зависимостей) — юнит-тестируется.
+     * ⚠️ {@code VpnService.Builder.allowFamily(af)} делает ИМЕННО ЭТО — РАЗБЛОКИРУЕТ семейство, пуская
+     * его мимо VPN. Здесь была функция, вычислявшая «какие семейства заглушить», и её результат
+     * скармливался allowFamily — то есть код, написанный против утечки, её создавал (разбор
+     * 2026-07-28: приложение показывало пользователю его собственный IPv6 как «выходной»).
+     * Удалено вместе с вызовами: правильное действие — НЕ вызывать allowFamily.
      */
-    static boolean[] killSwitchBlock(final Iterable<InetNetwork> allAllowedIps, final int peerCount) {
-        boolean v4Default = false, v6Default = false;
-        for (final InetNetwork n : allAllowedIps) {
-            if (n.getMask() == 0) {
-                if (n.getAddress() instanceof Inet6Address)
-                    v6Default = true;
-                else
-                    v4Default = true;
-            }
-        }
-        final boolean single = peerCount == 1;
-        return new boolean[]{!(v4Default && single), !(v6Default && single)};
-    }
     @Nullable private static AlwaysOnCallback alwaysOnCallback;
     private static GhettoCompletableFuture<VpnService> vpnService = new GhettoCompletableFuture<>();
     private final Context context;
@@ -447,13 +435,25 @@ public final class GoBackend implements Backend {
                 }
             }
 
-            // "Kill-switch" ПО СЕМЕЙСТВАМ (Маяк, SPEC-0014): глушим семейство, которое не заворачиваем
-            // целиком, иначе оно течёт мимо VPN (нативный IPv6 телефона при v4-only конфиге). См. killSwitchBlock.
-            final boolean[] block = killSwitchBlock(allAllowedIps, config.getPeers().size());
-            if (block[0])
-                builder.allowFamily(OsConstants.AF_INET);
-            if (block[1])
-                builder.allowFamily(OsConstants.AF_INET6);
+            // "Kill-switch" ПО СЕМЕЙСТВАМ (Маяк, SPEC-0014).
+            //
+            // ⚠️ ЗДЕСЬ НЕЛЬЗЯ НИЧЕГО ВЫЗЫВАТЬ — и это не забывчивость, а сам фикс.
+            //
+            // Android блокирует семейство САМ: «если для семейства (IPv4/IPv6) не добавлено ни адреса,
+            // ни маршрута, ни DNS-сервера, весь исходящий трафик этого семейства блокируется».
+            // А `allowFamily(af)` — это ОБРАТНОЕ действие: он СНИМАЕТ блокировку, и трафик семейства
+            // «проваливается» в нижележащую сеть, то есть идёт МИМО VPN.
+            //
+            // До 2026-07-28 тут стояло `if (block[i]) builder.allowFamily(...)` — написанное, чтобы
+            // ЗАКРЫТЬ утечку, оно её ОТКРЫВАЛО: при v4-only конфиге мы явным вызовом разблокировали
+            // IPv6, и настоящий IPv6-адрес телефона был виден наружу при поднятом туннеле. Владелец
+            // увидел это на своём экране: приложение показывало «выходной IPv6» = адрес его оператора.
+            // Юнит-тест при этом был зелёный — он проверял только РЕШЕНИЕ «надо заглушить», но не то,
+            // что из решения получилось.
+            //
+            // Правильное поведение: не трогать allowFamily вовсе. Тогда семейство без маршрутов
+            // блокируется системой, а семейство с маршрутами (у нас 0.0.0.0/0, при IPv6 ещё и ::/0)
+            // идёт в туннель.
 
             builder.setMtu(config.getInterface().getMtu().orElse(1280));
 
