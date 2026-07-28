@@ -1519,7 +1519,12 @@ class MayakActivity : AppCompatActivity() {
             val left = FallbackDecision.msLeft(elapsed, handshakeAt)
             val ip = awaitProbe(left)
             if (ip != null) return ip // UDP работает — запасной канал не нужен
-            delay(minOf(PROBE_DELAY_MS, left))
+            // Пауза перед следующей пробой — только по ОСТАТКУ бюджета, посчитанному ЗАНОВО. Если
+            // проба съела его целиком, спать нечего: иначе поверх порога ложится ещё целый такт и
+            // решение опаздывает на него (на эмуляторе с заблокированным прямым путём — 8,1 с при
+            // пороге 6 с). Обещанный человеку срок должен значить ровно то, что написано.
+            val rest = FallbackDecision.msLeft(SystemClock.elapsedRealtime() - started, handshakeAt)
+            if (rest > 0) delay(minOf(PROBE_DELAY_MS, rest))
         }
     }
 
