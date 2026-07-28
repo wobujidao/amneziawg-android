@@ -40,6 +40,7 @@ class GoTunnel(context: Context, tunnelName: String = "mayak") : MayakCoreTunnel
     companion object {
         // Тег диагностики конфига (содержит «AmneziaWG» → DiagCollector включает в присланный лог).
         private const val CFG_TAG = "AmneziaWG/mayak-cfg"
+
         @Volatile private var sharedBackend: Backend? = null
         @Volatile private var sharedTunnel: NamedTunnel? = null
 
@@ -95,6 +96,17 @@ class GoTunnel(context: Context, tunnelName: String = "mayak") : MayakCoreTunnel
 
         @Volatile var connectedRoute: String = ROUTE_DIRECT
 
+        // Последний ПРИМЕНЁННЫЙ конфиг туннеля. Нужен, чтобы переподнять туннель после смены сети,
+        // не ходя в /connect: сети в этот момент может не быть вовсе, да и новый конфиг не нужен —
+        // ключи и пир те же. Секрет: держим только в памяти процесса, на диск не пишем.
+        @Volatile var lastConfText: String? = null
+
+        // Идёт НАШ намеренный переподъём после смены сети. Нужен, потому что DOWN внутри переподъёма
+        // приходит в onStateChange тем же путём, что и внешний обрыв, и без этого флага handleExternalDown
+        // стёр бы всё состояние коннекта, погасил уведомление и убил шим запасного канала — то есть
+        // починка ломала бы ровно то, что чинит.
+        @Volatile private var rebinding = false
+
         // Application-контекст (процесс-скоупный) — чтобы убрать уведомление из onStateChange, когда
         // туннель гаснет ВНЕ приложения и Activity под рукой нет. Ставится при создании GoTunnel.
         @Volatile private var appContext: Context? = null
@@ -102,6 +114,7 @@ class GoTunnel(context: Context, tunnelName: String = "mayak") : MayakCoreTunnel
         /** Туннель ушёл в DOWN (в т.ч. внешне): сбросить процесс-скоупное состояние коннекта и убрать
          *  уведомление «Подключено». Идемпотентно с down() — повторный вызов безвреден. */
         fun handleExternalDown() {
+            if (rebinding) return // это наш собственный DOWN внутри переподъёма, а не обрыв
             connectedSinceElapsed = null
             connectedLabel = null
             connectedServerHost = null
@@ -112,8 +125,71 @@ class GoTunnel(context: Context, tunnelName: String = "mayak") : MayakCoreTunnel
             // Туннеля нет — держать WSS-соединение к мосту незачем (и светить его тоже незачем).
             connectedViaFallback = false
             connectedRoute = ROUTE_DIRECT
+            lastConfText = null
             MayakFallbackTransport.stop()
             appContext?.let { MayakNotification.clear(it) }
+        }
+
+
+        /**
+         * Переподнять туннель ПОСЛЕ СМЕНЫ СЕТИ, тем же конфигом и не спрашивая ядро.
+         *
+         * ЗАЧЕМ. С 2026-07-06 обработчик смены сети у нас ничего не делал: тогда апстримный вариант рвал
+         * туннель на каждом хендовере и не поднимал обратно, и его отключили с формулировкой «WireGuard
+         * роумит сам». Диаг-лог владельца #66 (28-07) опроверг это на живом случае «зашёл в лифт»:
+         *
+         *   15:16:44  сеть ПОТЕРЯНА (onLost)
+         *   15:16:45  появилась ДРУГАЯ сеть (onAvailable 176 — новый id, не та же самая)
+         *   15:16:59…15:17:40  девять рукопожатий подряд, каждые ~5 с — НИ ОДНОГО ответа
+         *   15:17:45  человек вручную переподключился → ответ пришёл за 90 мс
+         *
+         * То есть сокет остался привязан к УМЕРШЕЙ сети и сам не воскресает: 45 секунд «интернета нет»,
+         * пока человек не догадается нажать кнопку. Мягкий хендовер движок переживает штатно — полную
+         * потерю с появлением НОВОЙ сети нет.
+         *
+         * ПОЧЕМУ ЭТО НЕ ПОВТОРЕНИЕ ОШИБКИ 06-07. Тогда DOWN делал TunnelManager, у которого нашего
+         * конфига нет вовсе (он приходит из /connect), поэтому UP не мог случиться в принципе. Теперь
+         * конфиг лежит рядом с туннелем (lastConfText), и переподъём — это DOWN+UP тем же конфигом,
+         * без сети и без ядра. Живёт в companion намеренно: backend и туннель процесс-скоупные, значит
+         * работает и в фоне, когда Activity нет.
+         *
+         * Возвращает true, если реально переподняли.
+         */
+        suspend fun rebindAfterNetworkChange(sinceEpochMs: Long): Boolean = withContext(Dispatchers.IO) {
+            val b = sharedBackend ?: return@withContext false
+            val t = sharedTunnel ?: return@withContext false
+            val conf = lastConfText ?: return@withContext false
+            val up = runCatching { b.getState(t) == Tunnel.State.UP }.getOrDefault(false)
+            if (!up) return@withContext false // туннель не наш или его нет — не трогаем
+
+            // Переподнимаем ТОЛЬКО если туннель реально не ожил на новой сети. Смена сети часто
+            // безобидна (мягкий хендовер, Wi-Fi→сота с рабочим роумингом), и дёргать в этих случаях
+            // DOWN→UP вредно: tun на миг исчезает — лишний разрыв и щель, в которую успевает уйти
+            // трафик мимо туннеля.
+            //
+            // Критерий именно «НЕТ рукопожатия ПОСЛЕ смены сети», а не «рукопожатие старое». Разница
+            // принципиальная: в момент смены сети последнее рукопожатие ещё свежее (сеть работала
+            // секунду назад), и проверка по возрасту молчала бы ровно тогда, когда нужна. Вызывающий
+            // даёт движку фору (см. REBIND_GRACE_MS) и только потом зовёт нас.
+            val last = runCatching {
+                val st = b.getStatistics(t)
+                st.peers().maxOfOrNull { st.peer(it)?.latestHandshakeEpochMillis() ?: 0L } ?: 0L
+            }.getOrDefault(0L)
+            if (last > sinceEpochMs) {
+                android.util.Log.i(CFG_TAG, "смена сети: туннель ожил сам (рукопожатие после смены) — не трогаю")
+                return@withContext false
+            }
+            val since = connectedSinceElapsed // сессию НЕ обнуляем: для человека это то же подключение
+            android.util.Log.i(CFG_TAG, "смена сети: переподнимаю туннель тем же конфигом")
+            rebinding = true
+            try {
+                runCatching { b.setState(t, Tunnel.State.DOWN, null) }
+                b.setState(t, Tunnel.State.UP, Config.parse(BufferedReader(StringReader(conf))))
+            } finally {
+                rebinding = false
+            }
+            connectedSinceElapsed = since ?: SystemClock.elapsedRealtime()
+            true
         }
 
         private fun obtainBackend(ctx: Context): Backend {
@@ -136,6 +212,7 @@ class GoTunnel(context: Context, tunnelName: String = "mayak") : MayakCoreTunnel
         val config = Config.parse(BufferedReader(StringReader(confText)))
         logConfigSummary(confText) // диагностика: ЧТО применяем (без ключа/обфускации) — виден ли IPv6 в конфиге
         backend.setState(tunnel, Tunnel.State.UP, config)
+        lastConfText = confText // чтобы можно было переподнять туннель без похода в /connect (см. rebindAfterNetworkChange)
         connectedSinceElapsed = SystemClock.elapsedRealtime()
         logTunAddresses() // диагностика: какие адреса РЕАЛЬНО встали на tun (Android применил v4/v6?)
         Unit
@@ -200,6 +277,7 @@ class GoTunnel(context: Context, tunnelName: String = "mayak") : MayakCoreTunnel
         // так он закрывается при любом способе отключения (кнопка, отмена, смена страны, внешний DOWN).
         connectedViaFallback = false
         connectedRoute = ROUTE_DIRECT
+        lastConfText = null
         MayakFallbackTransport.stop()
         Unit
     }
