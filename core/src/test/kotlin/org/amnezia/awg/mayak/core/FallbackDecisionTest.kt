@@ -41,15 +41,37 @@ class FallbackDecisionTest {
         assertTrue(FallbackDecision.shouldSwitch(handshakeAt + FallbackDecision.NO_EGRESS_MS, handshakeAtMs = handshakeAt))
     }
 
+    /**
+     * САМЫЙ ВАЖНЫЙ инвариант файла, и его легко нарушить из лучших побуждений.
+     *
+     * «Рукопожатие занимает полторы секунды, зачем ему шесть» — рассуждение верное ровно до первой
+     * потери пакета. Движок повторяет инициацию раз в ~5 с (REKEY_TIMEOUT самого WireGuard), поэтому
+     * при потере ПЕРВОГО пакета ответ физически не может прийти раньше пятой секунды. Порог меньше
+     * этого превращает уход на транзит из исключения в норму — ровно то, на что пожаловался владелец
+     * 2026-07-28 (диаг-лог #63: отправка 55.898, повтор 00.936, ответ 02.372).
+     *
+     * Если этот тест упал — значит кто-то (возможно, я) сократил порог, не вспомнив про повторы.
+     */
     @Test
-    fun deadlines_areOrdered_andWorstCaseIsBounded() {
-        // Порог «нет хендшейка» ДОЛЖЕН быть строго меньше порога «хендшейк есть»: иначе первый никогда
-        // не сработает раньше второго и быстрый случай (весь UDP задавлен) ждал бы столько же.
-        assertTrue(FallbackDecision.NO_HANDSHAKE_MS < FallbackDecision.NO_EGRESS_MS)
-        // Худший случай ограничен сам собой: нет хендшейка к NO_HANDSHAKE_MS — уходим по первому порогу,
-        // значит дольше NO_HANDSHAKE_MS + NO_EGRESS_MS на ступени не просидим. Это должно остаться
-        // заметно короче полного набора egress-проб (~34 с), иначе сторож бессмыслен.
-        assertTrue(FallbackDecision.NO_HANDSHAKE_MS + FallbackDecision.NO_EGRESS_MS < 20_000)
+    fun handshakeBudget_survivesOneLostPacket() {
+        val engineRetryMs = 5_000L // REKEY_TIMEOUT WireGuard — не наша настройка, изменить не можем
+        assertTrue(
+            "порог рукопожатия (${FallbackDecision.NO_HANDSHAKE_MS} мс) должен переживать один повтор движка ($engineRetryMs мс)",
+            FallbackDecision.NO_HANDSHAKE_MS > engineRetryMs
+        )
+        // и при этом не превращаться в «ждём вечно»: два повтора уже не ждём, это явно блокировка
+        assertTrue(FallbackDecision.NO_HANDSHAKE_MS < 2 * engineRetryMs)
+    }
+
+    @Test
+    fun worstCasePerRung_isBounded() {
+        // Худший случай ограничен сам собой: нет рукопожатия к NO_HANDSHAKE_MS — уходим по первому
+        // порогу, значит дольше суммы порогов на ступени не просидим. Должно остаться заметно короче
+        // полного набора egress-проб (~34 с), иначе сторож бессмыслен.
+        //
+        // NB: порядок порогов между собой больше НЕ важен (раньше требовалось NO_HANDSHAKE < NO_EGRESS):
+        // второй отсчитывается от рукопожатия, а не от подъёма туннеля, поэтому пересечься они не могут.
+        assertTrue(FallbackDecision.NO_HANDSHAKE_MS + FallbackDecision.NO_EGRESS_MS <= 12_000)
     }
 }
 
@@ -60,15 +82,15 @@ class FallbackDecisionMsLeftTest {
     @Test
     fun `остаток считается от нужного порога`() {
         assertEquals(6_000L, FallbackDecision.msLeft(0, null))
-        assertEquals(10_000L, FallbackDecision.msLeft(0, 0))
+        assertEquals(FallbackDecision.NO_EGRESS_MS, FallbackDecision.msLeft(0, 0))
         assertEquals(1_000L, FallbackDecision.msLeft(5_000, null))
     }
 
     @Test
     fun `после медленного рукопожатия остаток полный, а не обрезанный`() {
-        // Было: на 6,5 с с хендшейком оставалось 3,5 с. Стало: сразу после рукопожатия — все десять.
-        assertEquals(10_000L, FallbackDecision.msLeft(6_500, 6_500))
-        assertEquals(6_000L, FallbackDecision.msLeft(10_500, 6_500))
+        // Было: на 6,5 с с хендшейком оставалось 3,5 с. Стало: сразу после рукопожатия — весь бюджет.
+        assertEquals(FallbackDecision.NO_EGRESS_MS, FallbackDecision.msLeft(6_500, 6_500))
+        assertEquals(FallbackDecision.NO_EGRESS_MS - 4_000, FallbackDecision.msLeft(10_500, 6_500))
     }
 
     @Test

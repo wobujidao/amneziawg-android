@@ -329,6 +329,11 @@
     <string name="mayak_status_relay_switch">Прямой путь заблокирован — переключаюсь на резерв…</string>
     <string name="mayak_status_fallback_switch">UDP не проходит — включаю запасной канал…</string>
     <string name="mayak_fallback_badge">Резерв</string>
+    <string name="mayak_route_direct">Напрямую</string>
+    <string name="mayak_route_relay">Через Россию</string>
+    <string name="mayak_route_relay_badge">Через Россию</string>
+    <string name="mayak_route_fallback">Запасной канал</string>
+    <string name="mayak_details_route">Путь</string>
     <string name="mayak_settings_force_fallback">Всегда использовать запасной канал</string>
     <string name="mayak_settings_force_fallback_hint">Обычно не нужно: приложение само уходит на запасной канал, когда UDP не проходит. Включи, если в твоей сети UDP не работает никогда — не будешь ждать распознавания при каждом подключении. Запасной канал медленнее прямого.</string>
     <string name="mayak_status_offline_lastgood">Ядро недоступно — подключаюсь к %1$s по последнему сохранённому конфигу…</string>

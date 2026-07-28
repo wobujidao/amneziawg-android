@@ -83,6 +83,18 @@ class GoTunnel(context: Context, tunnelName: String = "mayak") : MayakCoreTunnel
         // пересоздание Activity. Сбрасывается вместе с остальным состоянием коннекта в down().
         @Volatile var connectedViaFallback: Boolean = false
 
+        // КАКОЙ ступенью лестницы мы подключены: ROUTE_DIRECT / ROUTE_RELAY / ROUTE_FALLBACK.
+        //
+        // Раньше различался только запасной канал (connectedViaFallback), а транзит через Россию был
+        // неотличим от прямого пути. Владелец 2026-07-28 поймал это на себе: приложение молча увело
+        // его на транзит, и узнал он об этом только из разбора диаг-лога. Путь надо показывать —
+        // у транзита свои задержки и свои помехи, человек вправе понимать, чем он идёт.
+        const val ROUTE_DIRECT = "direct"
+        const val ROUTE_RELAY = "relay"
+        const val ROUTE_FALLBACK = "fallback"
+
+        @Volatile var connectedRoute: String = ROUTE_DIRECT
+
         // Application-контекст (процесс-скоупный) — чтобы убрать уведомление из onStateChange, когда
         // туннель гаснет ВНЕ приложения и Activity под рукой нет. Ставится при создании GoTunnel.
         @Volatile private var appContext: Context? = null
@@ -99,6 +111,7 @@ class GoTunnel(context: Context, tunnelName: String = "mayak") : MayakCoreTunnel
             egressIpv6 = null
             // Туннеля нет — держать WSS-соединение к мосту незачем (и светить его тоже незачем).
             connectedViaFallback = false
+            connectedRoute = ROUTE_DIRECT
             MayakFallbackTransport.stop()
             appContext?.let { MayakNotification.clear(it) }
         }
@@ -164,6 +177,7 @@ class GoTunnel(context: Context, tunnelName: String = "mayak") : MayakCoreTunnel
         // Запасной канал живёт ровно столько, сколько туннель: гасим шим здесь, в ЕДИНОЙ точке, —
         // так он закрывается при любом способе отключения (кнопка, отмена, смена страны, внешний DOWN).
         connectedViaFallback = false
+        connectedRoute = ROUTE_DIRECT
         MayakFallbackTransport.stop()
         Unit
     }

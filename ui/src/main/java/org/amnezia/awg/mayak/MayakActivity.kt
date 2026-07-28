@@ -81,6 +81,8 @@ class MayakActivity : AppCompatActivity() {
     private var connState = ConnState.DISCONNECTED
     private var isHomeShown = false // главный экран показан (для пересинхронизации состояния в onResume)
     private var connectJob: Job? = null // корутина текущего подключения — чтобы можно было ОТМЕНИТЬ тапом
+    // Когда показали текущую надпись шага подключения (SystemClock). 0 = ещё ничего не показывали.
+    private var statusShownAt = 0L
     // Кэш конфигов /connect по направлению живёт в MayakSession (процесс-скоупный, ПЕРЕЖИВАЕТ пересоздание
     // Activity) — предзагружается при выборе страны, берётся ОДНОРАЗОВО в момент коннекта (нет
     // переиспользования устаревшего lease; провал → след. коннект тянет свежий). Раньше это было поле
@@ -944,7 +946,7 @@ class MayakActivity : AppCompatActivity() {
             // Значок IPv6 + выходные IP персистятся в GoTunnel (процесс-скоупно) → на реоупене восстанавливаем.
             val v6 = GoTunnel.egressIpv6
             setIpv6Badge(v6 != null)
-            setFallbackBadge(GoTunnel.connectedViaFallback) // пометка «Резерв» тоже персистится в GoTunnel
+            setRouteBadge(GoTunnel.connectedRoute) // пометка маршрута тоже персистится в GoTunnel
             if (GoTunnel.egressIpv4 != null) renderEgress() // IP не на главном (в деталях) — mayak_ip скрыт
             MayakNotification.show(this, GoTunnel.connectedLabel, GoTunnel.connectedPingMs, ipv6 = v6 != null) // персист-метка направления
         } else {
@@ -1331,6 +1333,7 @@ class MayakActivity : AppCompatActivity() {
         val b = backend ?: return
         renderState(ConnState.CONNECTING)
         setStatus(getString(R.string.mayak_status_connecting, d.name))
+        statusShownAt = SystemClock.elapsedRealtime() // отсюда считается читаемость следующей надписи
         connectJob = lifecycleScope.launch {
             try {
                 // Конфиг берём из ПРЕДЗАГРУЖЕННОГО кэша (наполняется при выборе страны), чтобы в момент
@@ -1368,20 +1371,29 @@ class MayakActivity : AppCompatActivity() {
                     // Прямой путь приоритетен. Сервер добавляет пира в течение ~15с (sync-таймер),
                     // поэтому на ПОСЛЕДНЕЙ ступени пробу egress повторяем несколько раз, прежде чем сдаться.
                     if (direct != null) {
+                        GoTunnel.connectedRoute = GoTunnel.ROUTE_DIRECT
                         GoTunnel.connectedServerHost = MayakPing.hostOf(paths.directEndpoint) // сервер для пинга
                         val ip = bringUpUdp(direct, hasNextRung = relay != null || fb != null)
-                        if (ip != null) { session.rememberWorking(d.id, paths); onConnected(ip, d); return@launch }
+                        if (ip != null) { session.rememberWorking(d.id, paths); holdStatus(); onConnected(ip, d); return@launch }
                     }
                     if (relay != null) {
-                        if (direct != null) setStatus(getString(R.string.mayak_status_relay_switch))
+                        if (direct != null) announce(getString(R.string.mayak_status_relay_switch))
+                        GoTunnel.connectedRoute = GoTunnel.ROUTE_RELAY
                         GoTunnel.connectedServerHost = MayakPing.hostOf(paths.relayEndpoint) // сервер для пинга
                         val ip = bringUpUdp(relay, hasNextRung = fb != null)
-                        if (ip != null) { session.rememberWorking(d.id, paths); onConnected(ip, d); return@launch }
+                        if (ip != null) { session.rememberWorking(d.id, paths); holdStatus(); onConnected(ip, d); return@launch }
                     }
                 }
                 if (fb != null && fbConf != null) {
+                    GoTunnel.connectedRoute = GoTunnel.ROUTE_FALLBACK
+                    // Сервер для пинга: у запасного канала это ХОСТ МОСТА, а не адрес ноды. Без этого в
+                    // подробностях оставались прочерки в «Сервер» и «Пинг» — человек видел пустоту вместо
+                    // ответа на «куда я вообще подключён» (жалоба владельца 2026-07-28).
+                    GoTunnel.connectedServerHost = fb.ip.ifBlank {
+                        runCatching { java.net.URI(fb.url).host }.getOrNull().orEmpty()
+                    }.ifBlank { null }
                     val ip = switchToFallback(fbConf, fb)
-                    if (ip != null) { session.rememberWorking(d.id, paths); onConnected(ip, d); return@launch }
+                    if (ip != null) { session.rememberWorking(d.id, paths); holdStatus(); onConnected(ip, d); return@launch }
                 }
                 // Не вышла ни одна ступень: ГАСИМ туннель (иначе VpnService остаётся активным и
                 // чёрной-холит весь трафик, а UI показывает «отключено» — тихий no-internet).
@@ -1432,8 +1444,33 @@ class MayakActivity : AppCompatActivity() {
      */
     private suspend fun bringUpUdp(conf: String, hasNextRung: Boolean): String? {
         tunnel.up(prepareConf(conf))
-        setStatus(getString(R.string.mayak_status_probing))
+        announce(getString(R.string.mayak_status_probing))
         return if (hasNextRung) probeUntilThreshold() else probeWithRetry()
+    }
+
+    /**
+     * Показать шаг подключения так, чтобы его успели ПРОЧИТАТЬ.
+     *
+     * Зачем: шаги лестницы иногда сменяются быстрее, чем человек читает. У владельца 2026-07-28
+     * «пробую через Россию» и «подключено» разделяли 200 мс — он увидел, что надпись была, но что
+     * именно там написано, разобрать не смог. Надпись, которую нельзя прочесть, не информирует, а
+     * тревожит: человек понимает только, что «что-то пошло не так».
+     *
+     * Поэтому перед сменой надписи досиживаем остаток [STATUS_HOLD_MS] от предыдущей. Цена — до
+     * полутора секунд на переход, и только когда переход реально случился (обычный случай — прямой
+     * путь с первого раза — не платит ничего).
+     */
+    private suspend fun announce(text: String) {
+        holdStatus()
+        setStatus(text)
+        statusShownAt = SystemClock.elapsedRealtime()
+    }
+
+    /** Досидеть остаток времени показа текущей надписи (перед сменой на следующую или перед успехом). */
+    private suspend fun holdStatus() {
+        if (statusShownAt == 0L) return
+        val left = STATUS_HOLD_MS - (SystemClock.elapsedRealtime() - statusShownAt)
+        if (left > 0) delay(left)
     }
 
     /**
@@ -1480,7 +1517,7 @@ class MayakActivity : AppCompatActivity() {
      * `protect()` вернул бы false и мы бы отказались подключаться (защита от петли).
      */
     private suspend fun switchToFallback(conf: String, fb: Fallback): String? {
-        setStatus(getString(R.string.mayak_status_fallback_switch))
+        announce(getString(R.string.mayak_status_fallback_switch))
         runCatching { tunnel.down() }
         // Имя моста разрешаем ЗДЕСЬ — туннель уже опущен, а под поднятым туннелем системный резолвер
         // пошёл бы через него, то есть через путь, который как раз и не работает. Защитить резолвер
@@ -1581,14 +1618,33 @@ class MayakActivity : AppCompatActivity() {
         }
     }
 
-    /** Показать/скрыть значок «Резерв» — идём через запасной канал, а не по UDP (SPEC-0039).
-     *  Пользователь должен видеть, что канал запасной: он медленнее прямого, и это объясняет цифры. */
-    private fun setFallbackBadge(on: Boolean) = runOnUiThread {
-        fallbackBadge?.let {
-            if (on && it.visibility != View.VISIBLE) { it.visibility = View.VISIBLE; fadeIn(it) }
-            else if (!on) it.visibility = View.GONE
+    /**
+     * Значок маршрута на главном: показываем, если идём НЕ напрямую.
+     *
+     * Прямой путь — норма, его подписывать нечем. А вот транзит через Россию и запасной канал человек
+     * обязан видеть: у них другие задержки и свои помехи. Раньше отличался только запасной канал, и
+     * владелец 2026-07-28 оказался на транзите, не подозревая об этом, — узнал лишь из разбора лога.
+     */
+    private fun setRouteBadge(route: String) = runOnUiThread {
+        val badge = fallbackBadge ?: return@runOnUiThread
+        val text = when (route) {
+            GoTunnel.ROUTE_RELAY -> getString(R.string.mayak_route_relay_badge)
+            GoTunnel.ROUTE_FALLBACK -> getString(R.string.mayak_fallback_badge)
+            else -> null
         }
+        if (text == null) { badge.visibility = View.GONE; return@runOnUiThread }
+        badge.text = text
+        if (badge.visibility != View.VISIBLE) { badge.visibility = View.VISIBLE; fadeIn(badge) }
     }
+
+    /** Человекочитаемое имя маршрута для подробностей подключения. */
+    private fun routeLabel(route: String): String = getString(
+        when (route) {
+            GoTunnel.ROUTE_RELAY -> R.string.mayak_route_relay
+            GoTunnel.ROUTE_FALLBACK -> R.string.mayak_route_fallback
+            else -> R.string.mayak_route_direct
+        }
+    )
 
     /** Несколько попыток egress-пробы (пир появляется на сервере не сразу; v6-выход может «прогреться» позже).
      *  По умолчанию v4-проба (probe, PROBE_ATTEMPTS); v6-проба зовёт с probe6 и IPV6_PROBE_ATTEMPTS. */
@@ -1614,7 +1670,7 @@ class MayakActivity : AppCompatActivity() {
         MayakPrefs.noteConnect(this) // best-effort счётчики для тихого телеметри-бикона (не-ПДн агрегаты)
         // Подключились через запасной канал → честная пометка на главном + счётчик в бикон (владельцу
         // важно знать, у скольких людей UDP уже не проходит: это сигнал о цензуре, а не украшение).
-        setFallbackBadge(GoTunnel.connectedViaFallback)
+        setRouteBadge(GoTunnel.connectedRoute)
         if (GoTunnel.connectedViaFallback) MayakPrefs.noteFallbackConnect(this)
         GoTunnel.egressIpv4 = ip // персистим выходной IPv4 (показ переживает пересоздание Activity)
         // таймер/IP появляются с лёгким fade (не резким visibility).
@@ -2074,6 +2130,7 @@ class MayakActivity : AppCompatActivity() {
 
         // Сервер (хост текущего подключения)
         view.findViewById<TextView>(R.id.mayak_det_server).text = GoTunnel.connectedServerHost ?: "—"
+        view.findViewById<TextView>(R.id.mayak_det_route).text = routeLabel(GoTunnel.connectedRoute)
 
         // Скорость передачи — показываем ЗДЕСЬ тоже, если включён тумблер (правка владельца 2026-07-06:
         // «показывать её везде»). Живое обновление раз в секунду, пока лист открыт; глушим на закрытии.
@@ -2133,6 +2190,8 @@ class MayakActivity : AppCompatActivity() {
 
         // Сервер добавляет пира sync-таймером нод (теперь 5с, было 15с — перф-2026-07-07) → пробуем плотнее:
         // таймаут пробы 4с + пауза 2с ловят пир около t≈5с (было 8+4 → первый ретрай лишь t≈12с). 6 попыток.
+        /** Минимальное время показа надписи шага подключения — чтобы её успели прочитать (см. announce). */
+        private const val STATUS_HOLD_MS = 1_500L
         private const val PROBE_ATTEMPTS = 6
 
         // Проб по ЗАПАСНОМУ каналу — меньше, чем по прямому пути. Прямому нужен запас на sync-таймер

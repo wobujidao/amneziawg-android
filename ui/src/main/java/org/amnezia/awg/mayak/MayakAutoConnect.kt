@@ -56,6 +56,9 @@ object MayakAutoConnect {
         }
         // Прямой путь приоритетен (как в MayakActivity.doConnect); резерв — релей.
         val direct = paths.directConf != null
+        // Маршрут помечаем и здесь: автоподключение поднимает туннель мимо doConnect, и без этого
+        // значок на главном показывал бы «напрямую» при подъёме через российский вход.
+        GoTunnel.connectedRoute = if (direct) GoTunnel.ROUTE_DIRECT else GoTunnel.ROUTE_RELAY
         val conf = if (direct) paths.directConf else paths.relayConf
         val endpoint = if (direct) paths.directEndpoint else paths.relayEndpoint
         if (conf == null) {
@@ -83,6 +86,7 @@ object MayakAutoConnect {
         }
         val confToUp = if (local != null) {
             GoTunnel.connectedViaFallback = true
+            GoTunnel.connectedRoute = GoTunnel.ROUTE_FALLBACK
             Log.i(TAG, "автоподключение через запасной канал (тумблер включён)")
             ConfRenderer.withEndpoint(conf, local)
         } else {

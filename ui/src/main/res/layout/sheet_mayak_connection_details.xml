@@ -127,4 +127,15 @@
             <TextView android:id="@+id/mayak_det_server" style="@style/Mayak.DetailRow.Value.Mono" />
         </LinearLayout>
     </LinearLayout>
+
+    <View style="@style/Mayak.DetailRow.Divider" />
+
+    <!-- Путь: напрямую / через Россию / запасной канал. Рядом с адресами, потому что это ответ на
+         тот же вопрос «куда я подключён» — владелец 2026-07-28 оказался на транзите и не знал. -->
+    <LinearLayout android:id="@+id/mayak_det_route_row" style="@style/Mayak.DetailRow">
+        <LinearLayout style="@style/Mayak.DetailRow.TextCol">
+            <TextView style="@style/Mayak.DetailRow.Label" android:text="@string/mayak_details_route" />
+            <TextView android:id="@+id/mayak_det_route" style="@style/Mayak.DetailRow.Value" />
+        </LinearLayout>
+    </LinearLayout>
 </LinearLayout>
