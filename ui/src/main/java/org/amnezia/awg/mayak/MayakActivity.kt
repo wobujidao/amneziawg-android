@@ -77,6 +77,9 @@ class MayakActivity : AppCompatActivity() {
      * `withTimeoutOrNull` обязан дождаться завершения своих детей.
      */
     private val probeScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+
+    /** Сработал ли уже сторож «трафик не идёт» в ТЕКУЩЕМ подключении (чтобы залить лог один раз). */
+    private var noTrafficReported = false
     // IPv6-проба: api6.ipify.org резолвится ТОЛЬКО в IPv6 → успешный 200 = реальный IPv6-egress через
     // туннель. Честный сигнал для значка «IPv6» (SPEC-0014): зажигаем по факту выхода, не по наличию ::/0.
     private val probe6 = IpifyProbe(url = "https://api6.ipify.org?format=json")
@@ -160,6 +163,22 @@ class MayakActivity : AppCompatActivity() {
         ) {
             notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
+    }
+
+    // «Состояние телефона» — ТОЛЬКО чтобы диагностика знала тип радиосети (LTE/H+/EDGE) и уровень
+    // сигнала: без них жалоба «всё плохо работает» неотличима от «человек в EDGE с одной палкой».
+    // Ни номера, ни IMEI, ни звонков мы не читаем (DiagCollector.telephony()). Отказ безвреден —
+    // просто в логе будет меньше полей, поэтому спрашиваем ОДИН раз и больше не пристаём.
+    private val phoneStatePermission =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { /* отказ безвреден */ }
+
+    private fun maybeRequestPhoneStatePermission() {
+        if (MayakPrefs.phoneStateAsked(this)) return
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE) ==
+            PackageManager.PERMISSION_GRANTED
+        ) return
+        MayakPrefs.notePhoneStateAsked(this)
+        phoneStatePermission.launch(Manifest.permission.READ_PHONE_STATE)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -1336,7 +1355,8 @@ class MayakActivity : AppCompatActivity() {
     }
 
     private fun connectTo(d: Direction) {
-        maybeRequestNotifPermission() // спросим разрешение на уведомление в момент коннекта (естественный контекст)
+        maybeRequestNotifPermission()
+        maybeRequestPhoneStatePermission() // тип радиосети для диагностики — спрашиваем один раз, в момент коннекта
         val prepare = GoBackend.VpnService.prepare(this)
         if (prepare != null) {
             pendingConnect = d
@@ -1745,6 +1765,13 @@ class MayakActivity : AppCompatActivity() {
      * «уже подключены к B» → no-op, и добраться до B из списка становилось нельзя вообще.
      */
     private fun onConnected(ip: String, d: Direction?) = runOnUiThread {
+        noTrafficReported = false
+        // Ушли не прямым путём — значит у этого оператора прямой UDP не прошёл. Это ровно тот факт,
+        // ради которого мы и разбираем логи («у кого что режут»), а узнавали мы его только когда
+        // человек сам жаловался. Заливка тихая и под общим лимитом (не чаще раза в 6ч).
+        if (GoTunnel.connectedRoute != GoTunnel.ROUTE_DIRECT) {
+            maybeAutoSendDiag("ladder-" + GoTunnel.connectedRoute)
+        }
         connState = ConnState.CONNECTED
         renderState(ConnState.CONNECTED)
         MayakPrefs.noteConnect(this) // best-effort счётчики для тихого телеметри-бикона (не-ПДн агрегаты)
@@ -1800,14 +1827,14 @@ class MayakActivity : AppCompatActivity() {
      * не породил шквал заливок; (2) требует входа и backend (как ручная кнопка) — иначе тихо пропускаем;
      * (3) полностью тихо (без UI) и БЕЗ ретраев; любой сбой глотаем (диагностика не должна ронять UI).
      */
-    private fun maybeAutoSendDiag() {
+    private fun maybeAutoSendDiag(reason: String = "connect-error") {
         if (!::session.isInitialized || !session.hasToken()) return
         val b = backend ?: return
         if (!MayakPrefs.noteAutoDiagIfDue(this)) return // слишком часто — пропускаем
         val dirName = selectedDir?.name ?: ""
         lifecycleScope.launch {
             try {
-                val req = DiagCollector.collect(this@MayakActivity, direction = dirName, deviceId = session.deviceId(), source = "auto")
+                val req = DiagCollector.collect(this@MayakActivity, direction = dirName, deviceId = session.deviceId(), source = "auto", reason = reason, tunnel = tunnel)
                 session.sendDiagLog(b, req)
             } catch (_: Exception) { /* тихо: авто-диагностика best-effort, без ретраев/краша */ }
         }
@@ -2053,11 +2080,19 @@ class MayakActivity : AppCompatActivity() {
                 // подряд неудач → честный статус и предложение переподключиться, туннель не трогаем.
                 if (ms == null) misses++ else misses = 0
                 if (connState == ConnState.CONNECTED) {
-                    if (misses >= PING_MISSES_TO_WARN) setStatus(getString(R.string.mayak_status_no_traffic))
+                    if (misses >= PING_MISSES_TO_WARN) {
+                        setStatus(getString(R.string.mayak_status_no_traffic))
+                        // Именно здесь у человека и случается «подключено, а ничего не открывается» —
+                        // и именно этот случай авто-заливка раньше НЕ ловила: подключение-то прошло
+                        // успешно (жалоба бета-тестера 2026-07-29). Шлём один раз на срабатывание,
+                        // дальше сторож молчит до восстановления трафика; сверху ещё лимит в MayakPrefs.
+                        if (!noTrafficReported) { noTrafficReported = true; maybeAutoSendDiag("no-traffic") }
+                    }
                     else if (misses == 0 && ::status.isInitialized &&
                         status.text == getString(R.string.mayak_status_no_traffic)
                     ) {
                         setStatus(getString(R.string.mayak_connected)) // трафик вернулся сам
+                        noTrafficReported = false
                     }
                 }
                 // Когда включена скорость — уведомление ведёт SpeedNotifier (пинг+скорость, живёт при сворачивании).

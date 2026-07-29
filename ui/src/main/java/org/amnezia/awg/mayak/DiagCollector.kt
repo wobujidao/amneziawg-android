@@ -7,6 +7,8 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
+import android.os.PowerManager
+import android.telephony.TelephonyManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.amnezia.awg.mayak.core.DiagLogRequest
@@ -22,7 +24,19 @@ object DiagCollector {
      * deviceId — id устройства из сессии (0 если неизвестен). source — "manual" (кнопка юзера) или
      * "auto" (авто-заливка при ошибке подключения, 0.3.48). Сеть/логи читаем в IO.
      */
-    suspend fun collect(context: Context, direction: String, deviceId: Long, source: String = "manual"): DiagLogRequest =
+    suspend fun collect(
+        context: Context,
+        direction: String,
+        deviceId: Long,
+        source: String = "manual",
+        // ПОЧЕМУ пришла авто-заливка. Сервер различает только manual/auto (строгая валидация), поэтому
+        // повод кладём в meta: connect-error | no-traffic | ladder-<ступень>. Без этого все авто-логи
+        // выглядят одинаково и непонятно, что у человека случилось.
+        reason: String = "",
+        // Живой туннель — только ради счётчиков трафика (статистика движка доступна на экземпляре).
+        // null (например, из настроек) → полей rx/tx просто не будет.
+        tunnel: GoTunnel? = null,
+    ): DiagLogRequest =
         withContext(Dispatchers.IO) {
             val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
             val net = networkInfo(cm)
@@ -41,11 +55,20 @@ object DiagCollector {
                     // Источник установки (для статистики Play vs сайт): play | sideload | unknown | <installer>.
                     // Агрегируется на бэкенде через meta->>'install_source' (колонка jsonb, миграция не нужна).
                     put("install_source", installSource(context))
+                    if (reason.isNotBlank()) put("auto_reason", reason)
                     // Выходные IP нашего подключения (SPEC-0014) — чтобы инженер по логу видел, под каким
                     // IPv4/IPv6 экзита сидел клиент (диагностика «не работает направление / блок IP»).
                     // Процесс-скоупно в GoTunnel: заполнены, если в момент сбора туннель поднят нами.
                     GoTunnel.egressIpv4?.let { put("egress_ipv4", it) }
                     GoTunnel.egressIpv6?.let { put("egress_ipv6", it) }
+                    // Кто у человека оператор и в каком он состоянии. До 0.3.81 в логе было только
+                    // «wifi/cellular», и оператора мы угадывали по IP — а вся наша проблематика
+                    // («у кого что режут») именно про операторов. Всё ниже читается БЕЗ разрешений.
+                    putAll(telephony(context))
+                    if (net.downKbps > 0) put("link_down_kbps", net.downKbps.toString())
+                    if (net.upKbps > 0) put("link_up_kbps", net.upKbps.toString())
+                    putAll(tunnelState(tunnel))
+                    putAll(deviceState(context))
                 },
                 log = captureLog(),
             )
@@ -66,7 +89,7 @@ object DiagCollector {
         }
     } catch (e: Exception) { "unknown" }
 
-    private data class Net(val type: String, val vpnActive: Boolean)
+    private data class Net(val type: String, val vpnActive: Boolean, val downKbps: Int = 0, val upKbps: Int = 0)
 
     /**
      * Тип ФИЗИЧЕСКОЙ сети (wifi/cellular/other) + есть ли активный VPN-транспорт. Физическую сеть
@@ -78,12 +101,21 @@ object DiagCollector {
         var wifi = false
         var cellular = false
         var vpn = false
+        var down = 0
+        var up = 0
         try {
             for (n in cm.allNetworks) {
                 val caps = cm.getNetworkCapabilities(n) ?: continue
                 if (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) wifi = true
                 if (caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) cellular = true
                 if (caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) vpn = true
+                // Оценку канала берём с ФИЗИЧЕСКОЙ сети: у VPN-транспорта она про туннель, а нам нужно
+                // понимать, что под ним. Это оценка системы, не замер, но порядок величины различает
+                // EDGE от LTE — а без разрешения «состояние телефона» тип радиосети нам не отдают.
+                if (!caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) {
+                    down = maxOf(down, caps.linkDownstreamBandwidthKbps)
+                    up = maxOf(up, caps.linkUpstreamBandwidthKbps)
+                }
             }
         } catch (_: Exception) { /* без прав/ошибка — отдаём что есть */ }
         val type = when {
@@ -91,7 +123,98 @@ object DiagCollector {
             cellular -> "cellular"
             else -> "other"
         }
-        return Net(type, vpn)
+        return Net(type, vpn, down, up)
+    }
+
+    /**
+     * Оператор и состояние сотовой сети — то, что Android отдаёт БЕЗ разрешений.
+     *
+     * Что берём: имя оператора сети и его код (MCC+MNC) — по ним оператор определяется точно, а не
+     * гаданием по IP; отдельно код оператора SIM (в роуминге отличается от сетевого); признак
+     * роуминга. Тип радиосети (LTE/HSPA/EDGE/NR) и уровень сигнала Android отдаёт только по
+     * разрешению «состояние телефона» — его мы не просим, поэтому здесь их нет; косвенно о качестве
+     * канала говорит оценка системы link_down_kbps.
+     */
+    private fun telephony(context: Context): Map<String, String> = try {
+        val tm = context.getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
+        if (tm == null || tm.simState == TelephonyManager.SIM_STATE_ABSENT) emptyMap()
+        else buildMap {
+            tm.networkOperatorName?.takeIf { it.isNotBlank() }?.let { put("carrier", it) }
+            tm.networkOperator?.takeIf { it.length >= 5 }?.let { put("carrier_mccmnc", it) }
+            tm.simOperator?.takeIf { it.length >= 5 && it != tm.networkOperator }?.let { put("sim_mccmnc", it) }
+            if (tm.isNetworkRoaming) put("roaming", "true")
+            // Тип радиосети и уровень сигнала — по разрешению «состояние телефона» (решение владельца
+            // 2026-07-29: «делаем, информация нужна»). Именно они отличают «оператор режет» от
+            // «человек в EDGE с одной палкой»: без них обе картины выглядят как «всё плохо работает».
+            // Разрешения может не быть (пользователь отказал) — тогда просто молчим.
+            runCatching { radioName(tm.dataNetworkType) }.getOrNull()?.let { put("radio", it) }
+            runCatching { tm.signalStrength?.level }.getOrNull()?.let { put("signal_level", it.toString()) } // 0..4
+        }
+    } catch (_: Exception) { emptyMap() }
+
+    /**
+     * Состояние НАШЕГО подключения на момент сбора. Всё это есть в тексте лога, но текст надо читать
+     * глазами, а по структурированным полям видно сразу и можно считать статистику по всем жалобам:
+     * какой ступенью человек идёт, к какому адресу, с какой маской, какой пинг и сколько прошло
+     * трафика. Без этого «плохо работает» приходится расшифровывать вручную (жалоба 2026-07-29).
+     */
+    private fun tunnelState(tunnel: GoTunnel?): Map<String, String> = buildMap {
+        put("route", GoTunnel.connectedRoute)
+        GoTunnel.connectedServerHost?.let { put("server_host", it) }
+        GoTunnel.connectedPingMs?.let { put("ping_ms", it.toString()) }
+        GoTunnel.connectedSinceElapsed?.let {
+            put("session_s", ((android.os.SystemClock.elapsedRealtime() - it) / 1000).toString())
+        }
+        tunnel?.transfer()?.let { (rx, tx) -> put("rx_bytes", rx.toString()); put("tx_bytes", tx.toString()) }
+        // Из применённого конфига берём то, что влияет на проходимость: адрес входа, маску и MTU.
+        GoTunnel.lastConfText?.lineSequence()?.forEach { line ->
+            val eq = line.indexOf('=')
+            if (eq <= 0) return@forEach
+            when (line.substring(0, eq).trim()) {
+                "Endpoint" -> put("endpoint", line.substring(eq + 1).trim())
+                "MTU" -> put("mtu", line.substring(eq + 1).trim())
+                "I1" -> put("mask_i1", line.substring(eq + 1).trim().take(64))
+            }
+        }
+    }
+
+    /**
+     * Состояние устройства, которое объясняет «само отключилось» и «в фоне не работает».
+     *
+     * Батарейная оптимизация и режим энергосбережения — прямая причина, по которой Android убивает
+     * наш процесс в фоне (мы на этом обожглись в 0.3.76/0.3.77: система убивала VpnService в паузе
+     * между DOWN и UP). Часовой пояс и время устройства нужны, чтобы поймать сбитые часы: при них
+     * рушится TLS, и человек видит «ничего не открывается» без единой ошибки в туннеле.
+     */
+    private fun deviceState(context: Context): Map<String, String> = buildMap {
+        try {
+            val pm = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
+            if (pm != null) {
+                put("battery_unrestricted", pm.isIgnoringBatteryOptimizations(context.packageName).toString())
+                put("power_save", pm.isPowerSaveMode.toString())
+                put("device_idle", pm.isDeviceIdleMode.toString())
+            }
+        } catch (_: Exception) { /* необязательное */ }
+        put("tz", java.util.TimeZone.getDefault().id)
+        put("device_time", java.time.Instant.now().toString()) // сервер сверит со своим — поймаем сбитые часы
+        runCatching {
+            put("preset_on", MayakPrefs.presetEnabled(context).toString())
+            MayakPresets.activePreset(context)?.let { put("preset", it.name + "/" + it.mode) }
+        }
+    }
+
+    /** Человекочитаемое имя типа радиосети (значения TelephonyManager.NETWORK_TYPE_*). */
+    private fun radioName(t: Int): String = when (t) {
+        TelephonyManager.NETWORK_TYPE_NR -> "5G"
+        TelephonyManager.NETWORK_TYPE_LTE -> "LTE"
+        TelephonyManager.NETWORK_TYPE_HSPAP -> "H+"
+        TelephonyManager.NETWORK_TYPE_HSPA, TelephonyManager.NETWORK_TYPE_HSDPA,
+        TelephonyManager.NETWORK_TYPE_HSUPA -> "H"
+        TelephonyManager.NETWORK_TYPE_UMTS -> "3G"
+        TelephonyManager.NETWORK_TYPE_EDGE -> "EDGE"
+        TelephonyManager.NETWORK_TYPE_GPRS -> "GPRS"
+        TelephonyManager.NETWORK_TYPE_UNKNOWN -> "?"
+        else -> "type$t"
     }
 
     private fun appVersion(context: Context): String = try {

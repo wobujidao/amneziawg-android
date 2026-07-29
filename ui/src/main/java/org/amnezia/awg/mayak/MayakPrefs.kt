@@ -37,6 +37,7 @@ object MayakPrefs {
     private const val KEY_ACTIVE_DAYS = "telemetry_active_days"     // число РАЗНЫХ дней с подключением
     private const val KEY_LAST_ACTIVE_DAY = "telemetry_last_active_day" // последняя учтённая дата (yyyy-MM-dd)
     private const val KEY_FALLBACK_COUNT = "telemetry_fallback_count" // подключений через запасной канал (SPEC-0039)
+    private const val KEY_PHONE_STATE_ASKED = "phone_state_asked" // спрашивали ли разрешение на состояние телефона
     private const val KEY_LAST_AUTO_DIAG = "auto_diag_last_ms" // ts последней АВТО-заливки диаг-лога (rate-limit)
     private const val AUTO_DIAG_MIN_INTERVAL_MS = 6L * 60 * 60 * 1000 // не чаще раза в 6ч на установку
 
@@ -241,6 +242,13 @@ object MayakPrefs {
      *  прошло >= 6ч (или её не было) — помечает «сейчас» и возвращает true (можно слать); иначе false
      *  (слишком часто, пропускаем). Атомарно (проверка+пометка вместе), чтобы шквал ошибок подряд не
      *  породил шквал заливок. Ручную кнопку это НЕ трогает. */
+    /** Спрашивали ли уже разрешение «состояние телефона» (спрашиваем ровно один раз, 0.3.81). */
+    fun phoneStateAsked(context: Context): Boolean = prefs(context).getBoolean(KEY_PHONE_STATE_ASKED, false)
+
+    fun notePhoneStateAsked(context: Context) {
+        prefs(context).edit().putBoolean(KEY_PHONE_STATE_ASKED, true).apply()
+    }
+
     fun noteAutoDiagIfDue(context: Context): Boolean {
         val p = prefs(context)
         val now = System.currentTimeMillis()
