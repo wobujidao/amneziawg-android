@@ -101,3 +101,58 @@ class FallbackDecisionMsLeftTest {
         assertEquals(1L, FallbackDecision.msLeft(99_000, 0))
     }
 }
+
+/**
+ * Ожидание пира на ноде (разбор 2026-07-29).
+ *
+ * Пир заводится на выходе не в момент выдачи конфига, а на следующем поллинге агента (15 с). Пока
+ * его нет, сервер молчит на инициацию — рукопожатия не будет ни на первой секунде, ни на пятой.
+ * Прежняя логика бросала прямой путь на 6-й секунде, уходила на мост (тот же wg0 без пира!) и
+ * заканчивала «нет выхода» там, где надо было просто подождать.
+ */
+class FallbackDecisionPeerSyncTest {
+
+    @Test
+    fun `свежий конфиг — не сдаёмся раньше, чем пир доедет`() {
+        val slack = FallbackDecision.peerSyncSlackMs(0) // конфиг выдан только что
+        assertEquals(FallbackDecision.PEER_SYNC_MS, slack)
+        // 6 с без рукопожатия: раньше уходили на следующую ступень, теперь ждём — пира ещё нет
+        assertFalse(FallbackDecision.shouldSwitch(FallbackDecision.NO_HANDSHAKE_MS, null, slack))
+        assertFalse(FallbackDecision.shouldSwitch(FallbackDecision.PEER_SYNC_MS - 1, null, slack))
+        // но не ждём вечно: дождались срока — обычные пороги снова главные
+        assertTrue(FallbackDecision.shouldSwitch(FallbackDecision.PEER_SYNC_MS, null, slack))
+    }
+
+    @Test
+    fun `тёплый конфиг не стоит ничего`() {
+        // Обычный случай: конфиг предзагрузили, пока человек выбирал страну. Пир давно на ноде —
+        // ждать нечего, пороги работают как прежде (иначе починка замедлила бы КАЖДОЕ подключение).
+        assertEquals(0L, FallbackDecision.peerSyncSlackMs(FallbackDecision.PEER_SYNC_MS))
+        assertEquals(0L, FallbackDecision.peerSyncSlackMs(60_000))
+        assertTrue(FallbackDecision.shouldSwitch(FallbackDecision.NO_HANDSHAKE_MS, null, minWaitMs = 0))
+    }
+
+    @Test
+    fun `наполовину тёплый конфиг ждёт только недостающее`() {
+        val slack = FallbackDecision.peerSyncSlackMs(10_000) // выдан 10 с назад
+        assertEquals(5_000L, slack)
+        assertFalse(FallbackDecision.shouldSwitch(4_999, null, slack))
+        assertTrue(FallbackDecision.shouldSwitch(6_000, null, slack)) // 5 с ожидания прошли, порог 6 с достигнут
+    }
+
+    @Test
+    fun `подтверждённый выход ожиданием не задерживается`() {
+        // Ожидание запрещает только СДАВАТЬСЯ. Успех проверяется отдельно и возвращается сразу:
+        // если рукопожатие прошло и egress подтвердился на 900 мс, никто не ждёт пятнадцати секунд.
+        // Здесь фиксируем сам инвариант: shouldSwitch — про уход, а не про удержание.
+        assertFalse(FallbackDecision.shouldSwitch(900, handshakeAtMs = 400, minWaitMs = FallbackDecision.PEER_SYNC_MS))
+    }
+
+    @Test
+    fun `остаток на пробу учитывает ожидание пира`() {
+        // msLeft ограничивает пробу. Пока ждём пира, остаток обязан считаться по ожиданию, иначе
+        // проба обрывалась бы по «истёкшему» порогу ровно тогда, когда мы намеренно ещё ждём.
+        assertEquals(9_000L, FallbackDecision.msLeft(6_000, null, minWaitMs = 15_000))
+        assertEquals(1L, FallbackDecision.msLeft(15_000, null, minWaitMs = 15_000))
+    }
+}

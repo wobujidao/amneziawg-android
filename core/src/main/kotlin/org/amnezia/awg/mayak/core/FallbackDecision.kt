@@ -53,14 +53,45 @@ object FallbackDecision {
     const val NO_EGRESS_MS = 5_000L
 
     /**
+     * Сколько времени сервер может ехать с ТОЛЬКО ЧТО выданным пиром.
+     *
+     * Пир появляется на выходной ноде не в момент выдачи конфига, а на следующем поллинге агента
+     * (`node-agent -interval 15s`). Пока пира нет, сервер не отвечает на инициацию — рукопожатия НЕ
+     * БУДЕТ ни на первой секунде, ни на пятой, сколько ни жди.
+     *
+     * Чем это кончалось (разбор 2026-07-29). Мост поверх :443 считается «следующей ступенью», поэтому
+     * прямой путь судился по порогу 6 с. Первое подключение устройства к линии: 6 с — бросили прямой
+     * путь; мост ведёт в ТОТ ЖЕ wg0, где пира по-прежнему нет, — ещё две пробы мимо; лестница кончилась,
+     * туннель гасим, «нет выхода». А достаточно было подождать до 15-й секунды. Для человека это
+     * «с первого раза не подключается, со второго — да»; такая жалоба почти никогда не доезжает.
+     *
+     * Момент выдачи конфига мы знаем точно, поэтому ждём не «на всякий случай», а ровно НЕДОСТАЮЩЕЕ
+     * время: тёплый предзагруженный конфиг (обычный случай) не платит НИЧЕГО — пир завёлся, пока
+     * человек смотрел на список стран.
+     */
+    const val PEER_SYNC_MS = 15_000L
+
+    /**
+     * Сколько ещё нельзя сдаваться, если конфиг выдан [configAgeMs] мс назад.
+     *
+     * 0 — конфиг достаточно стар (пир заведомо доехал) либо возраст неизвестен (конфиг с диска):
+     * тогда работают обычные пороги и ничего не замедляется.
+     */
+    fun peerSyncSlackMs(configAgeMs: Long): Long =
+        (PEER_SYNC_MS - configAgeMs).coerceIn(0L, PEER_SYNC_MS)
+
+    /**
      * @param elapsedMs     сколько прошло с подъёма туннеля.
      * @param handshakeAtMs на какой миллисекунде (от подъёма) ВПЕРВЫЕ увидели хендшейк; null — ещё нет.
+     * @param minWaitMs     раньше этого времени не сдаёмся вообще (см. [peerSyncSlackMs]).
      * @return true — пора переключаться на следующую ступень (вызывать, пока egress НЕ подтверждён;
      *         подтвердился — вопрос снят, никакого переключения не нужно).
      */
-    fun shouldSwitch(elapsedMs: Long, handshakeAtMs: Long?): Boolean =
-        if (handshakeAtMs == null) elapsedMs >= NO_HANDSHAKE_MS
-        else elapsedMs - handshakeAtMs >= NO_EGRESS_MS
+    fun shouldSwitch(elapsedMs: Long, handshakeAtMs: Long?, minWaitMs: Long = 0L): Boolean = when {
+        elapsedMs < minWaitMs -> false // пир ещё может не доехать до ноды — сдаваться рано
+        handshakeAtMs == null -> elapsedMs >= NO_HANDSHAKE_MS
+        else -> elapsedMs - handshakeAtMs >= NO_EGRESS_MS
+    }
 
     /**
      * Сколько ещё МОЖНО ждать до переключения (мс, не меньше 1).
@@ -70,7 +101,11 @@ object FallbackDecision {
      * (живой разбор 2026-07-27). Вызывающий ограничивает пробу этим остатком, и решение принимается
      * ровно тогда, когда обещано.
      */
-    fun msLeft(elapsedMs: Long, handshakeAtMs: Long?): Long =
-        (if (handshakeAtMs == null) NO_HANDSHAKE_MS - elapsedMs
-        else NO_EGRESS_MS - (elapsedMs - handshakeAtMs)).coerceAtLeast(1L)
+    fun msLeft(elapsedMs: Long, handshakeAtMs: Long?, minWaitMs: Long = 0L): Long {
+        val byThreshold = if (handshakeAtMs == null) NO_HANDSHAKE_MS - elapsedMs
+        else NO_EGRESS_MS - (elapsedMs - handshakeAtMs)
+        // Пока действует ожидание пира, порог наступить не может — остаток считаем по нему, иначе
+        // проба обрывалась бы по «истёкшему» бюджету ровно тогда, когда мы намеренно ещё ждём.
+        return maxOf(byThreshold, minWaitMs - elapsedMs).coerceAtLeast(1L)
+    }
 }

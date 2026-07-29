@@ -37,6 +37,15 @@ data class Paths(
     // Поля с дефолтами → сохранённые на диск last-good конфиги СТАРОГО формата читаются как прежде.
     val directFallback: org.amnezia.awg.mayak.core.Fallback? = null,
     val relayFallback: org.amnezia.awg.mayak.core.Fallback? = null,
+    // Монотонная метка выдачи (SystemClock.elapsedRealtime). Нужна лестнице: пир появляется на ноде
+    // только на следующем поллинге агента, и по возрасту конфига видно, доехал он уже или ещё нет
+    // (FallbackDecision.peerSyncSlackMs). 0 = возраст неизвестен → ждать нечего.
+    //
+    // @Transient — на диск НЕ пишем осознанно: elapsedRealtime обнуляется при перезагрузке, и
+    // сохранённое значение после ребута означало бы «конфиг из будущего». Конфиг с диска и так
+    // заведомо не свежий, поэтому 0 для него — правильный ответ, а не потеря данных.
+    @kotlinx.serialization.Transient
+    val issuedAtElapsed: Long = 0L,
 )
 
 /** Сохранённая на диск запись offline-фоллбэка: конфиг направления + настенная метка сохранения (мс).
@@ -211,6 +220,7 @@ class MayakSession(
             relayEndpoint = relayCfg?.endpoint,
             directFallback = directCfg?.fallback,
             relayFallback = relayCfg?.fallback,
+            issuedAtElapsed = SystemClock.elapsedRealtime(),
         )
     }
 

@@ -1413,13 +1413,15 @@ class MayakActivity : AppCompatActivity() {
                     // поэтому на ПОСЛЕДНЕЙ ступени пробу egress повторяем несколько раз, прежде чем сдаться.
                     if (direct != null) {
                         val ip = bringUpUdp(direct, hasNextRung = relay != null || fb != null,
-                            route = GoTunnel.ROUTE_DIRECT, serverHost = MayakPing.hostOf(paths.directEndpoint))
+                            route = GoTunnel.ROUTE_DIRECT, serverHost = MayakPing.hostOf(paths.directEndpoint),
+                            peerSyncSlackMs = peerSyncSlack(paths))
                         if (ip != null) { session.rememberWorking(d.id, paths); holdStatus(); onConnected(ip, d); return@launch }
                     }
                     if (relay != null) {
                         if (direct != null) announce(getString(R.string.mayak_status_relay_switch))
                         val ip = bringUpUdp(relay, hasNextRung = fb != null,
-                            route = GoTunnel.ROUTE_RELAY, serverHost = MayakPing.hostOf(paths.relayEndpoint))
+                            route = GoTunnel.ROUTE_RELAY, serverHost = MayakPing.hostOf(paths.relayEndpoint),
+                            peerSyncSlackMs = peerSyncSlack(paths))
                         if (ip != null) { session.rememberWorking(d.id, paths); holdStatus(); onConnected(ip, d); return@launch }
                     }
                 }
@@ -1466,6 +1468,21 @@ class MayakActivity : AppCompatActivity() {
     }
 
     /**
+     * Сколько ещё нельзя сдаваться на UDP-плече из-за того, что пир может не доехать до ноды.
+     *
+     * Пир заводится на выходе не в момент выдачи конфига, а на следующем поллинге агента (15 с).
+     * Пока его нет, сервер не отвечает на инициацию — рукопожатия не будет, и лестница честно
+     * проходит все ступени мимо, заканчивая «нет выхода» на ровном месте (разбор 2026-07-29).
+     *
+     * Считаем от ВОЗРАСТА конфига, а не «ждём 15 с всегда»: тёплый предзагруженный конфиг (обычный
+     * случай — грели, пока человек выбирал страну) даёт слак 0 и не стоит ни миллисекунды.
+     */
+    private fun peerSyncSlack(paths: Paths): Long {
+        if (paths.issuedAtElapsed == 0L) return 0L // конфиг с диска: возраст неизвестен, пир заведомо старый
+        return FallbackDecision.peerSyncSlackMs(SystemClock.elapsedRealtime() - paths.issuedAtElapsed)
+    }
+
+    /**
      * Поднимает UDP-плечо и доводит его до подтверждённого выхода. null — плечо не вышло в интернет.
      *
      * @param hasNextRung есть ли следующая ступень лестницы. Если есть — не досиживаем полный набор
@@ -1474,7 +1491,13 @@ class MayakActivity : AppCompatActivity() {
      * ПОСЛЕДНЯЯ — терпим до конца: сдаться некуда, а сервер добавляет пира ~15с (sync-таймер), и
      * ранний отказ здесь означал бы «не подключается» там, где надо было просто подождать.
      */
-    private suspend fun bringUpUdp(conf: String, hasNextRung: Boolean, route: String, serverHost: String?): String? {
+    private suspend fun bringUpUdp(
+        conf: String,
+        hasNextRung: Boolean,
+        route: String,
+        serverHost: String?,
+        peerSyncSlackMs: Long = 0L,
+    ): String? {
         tunnel.up(prepareConf(conf))
         // Метку пути и хост сервера ставим ПОСЛЕ подъёма, а не до. `tunnel.up()` внутри сначала делает
         // down() (иначе новый конфиг не применится — «Tunnel already up»), а down() сбрасывает всё
@@ -1484,7 +1507,7 @@ class MayakActivity : AppCompatActivity() {
         GoTunnel.connectedRoute = route
         GoTunnel.connectedServerHost = serverHost
         announce(getString(R.string.mayak_status_probing))
-        return if (hasNextRung) probeUntilThreshold() else probeWithRetry()
+        return if (hasNextRung) probeUntilThreshold(peerSyncSlackMs) else probeWithRetry()
     }
 
     /**
@@ -1516,8 +1539,11 @@ class MayakActivity : AppCompatActivity() {
      * Ждём egress по уже поднятому туннелю, но не дольше порогов [FallbackDecision].
      * Возвращает выходной IP или null, если за отведённое время путь себя не подтвердил.
      */
-    private suspend fun probeUntilThreshold(): String? {
+    private suspend fun probeUntilThreshold(peerSyncSlackMs: Long = 0L): String? {
         val started = SystemClock.elapsedRealtime()
+        if (peerSyncSlackMs > 0) {
+            android.util.Log.i(PROBE_TAG, "конфиг свежий — не сдаюсь раньше ${peerSyncSlackMs}мс (пир едет на ноду)")
+        }
         // Момент ПЕРВОГО увиденного хендшейка. От него, а не от подъёма туннеля, отсчитывается время
         // на подтверждение выхода: иначе медленное рукопожатие съедает бюджет пробы и мы бросаем
         // рабочий путь (живой случай 2026-07-28, диаг-лог #63 — см. FallbackDecision).
@@ -1539,7 +1565,7 @@ class MayakActivity : AppCompatActivity() {
                     handshakeAt = elapsed
                     android.util.Log.i(PROBE_TAG, "рукопожатие за ${elapsed}мс — отсюда ${FallbackDecision.NO_EGRESS_MS}мс на проверку выхода")
                 }
-                if (FallbackDecision.shouldSwitch(elapsed, handshakeAt)) {
+                if (FallbackDecision.shouldSwitch(elapsed, handshakeAt, peerSyncSlackMs)) {
                     android.util.Log.i(PROBE_TAG, "UDP не пошёл за ${elapsed}мс (рукопожатие=$handshakeAt) → следующая ступень")
                     return null
                 }
