@@ -80,6 +80,9 @@ class MayakActivity : AppCompatActivity() {
 
     /** Сработал ли уже сторож «трафик не идёт» в ТЕКУЩЕМ подключении (чтобы залить лог один раз). */
     private var noTrafficReported = false
+
+    /** Пробовали ли уже вылечиться переподключением в ТЕКУЩЕМ подключении (ровно одна попытка). */
+    private var selfHealTried = false
     // IPv6-проба: api6.ipify.org резолвится ТОЛЬКО в IPv6 → успешный 200 = реальный IPv6-egress через
     // туннель. Честный сигнал для значка «IPv6» (SPEC-0014): зажигаем по факту выхода, не по наличию ::/0.
     private val probe6 = IpifyProbe(url = "https://api6.ipify.org?format=json")
@@ -1766,6 +1769,7 @@ class MayakActivity : AppCompatActivity() {
      */
     private fun onConnected(ip: String, d: Direction?) = runOnUiThread {
         noTrafficReported = false
+        selfHealTried = false
         // Ушли не прямым путём — значит у этого оператора прямой UDP не прошёл. Это ровно тот факт,
         // ради которого мы и разбираем логи («у кого что режут»), а узнавали мы его только когда
         // человек сам жаловался. Заливка тихая и под общим лимитом (не чаще раза в 6ч).
@@ -1837,6 +1841,39 @@ class MayakActivity : AppCompatActivity() {
                 val req = DiagCollector.collect(this@MayakActivity, direction = dirName, deviceId = session.deviceId(), source = "auto", reason = reason, tunnel = tunnel)
                 session.sendDiagLog(b, req)
             } catch (_: Exception) { /* тихо: авто-диагностика best-effort, без ретраев/краша */ }
+        }
+    }
+
+    /**
+     * Молча переподключиться, когда туннель поднят, а трафика нет.
+     *
+     * Зачем: самый частый способ остаться без интернета — не «не подключилось», а «подключилось и
+     * тихо умерло». Живой случай 2026-07-29: у устройства истекла аренда оверлей-адреса (телефон
+     * спал, продления не уходили), жнец её освободил, и пир сняли с выхода — приложение показывало
+     * «Защищено», а не открывалось ничего. Человеку предлагали переподключиться вручную; теперь
+     * делаем это сами — новый /connect выдаёт свежий конфиг и заново заводит пира.
+     *
+     * Осторожность, оплаченная кровью (0.3.76/0.3.77): переподнимать туннель в ФОНЕ нельзя — Android
+     * убивает процесс в паузе между DOWN и UP, и человек получает «VPN сам выключился». Поэтому
+     * лечимся ТОЛЬКО при открытом экране (RESUMED) и ровно один раз на подключение: если не помогло,
+     * второй заход тем более не поможет, а мигать туннелем по кругу — худшее, что можно сделать.
+     */
+    private fun maybeSelfHeal() {
+        if (selfHealTried) return
+        if (!lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) return
+        val d = connectedDir ?: return
+        selfHealTried = true
+        android.util.Log.i(PROBE_TAG, "трафика нет — переподключаюсь сам (направление ${d.code})")
+        // Туннель ОБЯЗАТЕЛЬНО гасим ПЕРЕД перевыпуском конфига. Иначе замкнутый круг: за новым
+        // конфигом приложение идёт к ядру по HTTPS, а весь трафик уходит в туннель — тот самый,
+        // который не работает. Запрос отваливается по таймауту, срабатывает офлайн-фолбэк «последний
+        // рабочий конфиг», и мы поднимаем ровно ту же мёртвую конфигурацию.
+        // Проверено вживую 2026-07-29 на эмуляторе: с поднятым туннелем самолечение отработало и НЕ
+        // помогло (в ядре не появилось ни одной новой выдачи конфига), с опущенным — лечит.
+        // Трафик в это время наружу не утекает: он и так никуда не идёт, туннель мёртв.
+        lifecycleScope.launch {
+            runCatching { tunnel.down() }
+            connectTo(d)
         }
     }
 
@@ -2087,6 +2124,7 @@ class MayakActivity : AppCompatActivity() {
                         // успешно (жалоба бета-тестера 2026-07-29). Шлём один раз на срабатывание,
                         // дальше сторож молчит до восстановления трафика; сверху ещё лимит в MayakPrefs.
                         if (!noTrafficReported) { noTrafficReported = true; maybeAutoSendDiag("no-traffic") }
+                        maybeSelfHeal()
                     }
                     else if (misses == 0 && ::status.isInitialized &&
                         status.text == getString(R.string.mayak_status_no_traffic)
