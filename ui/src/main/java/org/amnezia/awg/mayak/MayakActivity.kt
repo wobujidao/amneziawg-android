@@ -73,7 +73,7 @@ class MayakActivity : AppCompatActivity() {
      * Своя область видимости для проб выхода — НЕ дочерняя корутине коннекта.
      *
      * Нужна ровно для одного: чтобы ожидание пробы можно было бросить по таймауту, не дожидаясь
-     * блокирующего резолва внутри неё (см. [awaitProbe]). Дочерняя задача такого не позволяет:
+     * блокирующего резолва внутри неё (см. `awaitAtMost` в :core). Дочерняя задача такого не позволяет:
      * `withTimeoutOrNull` обязан дождаться завершения своих детей.
      */
     private val probeScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -1499,32 +1499,41 @@ class MayakActivity : AppCompatActivity() {
         // на подтверждение выхода: иначе медленное рукопожатие съедает бюджет пробы и мы бросаем
         // рабочий путь (живой случай 2026-07-28, диаг-лог #63 — см. FallbackDecision).
         var handshakeAt: Long? = null
-        while (true) {
-            // Хендшейк читаем из статистики движка (JNI) — не на главном потоке. Читаем ДО пробы:
-            // от него зависит, сколько нам вообще осталось ждать.
-            val handshake = withContext(Dispatchers.IO) { tunnel.hasHandshake() }
-            val elapsed = SystemClock.elapsedRealtime() - started
-            if (handshake && handshakeAt == null) {
-                handshakeAt = elapsed
-                android.util.Log.i(PROBE_TAG, "рукопожатие за ${elapsed}мс — отсюда ${FallbackDecision.NO_EGRESS_MS}мс на проверку выхода")
+        // Проба живёт СВОЕЙ жизнью, а мы опрашиваем состояние короткими тактами.
+        //
+        // Почему не «ждать пробу, потом посмотреть на рукопожатие» (так было в 0.3.79): ожидание
+        // пробы съедало весь бюджет, и рукопожатие мы ЗАМЕЧАЛИ только после него. В диаг-логе
+        // владельца #72 это видно прямо: «рукопожатие за 6001мс» и «6002мс» — ровно бюджет 6000,
+        // хотя само рукопожатие прошло раньше. Из-за этого каждая ступень стоила 11 с вместо шести,
+        // а на трёх ступенях набегало полминуты «Подключаюсь…» — то самое, что мы и чинили.
+        var running: kotlinx.coroutines.Deferred<String?>? = null
+        try {
+            while (true) {
+                // Хендшейк читаем из статистики движка (JNI) — не на главном потоке.
+                val handshake = withContext(Dispatchers.IO) { tunnel.hasHandshake() }
+                val elapsed = SystemClock.elapsedRealtime() - started
+                if (handshake && handshakeAt == null) {
+                    handshakeAt = elapsed
+                    android.util.Log.i(PROBE_TAG, "рукопожатие за ${elapsed}мс — отсюда ${FallbackDecision.NO_EGRESS_MS}мс на проверку выхода")
+                }
+                if (FallbackDecision.shouldSwitch(elapsed, handshakeAt)) {
+                    android.util.Log.i(PROBE_TAG, "UDP не пошёл за ${elapsed}мс (рукопожатие=$handshakeAt) → следующая ступень")
+                    return null
+                }
+                // Проба одна за раз; закончилась — забираем результат и при неудаче заводим следующую.
+                // Блокирующий резолв внутри отменить нельзя (см. awaitAtMost), поэтому мы его и не
+                // ждём: задача досидит своё сама, а мы продолжаем считать время.
+                val done = running?.takeIf { it.isCompleted }
+                if (done != null) {
+                    val ip = runCatching { done.await() }.getOrNull()
+                    if (ip != null) return ip // UDP работает — запасной канал не нужен
+                    running = null
+                }
+                if (running == null) running = probeScope.async { probe.externalIp() }
+                delay(PROBE_POLL_MS)
             }
-            if (FallbackDecision.shouldSwitch(elapsed, handshakeAt)) {
-                android.util.Log.i(PROBE_TAG, "UDP не пошёл за ${elapsed}мс (рукопожатие=$handshakeAt) → следующая ступень")
-                return null
-            }
-            // Проба ограничена ОСТАТКОМ до порога, а не своим внутренним таймаутом. Иначе порог —
-            // фикция: при мёртвом туннеле проба спотыкается о DNS (системный резолвер уходит В туннель
-            // и перебирает серверы), один вызов занимал ~37 с, и решение принималось В ЧЕТЫРЕ РАЗА
-            // позже задуманных 10 с — человек столько смотрел на «Подключаюсь…» (разбор 2026-07-27).
-            val left = FallbackDecision.msLeft(elapsed, handshakeAt)
-            val ip = awaitProbe(left)
-            if (ip != null) return ip // UDP работает — запасной канал не нужен
-            // Пауза перед следующей пробой — только по ОСТАТКУ бюджета, посчитанному ЗАНОВО. Если
-            // проба съела его целиком, спать нечего: иначе поверх порога ложится ещё целый такт и
-            // решение опаздывает на него (на эмуляторе с заблокированным прямым путём — 8,1 с при
-            // пороге 6 с). Обещанный человеку срок должен значить ровно то, что написано.
-            val rest = FallbackDecision.msLeft(SystemClock.elapsedRealtime() - started, handshakeAt)
-            if (rest > 0) delay(minOf(PROBE_DELAY_MS, rest))
+        } finally {
+            running?.cancel() // best-effort: держать осиротевшую пробу незачем
         }
     }
 
@@ -1546,9 +1555,6 @@ class MayakActivity : AppCompatActivity() {
      * это настоящая точка приостановки, её таймаут прерывает мгновенно. Осиротевший поток досидит
      * свой DNS сам и умрёт; нас он больше не держит, результат его нам не нужен.
      */
-    private suspend fun awaitProbe(ms: Long): String? =
-        org.amnezia.awg.mayak.core.awaitAtMost(probeScope, ms) { probe.externalIp() }
-
     /**
      * Переключение на запасной канал: гасим туннель, поднимаем локальный шим (AWG внутри обычного HTTPS
      * к нашему сайту) и поднимаем ТОТ ЖЕ конфиг с Endpoint'ом на шим.
@@ -1724,7 +1730,7 @@ class MayakActivity : AppCompatActivity() {
      *  По умолчанию v4-проба (probe, PROBE_ATTEMPTS); v6-проба зовёт с probe6 и IPV6_PROBE_ATTEMPTS. */
     private suspend fun probeWithRetry(p: IpifyProbe = probe, attempts: Int = PROBE_ATTEMPTS): String? {
         repeat(attempts) { attempt ->
-            val ip = p.externalIp()
+            val ip = org.amnezia.awg.mayak.core.awaitAtMost(probeScope, PROBE_ATTEMPT_MS) { p.externalIp() }
             if (ip != null) return ip
             if (attempt < attempts - 1) delay(PROBE_DELAY_MS)
         }
@@ -2274,6 +2280,15 @@ class MayakActivity : AppCompatActivity() {
         // тут проверяется только сам мост, и он либо отвечает сразу, либо не отвечает вовсе.
         private const val FALLBACK_PROBE_ATTEMPTS = 2
         private const val PROBE_DELAY_MS = 2_000L
+
+        // Такт опроса состояния во время ожидания выхода: рукопожатие и порог смотрим ЧАСТО, а не
+        // раз в бюджет. Именно из-за редкого опроса в 0.3.79 рукопожатие «случалось» на 6001 мс
+        // (диаг-лог владельца #72) и каждая ступень стоила 11 с вместо шести.
+        private const val PROBE_POLL_MS = 250L
+
+        // Потолок ОДНОЙ попытки пробы. Внутри пробы блокирующий резолв: при мёртвом туннеле он
+        // сидит ~28 с, и «две попытки по 4 с» превращались в минуту молчания.
+        private const val PROBE_ATTEMPT_MS = 5_000L
         // v6-проба фоновая (не блокирует коннект, v4 уже подтверждён) → меньше попыток, чтобы не долбить
         // api6.ipify.org минуту, если IPv6 честно не работает. 4×(таймаут 8с + пауза 4с) ≈ до ~44с.
         private const val IPV6_PROBE_ATTEMPTS = 4
