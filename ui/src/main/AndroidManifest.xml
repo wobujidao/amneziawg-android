@@ -6,11 +6,11 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <!-- Тип радиосети (LTE/H+/EDGE/5G) и уровень сигнала для диагностики: без них жалоба «всё плохо
-         работает» неотличима от «человек в EDGE с одной палкой» (решение владельца 2026-07-29, идёт
-         бета-тест). Ничего, кроме этого, из разрешения не используем: ни номера, ни IMEI, ни звонков —
-         см. DiagCollector.telephony(). Разрешение опциональное: отказали — просто пишем меньше. -->
-    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <!-- READ_PHONE_STATE УБРАНО 2026-07-31 (решение владельца от 29-07 «только на бету, перед релизом
+         убрать» + аудит 07-31). Кроме позиционирования была и вторая причина: разрешение НЕ РАБОТАЛО —
+         диалог не показывался ни разу (запрос улетал поверх запроса уведомлений, а флаг «уже спросили»
+         ставился до показа), так что тип радиосети в диагностику всё равно не попадал. Приложение при
+         этом числилось в группе «Телефон» в настройках и в карточке Play. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <!-- уведомление «Подключено» (флаг+направление), API 33+ требует runtime-разрешения -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />

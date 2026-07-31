@@ -132,8 +132,8 @@ object DiagCollector {
      * Что берём: имя оператора сети и его код (MCC+MNC) — по ним оператор определяется точно, а не
      * гаданием по IP; отдельно код оператора SIM (в роуминге отличается от сетевого); признак
      * роуминга. Тип радиосети (LTE/HSPA/EDGE/NR) и уровень сигнала Android отдаёт только по
-     * разрешению «состояние телефона» — его мы не просим, поэтому здесь их нет; косвенно о качестве
-     * канала говорит оценка системы link_down_kbps.
+     * разрешению «состояние телефона» — его мы НЕ ПРОСИМ (убрано 2026-07-31, см. манифест), поэтому
+     * здесь их нет; косвенно о качестве канала говорит оценка системы link_down_kbps.
      */
     private fun telephony(context: Context): Map<String, String> = try {
         val tm = context.getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
@@ -143,12 +143,9 @@ object DiagCollector {
             tm.networkOperator?.takeIf { it.length >= 5 }?.let { put("carrier_mccmnc", it) }
             tm.simOperator?.takeIf { it.length >= 5 && it != tm.networkOperator }?.let { put("sim_mccmnc", it) }
             if (tm.isNetworkRoaming) put("roaming", "true")
-            // Тип радиосети и уровень сигнала — по разрешению «состояние телефона» (решение владельца
-            // 2026-07-29: «делаем, информация нужна»). Именно они отличают «оператор режет» от
-            // «человек в EDGE с одной палкой»: без них обе картины выглядят как «всё плохо работает».
-            // Разрешения может не быть (пользователь отказал) — тогда просто молчим.
-            runCatching { radioName(tm.dataNetworkType) }.getOrNull()?.let { put("radio", it) }
-            runCatching { tm.signalStrength?.level }.getOrNull()?.let { put("signal_level", it.toString()) } // 0..4
+            // Тип радиосети и уровень сигнала здесь БЫЛИ и убраны вместе с разрешением READ_PHONE_STATE
+            // (2026-07-31). Толку от них не было ни разу: диалог разрешения не показывался никогда,
+            // значит оба поля всегда молчали, а группа «Телефон» в карточке приложения — оставалась.
         }
     } catch (_: Exception) { emptyMap() }
 
@@ -201,20 +198,6 @@ object DiagCollector {
             put("preset_on", MayakPrefs.presetEnabled(context).toString())
             MayakPresets.activePreset(context)?.let { put("preset", it.name + "/" + it.mode) }
         }
-    }
-
-    /** Человекочитаемое имя типа радиосети (значения TelephonyManager.NETWORK_TYPE_*). */
-    private fun radioName(t: Int): String = when (t) {
-        TelephonyManager.NETWORK_TYPE_NR -> "5G"
-        TelephonyManager.NETWORK_TYPE_LTE -> "LTE"
-        TelephonyManager.NETWORK_TYPE_HSPAP -> "H+"
-        TelephonyManager.NETWORK_TYPE_HSPA, TelephonyManager.NETWORK_TYPE_HSDPA,
-        TelephonyManager.NETWORK_TYPE_HSUPA -> "H"
-        TelephonyManager.NETWORK_TYPE_UMTS -> "3G"
-        TelephonyManager.NETWORK_TYPE_EDGE -> "EDGE"
-        TelephonyManager.NETWORK_TYPE_GPRS -> "GPRS"
-        TelephonyManager.NETWORK_TYPE_UNKNOWN -> "?"
-        else -> "type$t"
     }
 
     private fun appVersion(context: Context): String = try {
