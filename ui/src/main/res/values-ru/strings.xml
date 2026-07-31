@@ -259,8 +259,8 @@
     <string name="version_summary_checking">Проверка версии бэкэнда %s</string>
     <string name="version_summary_unknown">Неизвестная версия %s</string>
     <string name="version_title">AmneziaWG для Android v%s</string>
-    <string name="vpn_not_authorized_error">Сервис VPN не авторизован пользователем</string>
-    <string name="vpn_start_error">Не удалось запустить службу Android VPN</string>
+    <string name="vpn_not_authorized_error">Пользователь не разрешил защищённое подключение</string>
+    <string name="vpn_start_error">Не удалось запустить системную службу подключения</string>
     <string name="zip_export_error">Не удалось экспортировать туннели: %s</string>
     <string name="zip_export_success">Сохранено в “%s”</string>
     <string name="zip_export_summary">Zip-файл будет сохранен в папке загрузок</string>
@@ -345,7 +345,7 @@
     <string name="mayak_status_disconnected">Не защищено</string>
     <string name="mayak_status_cancelled">Подключение отменено</string>
     <string name="mayak_connected">Защищено</string>
-    <string name="mayak_notif_channel_name">Статус VPN</string>
+    <string name="mayak_notif_channel_name">Статус подключения</string>
     <string name="mayak_notif_channel_desc">Показывает активное подключение</string>
     <string name="mayak_notif_connected_title">Маяк — подключено</string>
     <string name="mayak_notif_disconnect">Отключить</string>
@@ -386,7 +386,7 @@
     <string name="mayak_a11y_disconnect">Отключиться</string>
     <string name="mayak_err_fill_login">Введите логин и пароль</string>
     <string name="mayak_err_bad_link">Ссылка не распознана</string>
-    <string name="mayak_err_no_vpn_perm">Нет разрешения на VPN</string>
+    <string name="mayak_err_no_vpn_perm">Система не разрешила защищённое подключение</string>
     <string name="mayak_err_empty_dirs">Ядро не вернуло ни одной страны</string>
     <string name="mayak_cancel">Отмена</string>
     <string name="mayak_ok">ОК</string>
@@ -406,10 +406,10 @@
     <string name="mayak_settings_ipv6_applied">Применится при следующем подключении</string>
     <string name="mayak_settings_split">Split-туннель</string>
     <string name="mayak_settings_split_count">Split-туннель (%1$d)</string>
-    <string name="mayak_settings_split_hint">Выберите приложения, которые пойдут МИМО VPN по вашему реальному IP (напр. банки, Госуслуги — они режут заграничные IP). Остальной трафик остаётся под защитой. Выбранные приложения сознательно вне туннеля — добавляйте только нужное.</string>
+    <string name="mayak_settings_split_hint">Выберите приложения, которые пойдут МИМО туннеля, по вашему реальному IP (напр. банки, Госуслуги — они режут заграничные IP). Остальной трафик остаётся под защитой. Выбранные приложения сознательно вне туннеля — добавляйте только нужное.</string>
     <string name="mayak_settings_split_applied">Применится при следующем подключении</string>
     <string name="mayak_settings_rudirect">Открывать российские сервисы напрямую</string>
-    <string name="mayak_settings_rudirect_hint">Одной кнопкой: российские приложения (банки, Госуслуги, маркетплейсы, стриминги) идут напрямую по вашему реальному IP — работают как дома. Остальной трафик остаётся под защитой VPN. Применится при следующем подключении.</string>
+    <string name="mayak_settings_rudirect_hint">Одной кнопкой: российские приложения (банки, Госуслуги, маркетплейсы, стриминги) идут напрямую по вашему реальному IP — работают как дома. Остальной трафик остаётся под защитой. Применится при следующем подключении.</string>
     <string name="mayak_settings_rudirect_applied">Российские сервисы пойдут напрямую при следующем подключении</string>
     <string name="mayak_settings_show_presets">Показывать пресеты на главном экране</string>
     <string name="mayak_settings_show_presets_hint">Селектор пресета и тумблер появляются над кнопкой подключения. Выключите, если не пользуетесь пресетами split-туннеля.</string>
@@ -450,12 +450,12 @@
     <string name="mayak_settings_reset_done">Настройки сброшены</string>
     <string name="mayak_settings_protection">Защита</string>
     <string name="mayak_settings_autoconnect">Автоподключение</string>
-    <string name="mayak_settings_autoconnect_hint">Автоматически поднимает последнее рабочее подключение при загрузке телефона или когда систему запускает VPN — из конфига, сохранённого на устройстве, без обращения к сети. Один раз подключитесь вручную, чтобы было что восстанавливать.</string>
-    <string name="mayak_settings_killswitch">Kill-switch (блокировать интернет без VPN)</string>
-    <string name="mayak_settings_killswitch_hint">Блокировка интернета без VPN — системная настройка. Кнопка открывает настройки VPN Android: включите для «Маяка» «Always-on VPN» и «Блокировать соединения без VPN». Вместе с автоподключением выше трафик никогда не уходит без защиты.</string>
-    <string name="mayak_settings_killswitch_unavailable">Не удалось открыть системные настройки VPN на этом устройстве. Откройте Настройки → Сеть → VPN вручную.</string>
+    <string name="mayak_settings_autoconnect_hint">Автоматически поднимает последнее рабочее подключение при загрузке телефона или когда защищённое подключение запускает сама система — из настроек, сохранённых на устройстве, без обращения к сети. Один раз подключитесь вручную, чтобы было что восстанавливать.</string>
+    <string name="mayak_settings_killswitch">Без защиты — без интернета</string>
+    <string name="mayak_settings_killswitch_hint">Пока защита не поднялась, телефон не выпускает трафик наружу. Это системная настройка: кнопка открывает нужный раздел, там для «Маяка» включите постоянное подключение и запрет соединений в обход него. Вместе с автоподключением выше трафик никогда не уходит без защиты.</string>
+    <string name="mayak_settings_killswitch_unavailable">Не удалось открыть нужный раздел системных настроек на этом устройстве. Откройте его вручную: Настройки → Сеть и интернет → постоянное подключение.</string>
     <string name="mayak_settings_applock">Блокировка приложения</string>
-    <string name="mayak_settings_applock_hint">Спрашивать отпечаток, лицо или PIN устройства при открытии приложения. Защищает кабинет, настройки и конфиг, если телефон разблокирован и попал в чужие руки. VPN не затрагивает. Применяется со следующего открытия приложения.</string>
+    <string name="mayak_settings_applock_hint">Спрашивать отпечаток, лицо или PIN устройства при открытии приложения. Защищает кабинет, настройки и конфиг, если телефон разблокирован и попал в чужие руки. Само подключение не затрагивает. Применяется со следующего открытия приложения.</string>
     <string name="mayak_settings_applock_no_credential">Задайте блокировку экрана (PIN/отпечаток) в настройках телефона — иначе проверять нечем и блокировка не сработает.</string>
     <string name="mayak_lock_title">Маяк заблокирован</string>
     <string name="mayak_lock_subtitle">Подтвердите, что это вы</string>
@@ -467,7 +467,7 @@
     <string name="mayak_disguise_weather">Погода</string>
     <string name="mayak_disguise_notes">Заметки</string>
     <string name="mayak_disguise_calc">Калькулятор</string>
-    <string name="mayak_disguise_applied">Иконка и имя изменятся через несколько секунд. Если нет — перезапустите телефон. На VPN-подключение это не влияет.</string>
+    <string name="mayak_disguise_applied">Иконка и имя изменятся через несколько секунд. Если нет — перезапустите телефон. На подключение это не влияет.</string>
     <string name="mayak_settings_account">Аккаунт: %1$s</string>
     <string name="mayak_settings_account_none">вход не выполнен</string>
     <string name="mayak_ipv6_badge">IPv6</string>
@@ -495,20 +495,20 @@
     <string name="mayak_soon">Скоро</string>
 
     <!-- SPEC-0028: редактор пресета сплит-туннеля (полноэкранный) -->
-    <string name="mayak_preset_editor_title">Режим VPN для приложений</string>
+    <string name="mayak_preset_editor_title">Какие приложения идут через «Маяк»</string>
     <string name="mayak_preset_editor_name_hint">Название пресета</string>
-    <string name="mayak_preset_editor_mode_label">Режим VPN</string>
+    <string name="mayak_preset_editor_mode_label">Режим</string>
     <string name="mayak_preset_editor_delete">Удалить</string>
     <string name="mayak_preset_editor_delete_confirm">Удалить пресет «%1$s»?</string>
     <string name="mayak_preset_editor_mode_all">Все приложения</string>
-    <string name="mayak_preset_editor_mode_all_sub">VPN работает для всех приложений</string>
+    <string name="mayak_preset_editor_mode_all_sub">Через «Маяк» идут все приложения</string>
     <string name="mayak_preset_editor_mode_exclude">Все, кроме выбранных</string>
-    <string name="mayak_preset_editor_mode_exclude_sub">VPN выключен для выбранных приложений</string>
+    <string name="mayak_preset_editor_mode_exclude_sub">Выбранные приложения идут мимо «Маяка»</string>
     <string name="mayak_preset_editor_mode_include">Только выбранные</string>
-    <string name="mayak_preset_editor_mode_include_sub">VPN работает только для выбранных приложений</string>
+    <string name="mayak_preset_editor_mode_include_sub">Через «Маяк» идут только выбранные приложения</string>
     <string name="mayak_preset_editor_counter">Выбрано %1$d из %2$d</string>
     <string name="mayak_preset_editor_search_hint">Поиск</string>
-    <string name="mayak_preset_editor_all_hint">Все приложения идут через VPN — выбирать ничего не нужно.</string>
+    <string name="mayak_preset_editor_all_hint">Через «Маяк» идут все приложения — выбирать ничего не нужно.</string>
     <string name="mayak_preset_editor_save">Сохранить</string>
     <string name="mayak_preset_editor_save_copy">Сохранить как свою копию</string>
 </resources>
