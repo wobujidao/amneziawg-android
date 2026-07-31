@@ -52,11 +52,35 @@ object MayakNotification {
             ContextCompat.checkSelfPermission(ctx, Manifest.permission.POST_NOTIFICATIONS) ==
             PackageManager.PERMISSION_GRANTED
 
+    /**
+     * Слово, которое человек читает в шторке. «Защищено» — ТОЛЬКО при подтверждённом трафике
+     * (GoTunnel.liveness), в остальных случаях честный промежуточный статус.
+     *
+     * До аудита 2026-07-31 подзаголовок был константой «Защищено»: туннель поднят — значит защищено.
+     * Человек в шторку смотрит чаще, чем в приложение, и именно там оставалось самое уверенное враньё.
+     */
+    private fun statusText(ctx: Context): String = ctx.getString(
+        when (GoTunnel.liveness) {
+            GoTunnel.LIVE_OK -> R.string.mayak_connected
+            GoTunnel.LIVE_NO_TRAFFIC -> R.string.mayak_notif_no_traffic
+            GoTunnel.LIVE_NO_NETWORK -> R.string.mayak_status_no_network
+            else -> R.string.mayak_status_checking
+        }
+    )
+
     /** Показать/обновить уведомление о НАШЕМ подключении. label — из labelFor (или GoTunnel.connectedLabel);
-     *  pingMs — пинг сервера для подзаголовка «Подключено · Пинг: 42 мс» (null → без пинга);
+     *  pingMs — пинг сервера для подзаголовка «Защищено · Пинг: 42 мс» (null → без пинга);
      *  speed — строка «↓… ↑…» в тексте уведомления (в статус-баре — всегда обычный значок Маяка). */
     @SuppressLint("MissingPermission") // notify защищён canPost() (проверка POST_NOTIFICATIONS выше)
     fun show(ctx: Context, label: String?, pingMs: Int? = null, ipv6: Boolean = false, speed: String? = null) {
+        // ⛔ ЕДИНСТВЕННЫЙ ЗАМОК: нет НАШЕГО поднятого туннеля — нет и уведомления, кто бы ни попросил.
+        //
+        // Аудит 2026-07-31 поймал «осиротевшее» уведомление «Защищено» при полностью провалившемся
+        // подключении (tun0 в системе отсутствует). Прилетало оно из пинг-цикла прошлого подключения,
+        // который никто не остановил. Чинить это по одному вызывающему бессмысленно — их полдюжины
+        // (пинг, скорость, IPv6-проба, реоупен, автоподключение, выдача разрешения), и следующий
+        // забудут снова. Поэтому проверка стоит ЗДЕСЬ, в единственной двери.
+        if (GoTunnel.connectedSinceElapsed == null) { clear(ctx); return }
         if (!canPost(ctx)) return // нет POST_NOTIFICATIONS (API33+) — молча пропускаем (запросим в Activity)
         ensureChannel(ctx)
         val open = Intent(ctx, MayakActivity::class.java).apply {
@@ -74,9 +98,12 @@ object MayakNotification {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         // Макет как в Happ: имя приложения «Маяк» рисует система в шапке, крупная строка — направление.
+        val status = statusText(ctx)
         val builder = NotificationCompat.Builder(ctx, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_mayak) // всегда значок Маяка (скорость — в тексте/на экране)
-            .setContentTitle(label ?: ctx.getString(R.string.mayak_connected))
+            // Без метки направления заголовком идёт САМ СТАТУС. Раньше сюда подставлялось «Защищено» —
+            // и именно так выглядело осиротевшее уведомление из аудита: одно слово, и то неправда.
+            .setContentTitle(label ?: status)
             .setOngoing(true)          // нельзя смахнуть, пока подключены
             .setOnlyAlertOnce(true)    // обновление метки не «пикает» повторно
             .setShowWhen(false)
@@ -86,9 +113,13 @@ object MayakNotification {
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .addAction(0, ctx.getString(R.string.mayak_notif_disconnect), disconnectPi)
         if (label != null) {
-            // Подзаголовок «Подключено» + пинг сервера («Пинг: 0» = нет ответа) + IPv6, если измерены.
+            // Подзаголовок: честный статус + пинг сервера («Пинг: 0» = нет ответа) + IPv6, если измерены.
+            // Пинг/скорость/IPv6 дописываем ТОЛЬКО к подтверждённому статусу: рядом со словом
+            // «трафик не идёт» цифры прошлого замера лишь путают.
+            val ok = GoTunnel.liveness == GoTunnel.LIVE_OK
             val text = buildString {
-                append(ctx.getString(R.string.mayak_connected))
+                append(status)
+                if (!ok) return@buildString
                 if (pingMs != null) { append(" · "); append(ctx.getString(R.string.mayak_ping_label, pingMs)) }
                 if (ipv6) { append(" · "); append(ctx.getString(R.string.mayak_ipv6_badge)) } // честный значок IPv6
                 // «Резерв» — идём через запасной канал (SPEC-0039). Флаг процесс-скоупный (GoTunnel), а не

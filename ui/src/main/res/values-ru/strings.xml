@@ -288,6 +288,10 @@
     <string name="mayak_err_device_key_conflict">Ключ этого устройства занят другим аккаунтом, и перевыпустить его не удалось. Попробуйте ещё раз или напишите в поддержку.</string>
     <string name="mayak_session_expired">Вход устарел — войдите заново. Обычно это бывает после смены пароля.</string>
     <string name="mayak_status_no_traffic">Соединение есть, а трафик не идёт — переподключитесь.</string>
+    <!-- Честные статусы вместо слова «Защищено» без подтверждения (аудит 2026-07-31). -->
+    <string name="mayak_status_no_network">На телефоне нет интернета — проверьте связь</string>
+    <string name="mayak_status_checking">Проверяем соединение…</string>
+    <string name="mayak_notif_no_traffic">Трафик не идёт — вы не защищены</string>
     <string name="mayak_err_account_blocked">Аккаунт заблокирован. Напишите в поддержку: support@mayakvpn.ru</string>
     <string name="mayak_open_cabinet">Открыть кабинет</string>
     <string name="mayak_password_hint">Пароль</string>
@@ -327,7 +331,7 @@
     <string name="mayak_status_connected_direct">Подключено (прямой). IP: %1$s</string>
     <string name="mayak_status_connected_relay">Подключено (резерв). IP: %1$s</string>
     <string name="mayak_status_relay_switch">Прямой путь заблокирован — переключаюсь на резерв…</string>
-    <string name="mayak_status_fallback_switch">UDP не проходит — включаю запасной канал…</string>
+    <string name="mayak_status_fallback_switch">Прямой путь не отвечает — пробуем запасной…</string>
     <string name="mayak_fallback_badge">Резерв</string>
     <string name="mayak_route_direct">Напрямую</string>
     <string name="mayak_route_relay">Через Россию</string>

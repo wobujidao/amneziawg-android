@@ -168,21 +168,10 @@ class MayakActivity : AppCompatActivity() {
         }
     }
 
-    // «Состояние телефона» — ТОЛЬКО чтобы диагностика знала тип радиосети (LTE/H+/EDGE) и уровень
-    // сигнала: без них жалоба «всё плохо работает» неотличима от «человек в EDGE с одной палкой».
-    // Ни номера, ни IMEI, ни звонков мы не читаем (DiagCollector.telephony()). Отказ безвреден —
-    // просто в логе будет меньше полей, поэтому спрашиваем ОДИН раз и больше не пристаём.
-    private val phoneStatePermission =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { /* отказ безвреден */ }
-
-    private fun maybeRequestPhoneStatePermission() {
-        if (MayakPrefs.phoneStateAsked(this)) return
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE) ==
-            PackageManager.PERMISSION_GRANTED
-        ) return
-        MayakPrefs.notePhoneStateAsked(this)
-        phoneStatePermission.launch(Manifest.permission.READ_PHONE_STATE)
-    }
+    // Разрешение «состояние телефона» УБРАНО целиком (решение владельца 2026-07-29 + аудит 07-31).
+    // Оно и не работало: запрос телефона улетал поверх запроса уведомлений и терялся, а флаг «уже
+    // спросили» ставился ДО показа диалога — то есть защёлкивался навсегда. В итоге в карточке Play
+    // и в настройках приложение числилось с группой «Телефон», а диагностика не получала ничего.
 
     override fun onCreate(savedInstanceState: Bundle?) {
         MayakPrefs.applyTheme(this)
@@ -344,6 +333,9 @@ class MayakActivity : AppCompatActivity() {
             // Пинг сервера — только на переднем плане (см. onPause). Возобновляем при возврате, если подключены.
             if (connState == ConnState.CONNECTED) startPing()
         }
+        // Пока экран открыт, надпись под кнопкой ходит за процесс-скоупным сторожем живости: сеть
+        // может пропасть между тактами пинга, и человек не должен узнавать об этом позже шторки.
+        MayakLiveness.onChange = { runOnUiThread { if (connState == ConnState.CONNECTED) setStatus(connectedStatusText()) } }
     }
 
     override fun onPause() {
@@ -353,6 +345,7 @@ class MayakActivity : AppCompatActivity() {
         // владельца 2026-07-06): при масштабе тысячи фоновых пингов = лишняя нагрузка на VPS и канал.
         // Туннель/таймер/уведомление это не трогает — рвётся лишь UI-индикатор пинга, он и не виден в фоне.
         stopPing()
+        MayakLiveness.onChange = null // экрана нет — обновлять надпись некому (и держать ссылку на Activity незачем)
         super.onPause()
     }
 
@@ -422,7 +415,9 @@ class MayakActivity : AppCompatActivity() {
             showForgotPasswordDialog(emailField.text?.toString()?.trim().orEmpty())
         }
         // Регистрация и личный кабинет — в вебе (там же подтверждение email).
-        findViewById<MaterialButton>(R.id.mayak_register).setOnClickListener { openUrl(MayakHostList.cabinetUrl(this)) }
+        // Кнопка новичка ведёт на РЕГИСТРАЦИЮ, а не на вход (аудит 2026-07-31: голый адрес кабинета
+        // роутер уводит на форму входа, и человек без аккаунта упирался в тупик на первом шаге).
+        findViewById<MaterialButton>(R.id.mayak_register).setOnClickListener { openUrl(MayakHostList.cabinetRegisterUrl(this)) }
         // «Другие способы входа» раскрывает QR и регистрационную ссылку — сценарий аккаунтов,
         // заведённых админом или ботом-магазином. Сама строка после раскрытия не нужна: свернуть
         // обратно незачем, а вторая одинаковая надпись сбивает.
@@ -1359,7 +1354,6 @@ class MayakActivity : AppCompatActivity() {
 
     private fun connectTo(d: Direction) {
         maybeRequestNotifPermission()
-        maybeRequestPhoneStatePermission() // тип радиосети для диагностики — спрашиваем один раз, в момент коннекта
         val prepare = GoBackend.VpnService.prepare(this)
         if (prepare != null) {
             pendingConnect = d
@@ -1370,6 +1364,11 @@ class MayakActivity : AppCompatActivity() {
 
     private fun doConnect(d: Direction) {
         val b = backend ?: return
+        // Прежде чем винить протокол — спросить у системы, есть ли вообще связь (аудит 2026-07-31).
+        // При выключенной сети приложение поднимало VpnService, заворачивало в мёртвый туннель весь
+        // трафик на ~15 секунд и рассказывало человеку «UDP не проходит» и «ни один путь не вышел в
+        // интернет». Ни одно из этих утверждений не было правдой: у телефона просто не было сети.
+        if (!MayakNet.hasNetwork(this)) { fail(getString(R.string.mayak_status_no_network)); return }
         renderState(ConnState.CONNECTING)
         setStatus(getString(R.string.mayak_status_connecting, d.name))
         statusShownAt = SystemClock.elapsedRealtime() // отсюда считается читаемость следующей надписи
@@ -1432,7 +1431,12 @@ class MayakActivity : AppCompatActivity() {
                 // Не вышла ни одна ступень: ГАСИМ туннель (иначе VpnService остаётся активным и
                 // чёрной-холит весь трафик, а UI показывает «отключено» — тихий no-internet).
                 runCatching { tunnel.down() }
-                fail(getString(R.string.mayak_status_no_egress))
+                // Сеть могла пропасть уже ПОСЛЕ старта (человек вышел из зоны, выключил Wi-Fi). Тогда
+                // «ни один путь не вышел в интернет» — правда формально и ложь по сути: пути ни при чём.
+                fail(getString(
+                    if (MayakNet.hasNetwork(this@MayakActivity)) R.string.mayak_status_no_egress
+                    else R.string.mayak_status_no_network
+                ))
             } catch (e: kotlinx.coroutines.CancellationException) {
                 // пользователь отменил подключение (тап по кнопке) — гасим туннель, БЕЗ ошибки/инвалидации.
                 runCatching { tunnel.down() }
@@ -1614,6 +1618,9 @@ class MayakActivity : AppCompatActivity() {
      * `protect()` вернул бы false и мы бы отказались подключаться (защита от петли).
      */
     private suspend fun switchToFallback(conf: String, fb: Fallback): String? {
+        // Запасной канал имеет смысл, только если сеть у телефона ЕСТЬ. Без неё объявление «прямой
+        // путь не идёт, включаю запасной» — вранье про наш транспорт вместо простого «нет связи».
+        if (!MayakNet.hasNetwork(this)) return null
         announce(getString(R.string.mayak_status_fallback_switch))
         runCatching { tunnel.down() }
         // Имя моста разрешаем ЗДЕСЬ — туннель уже опущен, а под поднятым туннелем системный резолвер
@@ -1796,6 +1803,9 @@ class MayakActivity : AppCompatActivity() {
     private fun onConnected(ip: String, d: Direction?) = runOnUiThread {
         noTrafficReported = false
         selfHealTried = false
+        // Сюда попадают ТОЛЬКО с подтверждённым выходом (проба вернула внешний IP) — это и есть
+        // единственное основание сказать «Защищено». Ставим до renderState: он читает состояние живости.
+        GoTunnel.liveness = GoTunnel.LIVE_OK
         // Ушли не прямым путём — значит у этого оператора прямой UDP не прошёл. Это ровно тот факт,
         // ради которого мы и разбираем логи («у кого что режут»), а узнавали мы его только когда
         // человек сам жаловался. Заливка тихая и под общим лимитом (не чаще раза в 6ч).
@@ -1844,6 +1854,16 @@ class MayakActivity : AppCompatActivity() {
     private fun fail(message: String) = runOnUiThread {
         connState = ConnState.DISCONNECTED
         connectedDir = null
+        // Провал подключения — это ПОЛНАЯ остановка, а не только надпись на экране.
+        //
+        // Аудит 2026-07-31: после провала в шторке продолжало висеть «Защищено», хотя tun0 в системе
+        // не было вовсе. Виноват был этот метод: он менял текст и уходил, а циклы ПРОШЛОГО подключения
+        // (пинг, скорость, аренда) продолжали крутиться — и пинг-цикл каждые 5 с заново публиковал
+        // уведомление. Отключение (disconnect) всё это гасило, провал — нет.
+        stopTimer()
+        stopPing()
+        stopKeepalive()
+        MayakNotification.clear(this)
         renderState(ConnState.DISCONNECTED)
         setStatus(message)
         Toast.makeText(this, message, Toast.LENGTH_LONG).show() // ошибку показываем попапом — её надо заметить
@@ -1887,6 +1907,9 @@ class MayakActivity : AppCompatActivity() {
     private fun maybeSelfHeal() {
         if (selfHealTried) return
         if (!lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) return
+        // Лечить нечего, когда у телефона нет сети: переподъём гарантированно провалится, а туннель
+        // мы при этом уроним — и трафик пойдёт в открытую сеть, как только связь вернётся. Ждём сеть.
+        if (!MayakNet.hasNetwork(this)) return
         val d = connectedDir ?: return
         selfHealTried = true
         android.util.Log.i(PROBE_TAG, "трафика нет — переподключаюсь сам (направление ${d.code})")
@@ -1972,11 +1995,30 @@ class MayakActivity : AppCompatActivity() {
                 rippleView?.bloom()     // финальная вспышка-волна
                 networkBg?.setConnected(true) // фон-сеть оживает ярче
                 timerView?.visibility = View.VISIBLE
-                if (::status.isInitialized) status.text = getString(R.string.mayak_connected)
+                // НЕ константа «Защищено»: поднятый туннель сам по себе ничего не доказывает. Сюда же
+                // приходят при возврате в приложение с давно поднятым (и, может, уже мёртвым) туннелем.
+                if (::status.isInitialized) status.text = connectedStatusText()
                 setStatusInfoIcon(true) // «ⓘ» рядом с «Подключено» — подсказка: тапни для подробностей
             }
         }
     }
+
+    /**
+     * Текст под кнопкой в подключённом состоянии — ровно то, что мы можем ДОКАЗАТЬ.
+     *
+     * Слово «Защищено» разрешено единственным состоянием — LIVE_OK (подтверждённый трафик). Всё
+     * остальное — честные промежуточные формулировки. Источник состояния общий с уведомлением
+     * (GoTunnel.liveness), поэтому экран и шторка не могут разойтись во мнениях — а до аудита
+     * 2026-07-31 они расходились: на экране ошибка, в шторке «Защищено».
+     */
+    private fun connectedStatusText(): String = getString(
+        when (GoTunnel.liveness) {
+            GoTunnel.LIVE_OK -> R.string.mayak_connected
+            GoTunnel.LIVE_NO_TRAFFIC -> R.string.mayak_status_no_traffic
+            GoTunnel.LIVE_NO_NETWORK -> R.string.mayak_status_no_network
+            else -> R.string.mayak_status_checking
+        }
+    )
 
     /**
      * Значок «ⓘ» справа от статуса «Подключено» — визуальная подсказка, что по статусу можно тапнуть и
@@ -2083,7 +2125,13 @@ class MayakActivity : AppCompatActivity() {
      */
     private fun syncConnStateFromTunnel() {
         val target = if (tunnel.isUp()) ConnState.CONNECTED else ConnState.DISCONNECTED
-        if (connState == target) return // уже синхронно — не дёргаем анимации/рендер зря
+        if (connState == target) {
+            // Состояние совпало — но уведомление могло пережить и смерть процесса, и провал коннекта
+            // (аудит 2026-07-31: «Защищено» в шторке при отсутствующем tun0). Раз туннеля нет — снимаем
+            // его здесь; раньше метод в этой ветке уходил молча, и осиротевшее уведомление жило вечно.
+            if (target == ConnState.DISCONNECTED) MayakNotification.clear(this)
+            return // дальше — только анимации/рендер, дёргать их зря не нужно
+        }
         if (target == ConnState.CONNECTED) {
             startTimer()
             startPing()
@@ -2141,26 +2189,36 @@ class MayakActivity : AppCompatActivity() {
                 // Молчать про это нельзя. Сразу рвать тоже плохо: короткий провал бывает на мобильной
                 // сети, а обрыв туннеля отправил бы трафик в открытую сеть. Поэтому: несколько
                 // подряд неудач → честный статус и предложение переподключиться, туннель не трогаем.
+                //
+                // Правка после аудита 2026-07-31: пинг-цикл больше не единственный судья. Отсутствие
+                // сети он раньше видел так же медленно, как всё прочее (4 промаха = от 20 до 50 с
+                // «Защищено» при выключенном Wi-Fi — замерено 42 с), поэтому связь спрашиваем у
+                // системы сразу, а вердикт пишем в общее состояние живости, а не в надпись на экране.
                 if (ms == null) misses++ else misses = 0
                 if (connState == ConnState.CONNECTED) {
-                    if (misses >= PING_MISSES_TO_WARN) {
-                        setStatus(getString(R.string.mayak_status_no_traffic))
+                    val live = when {
+                        !MayakNet.hasNetwork(this@MayakActivity) -> GoTunnel.LIVE_NO_NETWORK
+                        misses == 0 -> GoTunnel.LIVE_OK // сервер ответил — трафик через туннель идёт
+                        misses >= PING_MISSES_TO_WARN -> GoTunnel.LIVE_NO_TRAFFIC
+                        else -> GoTunnel.liveness // один-два промаха на мобильной сети — норма, не пугаем
+                    }
+                    MayakLiveness.apply(this@MayakActivity, live) // общее состояние: экран + шторка разом
+                    setStatus(connectedStatusText())
+                    if (live == GoTunnel.LIVE_NO_TRAFFIC) {
                         // Именно здесь у человека и случается «подключено, а ничего не открывается» —
                         // и именно этот случай авто-заливка раньше НЕ ловила: подключение-то прошло
                         // успешно (жалоба бета-тестера 2026-07-29). Шлём один раз на срабатывание,
                         // дальше сторож молчит до восстановления трафика; сверху ещё лимит в MayakPrefs.
                         if (!noTrafficReported) { noTrafficReported = true; maybeAutoSendDiag("no-traffic") }
                         maybeSelfHeal()
-                    }
-                    else if (misses == 0 && ::status.isInitialized &&
-                        status.text == getString(R.string.mayak_status_no_traffic)
-                    ) {
-                        setStatus(getString(R.string.mayak_connected)) // трафик вернулся сам
-                        noTrafficReported = false
+                    } else if (live == GoTunnel.LIVE_OK) {
+                        noTrafficReported = false // трафик вернулся сам
                     }
                 }
                 // Когда включена скорость — уведомление ведёт SpeedNotifier (пинг+скорость, живёт при сворачивании).
-                if (!MayakPrefs.showSpeed(this@MayakActivity)) MayakNotification.show(this@MayakActivity, GoTunnel.connectedLabel, shown)
+                if (connState == ConnState.CONNECTED && !MayakPrefs.showSpeed(this@MayakActivity)) {
+                    MayakNotification.show(this@MayakActivity, GoTunnel.connectedLabel, shown)
+                }
                 delay(PING_INTERVAL_MS)
             }
         }
@@ -2225,9 +2283,11 @@ class MayakActivity : AppCompatActivity() {
 
     /** Продление аренды overlay-IP (SPEC-0015) — делегируем ПРОЦЕСС-СКОУПНОМУ LeaseKeepalive, чтобы оно
      *  переживало уничтожение Activity (туннель живёт в процессе, а не в Activity). Идемпотентно. */
-    private fun startKeepalive() { LeaseKeepalive.start(this); SpeedNotifier.start(this) }
+    // Сторож живости (MayakLiveness) заводится и гасится ровно там же: он тоже процесс-скоупный и
+    // обязан жить, пока жив туннель, — иначе в шторке навсегда застынет последнее слово (аудит 07-31).
+    private fun startKeepalive() { LeaseKeepalive.start(this); SpeedNotifier.start(this); MayakLiveness.start(this) }
 
-    private fun stopKeepalive() { LeaseKeepalive.stop(); SpeedNotifier.stop() }
+    private fun stopKeepalive() { LeaseKeepalive.stop(); SpeedNotifier.stop(); MayakLiveness.stop() }
 
     private fun formatDuration(totalSec: Long): String {
         val h = totalSec / 3600

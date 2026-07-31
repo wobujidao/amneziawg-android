@@ -105,6 +105,23 @@ class GoTunnel(context: Context, tunnelName: String = "mayak") : MayakCoreTunnel
 
         @Volatile var connectedRoute: String = ROUTE_DIRECT
 
+        // --- ЕДИНСТВЕННЫЙ источник права сказать «Защищено» (аудит 2026-07-31) ---
+        //
+        // Раньше «Защищено» было синонимом «туннель поднят», и приложение врало в трёх сценариях сразу:
+        // подключение провалилось, а уведомление висит; пропала сеть — «Защищено» ещё почти минуту;
+        // туннель есть, а трафика нет. Поднятый туннель НЕ доказывает, что трафик идёт, — доказывает
+        // только свежее подтверждение (проба выхода, ответ пинга, рост rx, свежее рукопожатие).
+        //
+        // Поэтому состояние живости держим ЗДЕСЬ, рядом с туннелем, а не в Activity: уведомление
+        // обновляется из полудюжины мест (пинг-цикл, скорость, реоупен, автоподключение) — по той же
+        // причине, по которой здесь же живёт connectedRoute. Кто бы ни обновлял, слово будет одно.
+        const val LIVE_UNKNOWN = 0     // туннель поднят, подтверждения ещё нет → «Проверяем соединение…»
+        const val LIVE_OK = 1          // трафик подтверждён → и только тут «Защищено»
+        const val LIVE_NO_TRAFFIC = 2  // туннель есть, трафика нет
+        const val LIVE_NO_NETWORK = 3  // у телефона нет сети вообще — защищать нечего
+
+        @Volatile var liveness: Int = LIVE_UNKNOWN
+
         // Последний ПРИМЕНЁННЫЙ конфиг туннеля. Нужен, чтобы переподнять туннель после смены сети,
         // не ходя в /connect: сети в этот момент может не быть вовсе, да и новый конфиг не нужен —
         // ключи и пир те же. Секрет: держим только в памяти процесса, на диск не пишем.
@@ -134,8 +151,10 @@ class GoTunnel(context: Context, tunnelName: String = "mayak") : MayakCoreTunnel
             // Туннеля нет — держать WSS-соединение к мосту незачем (и светить его тоже незачем).
             connectedViaFallback = false
             connectedRoute = ROUTE_DIRECT
+            liveness = LIVE_UNKNOWN
             lastConfText = null
             MayakFallbackTransport.stop()
+            MayakLiveness.stop()
             appContext?.let { MayakNotification.clear(it) }
         }
 
@@ -246,6 +265,9 @@ class GoTunnel(context: Context, tunnelName: String = "mayak") : MayakCoreTunnel
         backend.setState(tunnel, Tunnel.State.UP, config)
         lastConfText = confText // чтобы можно было переподнять туннель без похода в /connect (см. rebindAfterNetworkChange)
         connectedSinceElapsed = SystemClock.elapsedRealtime()
+        // Новый туннель = подтверждения ещё нет. Пока проба выхода не сказала «работает», человек
+        // видит «Проверяем соединение…», а не «Защищено» (аудит 2026-07-31).
+        liveness = LIVE_UNKNOWN
         logTunAddresses() // диагностика: какие адреса РЕАЛЬНО встали на tun (Android применил v4/v6?)
         Unit
     }
@@ -309,8 +331,10 @@ class GoTunnel(context: Context, tunnelName: String = "mayak") : MayakCoreTunnel
         // так он закрывается при любом способе отключения (кнопка, отмена, смена страны, внешний DOWN).
         connectedViaFallback = false
         connectedRoute = ROUTE_DIRECT
+        liveness = LIVE_UNKNOWN
         lastConfText = null
         MayakFallbackTransport.stop()
+        MayakLiveness.stop()
         Unit
     }
 
@@ -324,6 +348,22 @@ class GoTunnel(context: Context, tunnelName: String = "mayak") : MayakCoreTunnel
         val st = backend.getStatistics(tunnel)
         st.peers().any { (st.peer(it)?.latestHandshakeEpochMillis() ?: 0L) > 0L }
     }.getOrDefault(false)
+
+    /**
+     * Сколько миллисекунд прошло с ПОСЛЕДНЕГО удачного рукопожатия. null — рукопожатий не было вовсе
+     * или статистика недоступна.
+     *
+     * Зачем: это единственное доказательство живости, которое ничего не стоит и работает в фоне.
+     * Рукопожатие двустороннее — сервер на него ОТВЕТИЛ, значит путь был жив. При keepalive 10 с
+     * клиент шлёт пакеты постоянно, поэтому на живом туннеле движок перевыпускает сессию примерно
+     * раз в две минуты и возраст рукопожатия не растёт бесконечно. Перестало обновляться — сервер
+     * не отвечает, сколько бы «Защищено» ни было написано на экране.
+     */
+    fun handshakeAgeMs(): Long? = runCatching {
+        val st = backend.getStatistics(tunnel)
+        val last = st.peers().maxOfOrNull { st.peer(it)?.latestHandshakeEpochMillis() ?: 0L } ?: 0L
+        if (last <= 0L) null else (System.currentTimeMillis() - last).coerceAtLeast(0L)
+    }.getOrNull()
 
     /** Суммарные rx/tx байты туннеля (для отображения скорости передачи). null — статистика недоступна. */
     fun transfer(): Pair<Long, Long>? = runCatching {

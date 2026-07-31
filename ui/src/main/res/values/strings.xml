@@ -78,6 +78,10 @@
     <string name="mayak_err_device_key_conflict">This device key belongs to another account and could not be reissued. Try again or contact support.</string>
     <string name="mayak_session_expired">Your session has expired — please sign in again. This usually happens after a password change.</string>
     <string name="mayak_status_no_traffic">Tunnel is up but no traffic is passing — please reconnect.</string>
+    <!-- Честные статусы вместо слова «Защищено» без подтверждения (аудит 2026-07-31). -->
+    <string name="mayak_status_no_network">No internet on this phone — check your connection</string>
+    <string name="mayak_status_checking">Checking the connection…</string>
+    <string name="mayak_notif_no_traffic">No traffic — you are not protected</string>
     <string name="mayak_err_account_blocked">This account is blocked. Contact support: support@mayakvpn.ru</string>
     <string name="mayak_open_cabinet">Open cabinet</string>
     <string name="mayak_password_hint">Password</string>
