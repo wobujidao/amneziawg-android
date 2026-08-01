@@ -4,11 +4,6 @@
     <string name="mayak_login_hint">Login</string>
     <string name="mayak_password_hint">Parol</string>
     <string name="mayak_sign_in">Kirish</string>
-    <string name="mayak_other_ways">Kirishning boshqa usullari</string>
-    <string name="mayak_scan_qr">QR-kodni skanerlash</string>
-    <string name="mayak_paste_link">Roʻyxatdan oʻtish havolasini joylash</string>
-    <string name="mayak_paste_link_title">Roʻyxatdan oʻtish havolasi</string>
-    <string name="mayak_paste_link_hint">mayak://reg?…</string>
     <string name="mayak_pick_country">Mamlakatni tanlang:</string>
     <string name="mayak_refresh">Yangilash</string>
     <string name="mayak_disconnect">Uzish</string>
@@ -18,8 +13,6 @@
     <string name="mayak_status_loading">Mamlakatlar yuklanmoqda…</string>
     <string name="mayak_status_connecting">%1$s ga ulanmoqda…</string>
     <string name="mayak_status_probing">Tunnel koʻtarildi, chiqish tekshirilmoqda…</string>
-    <string name="mayak_status_connected_direct">Ulandi (toʻgʻridan-toʻgʻri). IP: %1$s</string>
-    <string name="mayak_status_connected_relay">Ulandi (zaxira). IP: %1$s</string>
     <string name="mayak_status_relay_switch">Toʻgʻridan-toʻgʻri yoʻl bloklangan — zaxiraga oʻtilmoqda…</string>
     <string name="mayak_status_fallback_switch">UDP oʻtmayapti — zaxira kanal yoqilmoqda…</string>
     <string name="mayak_fallback_badge">Zaxira</string>

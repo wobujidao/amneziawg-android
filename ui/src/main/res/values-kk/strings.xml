@@ -4,11 +4,6 @@
     <string name="mayak_login_hint">Логин</string>
     <string name="mayak_password_hint">Құпиясөз</string>
     <string name="mayak_sign_in">Кіру</string>
-    <string name="mayak_other_ways">Кірудің басқа жолдары</string>
-    <string name="mayak_scan_qr">QR-кодты сканерлеу</string>
-    <string name="mayak_paste_link">Тіркеу сілтемесін қою</string>
-    <string name="mayak_paste_link_title">Тіркеу сілтемесі</string>
-    <string name="mayak_paste_link_hint">mayak://reg?…</string>
     <string name="mayak_pick_country">Елді таңдаңыз:</string>
     <string name="mayak_refresh">Жаңарту</string>
     <string name="mayak_disconnect">Ажырату</string>
@@ -18,8 +13,6 @@
     <string name="mayak_status_loading">Елдер жүктелуде…</string>
     <string name="mayak_status_connecting">%1$s-ке қосылу…</string>
     <string name="mayak_status_probing">Туннель іске қосылды, шығуды тексеру…</string>
-    <string name="mayak_status_connected_direct">Қосылды (тікелей). IP: %1$s</string>
-    <string name="mayak_status_connected_relay">Қосылды (резерв). IP: %1$s</string>
     <string name="mayak_status_relay_switch">Тікелей жол бөгелген — резервке ауысу…</string>
     <string name="mayak_status_fallback_switch">UDP өтпейді — қосалқы арнаны қосамын…</string>
     <string name="mayak_fallback_badge">Қосалқы</string>

@@ -247,11 +247,6 @@
     <string name="mayak_login_hint">Login</string>
     <string name="mayak_password_hint">Passwort</string>
     <string name="mayak_sign_in">Anmelden</string>
-    <string name="mayak_other_ways">Andere Anmeldemöglichkeiten</string>
-    <string name="mayak_scan_qr">QR-Code scannen</string>
-    <string name="mayak_paste_link">Registrierungslink einfügen</string>
-    <string name="mayak_paste_link_title">Registrierungslink</string>
-    <string name="mayak_paste_link_hint">mayak://reg?…</string>
     <string name="mayak_pick_country">Land auswählen:</string>
     <string name="mayak_refresh">Aktualisieren</string>
     <string name="mayak_disconnect">Trennen</string>
@@ -261,8 +256,6 @@
     <string name="mayak_status_loading">Länder werden geladen…</string>
     <string name="mayak_status_connecting">Verbinde mit %1$s…</string>
     <string name="mayak_status_probing">Tunnel aktiv, prüfe Zugang…</string>
-    <string name="mayak_status_connected_direct">Verbunden (direkt). IP: %1$s</string>
-    <string name="mayak_status_connected_relay">Verbunden (Reserve). IP: %1$s</string>
     <string name="mayak_status_relay_switch">Direkter Weg blockiert — wechsle zur Reserve…</string>
     <string name="mayak_status_fallback_switch">UDP blockiert — schalte auf Ersatzkanal um…</string>
     <string name="mayak_fallback_badge">Ersatz</string>
