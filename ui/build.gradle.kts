@@ -38,6 +38,17 @@ android {
         // 2026-07-22 → сделали ДЕФОЛТОМ (true) для всех сборок, включая прод/релиз. Флаг оставлен на случай
         // будущего A/B или быстрого отката. Ветвление — в коде через BuildConfig.NEW_DESIGN (живой фон-карта).
         buildConfigField("boolean", "NEW_DESIGN", "true")
+        // Версия движка для экрана «О приложении» — ЧИТАЕТСЯ из go.mod, а не пишется руками.
+        // Аудит 2026-07-31, п. 19: в приложении годами стояло «v0.2.18», а собиралось v0.2.19 —
+        // константу забыли обновить при апгрейде. Мелочь, но это ровно та неправда, из-за которой
+        // потом не веришь и остальным цифрам на экране. Не нашли версию — не врём, показываем пусто.
+        buildConfigField(
+            "String",
+            "AWG_GO_VERSION",
+            "\"" + (rootProject.file("tunnel/tools/libwg-go/go.mod").readLines()
+                .firstNotNullOfOrNull { Regex("""amneziawg-go\s+(v\S+)""").find(it)?.groupValues?.get(1) }
+                ?: "") + "\"",
+        )
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

@@ -267,6 +267,25 @@
                 android:visibility="gone"
                 android:text="" />
 
+            <!-- Срок доступа. До 2026-08-01 человек узнавал про свои пробные 7 дней ТОЛЬКО в самом
+                 низу настроек, на пятом экране прокрутки (аудит 31-07, п. 11) — то есть не узнавал.
+                 Строка появляется, когда ядро ответило про аккаунт; тап ведёт в кабинет (продлить).
+                 Текст общий с настройками — MayakAccessLine. -->
+            <TextView
+                android:id="@+id/mayak_access"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:gravity="center"
+                android:textColor="@color/mayak_on_bg_muted"
+                android:textSize="13sp"
+                android:padding="4dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true"
+                android:visibility="gone"
+                android:text="" />
+
             <!-- Список стран. Карточка занимает всё оставшееся место (weight=1), а список внутри
                  прокручивается сам (правка владельца 2026-07-18): верх экрана остаётся на месте. -->
             <com.google.android.material.card.MaterialCardView

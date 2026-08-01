@@ -149,6 +149,8 @@
     <string name="mayak_ip6_label">IPv6: %1$s</string>
     <string name="mayak_ping_label">Ping: %1$d ms</string>
     <string name="mayak_ping_label_na">Ping: —</string>
+    <!-- Details rows already carry the «Ping» label — the value must not repeat it (audit 31-07, 20). -->
+    <string name="mayak_ping_value">%1$d ms</string>
     <!-- Нижний лист «Подробности подключения» -->
     <string name="mayak_details_title">Connection details</string>
     <string name="mayak_details_direction">Location</string>
@@ -177,7 +179,7 @@
     <string name="mayak_a11y_connect">Connect</string>
     <string name="mayak_a11y_connecting">Connecting</string>
     <string name="mayak_a11y_disconnect">Disconnect</string>
-    <string name="mayak_err_fill_login">Enter login and password</string>
+    <string name="mayak_err_fill_login">Enter e-mail and password</string>
     <string name="mayak_err_bad_link">Link not recognized</string>
     <string name="mayak_err_no_vpn_perm">VPN permission denied</string>
     <string name="mayak_err_empty_dirs">Core returned no countries</string>

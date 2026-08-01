@@ -28,9 +28,10 @@ class MayakAboutActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.mayak_about_version).text =
             getString(R.string.mayak_version, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE)
 
-        // «Основано на»: версия движка amneziawg-go берётся из go.mod (libwg-go) — держим в синхроне.
+        // «Основано на»: версию движка gradle читает ИЗ go.mod при сборке (BuildConfig.AWG_GO_VERSION).
+        // Раньше тут стояла руками написанная константа — и она отстала на версию (аудит 31-07, п. 19).
         findViewById<TextView>(R.id.mayak_about_basedon).text =
-            getString(R.string.mayak_based_on_body, AMNEZIAWG_GO_VERSION)
+            getString(R.string.mayak_based_on_body, BuildConfig.AWG_GO_VERSION)
 
         findViewById<MaterialButton>(R.id.mayak_about_oss).setOnClickListener {
             AlertDialog.Builder(this)
@@ -57,8 +58,4 @@ class MayakAboutActivity : AppCompatActivity() {
         runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
     }
 
-    companion object {
-        // Должно совпадать с tunnel/tools/libwg-go/go.mod (github.com/amnezia-vpn/amneziawg-go).
-        private const val AMNEZIAWG_GO_VERSION = "v0.2.18"
-    }
 }

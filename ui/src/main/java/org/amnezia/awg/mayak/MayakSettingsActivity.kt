@@ -401,51 +401,18 @@ class MayakSettingsActivity : AppCompatActivity() {
         lifecycleScope.launch {
             val st = runCatching { session.accountStatus(backend()) }.getOrNull() ?: return@launch
             val line = findViewById<TextView>(R.id.mayak_settings_subscription)
-            val until = st.validUntilMs()
-            val days = st.daysLeft()
-            val text = when {
-                st.access == "none" -> getString(R.string.mayak_settings_subscription_none)
-                st.access == "expired" -> getString(
-                    R.string.mayak_settings_subscription_expired,
-                    until?.let { formatDate(it) } ?: "",
-                )
-                // Обратный отсчёт показываем, только когда он что-то значит: «осталось 3652 дня» —
-                // это шум, а «осталось 3 дня» — повод продлить.
-                until != null && days != null && days <= COUNTDOWN_FROM_DAYS -> getString(
-                    R.string.mayak_settings_subscription_until,
-                    formatDate(until),
-                    resources.getQuantityString(R.plurals.mayak_days, days, days),
-                )
-                until != null -> getString(R.string.mayak_settings_subscription_until_plain, formatDate(until))
-                // Доступ без срока (выдан админом бессрочно) — «до какого числа» тут не существует.
-                else -> getString(R.string.mayak_settings_subscription_active)
-            }
-            // Кончается на днях или уже кончился — красим строку: это единственное место в приложении,
-            // где человек об этом узнаёт до неудачного подключения.
-            val alarming = st.access != "active" || (days != null && days <= WARN_FROM_DAYS)
+            // Текст один на всё приложение (MayakAccessLine) — тот же, что на главном экране.
+            val access = MayakAccessLine.of(this@MayakSettingsActivity, st, withDevices = true)
             line.setTextColor(
                 androidx.core.content.ContextCompat.getColor(
                     this@MayakSettingsActivity,
-                    if (alarming) R.color.mayak_red else R.color.mayak_on_surface,
+                    if (access.alarming) R.color.mayak_red else R.color.mayak_on_surface,
                 )
             )
-            val devices = if (st.deviceLimit > 0) {
-                "\n" + getString(R.string.mayak_settings_devices_used, st.devicesUsed, st.deviceLimit)
-            } else ""
-            line.text = text + devices
+            line.text = access.text
             line.visibility = View.VISIBLE
         }
     }
-
-    /** Дата в языке телефона («2 авг. 2026 г.»). Год оставляем: без него «до 2 авг.» двусмысленно. */
-    private fun formatDate(epochMs: Long): String =
-        java.time.Instant.ofEpochMilli(epochMs)
-            .atZone(java.time.ZoneId.systemDefault())
-            .format(
-                java.time.format.DateTimeFormatter
-                    .ofLocalizedDate(java.time.format.FormatStyle.MEDIUM)
-                    .withLocale(java.util.Locale.getDefault())
-            )
 
     private fun openUrl(url: String) {
         runCatching { startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))) }
@@ -487,14 +454,6 @@ class MayakSettingsActivity : AppCompatActivity() {
             button.text = original
             Toast.makeText(this@MayakSettingsActivity, msg, Toast.LENGTH_LONG).show()
         }
-    }
-
-    companion object {
-        /** С какого остатка показываем обратный отсчёт (иначе только дату окончания). */
-        private const val COUNTDOWN_FROM_DAYS = 30
-
-        /** С какого остатка строка становится тревожной (красной). */
-        private const val WARN_FROM_DAYS = 3
     }
 
     /** Выход из аккаунта: гасим туннель, чистим сессию, возвращаемся на экран входа. */

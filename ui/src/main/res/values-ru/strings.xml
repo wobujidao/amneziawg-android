@@ -359,6 +359,9 @@
     <string name="mayak_ip6_label">IPv6: %1$s</string>
     <string name="mayak_ping_label">Пинг: %1$d мс</string>
     <string name="mayak_ping_label_na">Пинг: —</string>
+    <!-- В «Подробностях» у строки уже есть подпись «Пинг», поэтому значение идёт БЕЗ повтора слова
+         (аудит 2026-07-31, п. 20: было «ПИНГ» и под ним «Пинг: 186 мс»). -->
+    <string name="mayak_ping_value">%1$d мс</string>
     <!-- Нижний лист «Подробности подключения» -->
     <string name="mayak_details_title">Подробности подключения</string>
     <string name="mayak_details_direction">Направление</string>
@@ -387,7 +390,7 @@
     <string name="mayak_a11y_connect">Подключиться</string>
     <string name="mayak_a11y_connecting">Подключение</string>
     <string name="mayak_a11y_disconnect">Отключиться</string>
-    <string name="mayak_err_fill_login">Введите логин и пароль</string>
+    <string name="mayak_err_fill_login">Введите e-mail и пароль</string>
     <string name="mayak_err_bad_link">Ссылка не распознана</string>
     <string name="mayak_err_no_vpn_perm">Система не разрешила защищённое подключение</string>
     <string name="mayak_err_empty_dirs">Ядро не вернуло ни одной страны</string>

@@ -934,7 +934,36 @@ class MayakActivity : AppCompatActivity() {
             MayakNotification.clear(this)
         }
         renderState(connState)
+        loadAccessLine()
         fadeInContent() // тонкий fade-through при заходе на главный (login→home)
+    }
+
+    /**
+     * Срок доступа на главном экране (аудит 2026-07-31, п. 11).
+     *
+     * Раньше человек мог узнать о своих пробных 7 днях только внизу настроек — на пятом экране
+     * прокрутки, то есть на практике не узнавал и упирался в «доступ закончился» без предупреждения.
+     * Строка тихая (мелкая, приглушённая), появляется только когда ядро ответило, и по тапу ведёт в
+     * кабинет — туда, где доступ продлевают. Ошибку глотаем: главный экран не должен зависеть от
+     * того, ответило ли ядро про аккаунт.
+     */
+    private fun loadAccessLine() {
+        val view = findViewById<TextView?>(R.id.mayak_access) ?: return
+        if (!session.hasToken()) { view.visibility = View.GONE; return }
+        val b = backend ?: return
+        lifecycleScope.launch {
+            val st = runCatching { session.accountStatus(b) }.getOrNull() ?: return@launch
+            val access = MayakAccessLine.of(this@MayakActivity, st)
+            view.text = access.text
+            view.setTextColor(
+                androidx.core.content.ContextCompat.getColor(
+                    this@MayakActivity,
+                    if (access.alarming) R.color.mayak_red else R.color.mayak_on_bg_muted,
+                )
+            )
+            view.setOnClickListener { openUrl(MayakHostList.cabinetUrl(this@MayakActivity)) }
+            view.visibility = View.VISIBLE
+        }
     }
 
     /** Лёгкий fade-through контента экрана (вместо мгновенной подмены setContentView). */
@@ -1149,7 +1178,7 @@ class MayakActivity : AppCompatActivity() {
             when {
                 rtt != null -> { // измерен
                     clearAnimation()
-                    text = "$rtt мс"
+                    text = getString(R.string.mayak_ping_value, rtt) // «мс» — из ресурсов, не хардкодом
                     setTextColor(pingColor(rtt))
                 }
                 isActiveDir || MayakPingCache.isFresh(d.id) -> { // подключены (живой ещё не пришёл) ИЛИ сервер не ответил на ICMP
@@ -2118,6 +2147,34 @@ class MayakActivity : AppCompatActivity() {
         },
     )
 
+    /**
+     * Подтянуть живой пинг в строку страны, к которой мы подключены (аудит 2026-07-31, п. 21).
+     *
+     * Было: под кнопкой «Пинг: 193 мс», а в списке у той же «Нидерланды» — «423 мс». Строка списка
+     * держала замер, сделанный ДО подключения (по открытой сети), и обновлялась только при
+     * перерисовке списка. Два разных числа про один сервер на одном экране — человек справедливо
+     * не верит ни одному. Теперь активная строка ходит за тем же пингом, что и надпись сверху.
+     */
+    private fun refreshActiveRowPing(ms: Int?) {
+        val container = dirsContainer ?: return
+        val activeId = GoTunnel.connectedDirectionId ?: connectedDir?.id ?: return
+        for (i in 0 until container.childCount) {
+            val row = container.getChildAt(i)
+            if ((row.tag as? Long) != activeId) continue
+            row.findViewById<TextView>(R.id.mayak_row_ping)?.apply {
+                clearAnimation()
+                if (ms != null && ms > 0) {
+                    text = getString(R.string.mayak_ping_value, ms)
+                    setTextColor(pingColor(ms))
+                } else {
+                    text = "—"
+                    setTextColor(0xFF8A929C.toInt())
+                }
+            }
+            return
+        }
+    }
+
     private fun startPing() {
         val host = GoTunnel.connectedServerHost
         pingJob?.cancel()
@@ -2133,6 +2190,7 @@ class MayakActivity : AppCompatActivity() {
                     text = getString(R.string.mayak_ping_label, shown)
                     setTextColor(pingColor(shown))
                 }
+                refreshActiveRowPing(ms)
                 // Туннель поднят, а трафик через него не идёт — это самый неприятный из возможных
                 // исходов: у человека НЕТ интернета вообще (всё уходит в туннель), а приложение
                 // спокойно говорит «Защищено». Так бывает, например, если устройство удалили в
@@ -2289,9 +2347,10 @@ class MayakActivity : AppCompatActivity() {
         val pingText = view.findViewById<TextView>(R.id.mayak_det_ping)
         val ms = GoTunnel.connectedPingMs
         if (ms != null) {
-            pingText.text = getString(R.string.mayak_ping_label, ms)
+            // Без слова «Пинг» — оно уже написано подписью строки (аудит 31-07, п. 20).
+            pingText.text = getString(R.string.mayak_ping_value, ms)
             pingText.setTextColor(pingColor(ms))
-        } else pingText.text = getString(R.string.mayak_ping_label_na)
+        } else pingText.text = "—"
 
         // Время сессии — от фактического момента НАШЕГО коннекта (переживает пересоздание Activity)
         val since = GoTunnel.connectedSinceElapsed ?: SystemClock.elapsedRealtime()
