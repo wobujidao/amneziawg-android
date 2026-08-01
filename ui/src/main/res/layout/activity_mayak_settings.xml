@@ -24,39 +24,6 @@
             android:paddingTop="10dp"
             android:paddingBottom="20dp">
 
-            <!-- Шапка: назад + заголовок -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="start|center_vertical"
-                android:paddingTop="4dp"
-                android:paddingBottom="4dp">
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/mayak_settings_back"
-                    style="@style/Mayak.Button.Text"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:minWidth="0dp"
-                    android:minHeight="0dp"
-                    android:paddingStart="6dp"
-                    android:paddingEnd="6dp"
-                    android:contentDescription="@string/mayak_back"
-                    app:icon="@drawable/ic_arrow_back"
-                    app:iconTint="@color/mayak_on_bg"
-                    app:iconSize="24dp"
-                    android:text="" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:text="@string/mayak_settings"
-                    android:textAppearance="@style/Mayak.Title"
-                    android:textSize="24sp" />
-            </LinearLayout>
-
             <!-- ===== Внешний вид ===== -->
             <com.google.android.material.card.MaterialCardView
                 style="@style/Mayak.Card"
@@ -493,4 +460,46 @@
                 android:text="@string/mayak_logout" />
         </LinearLayout>
     </ScrollView>
+
+    <!-- Шапка ЗАКРЕПЛЕНА поверх прокрутки (аудит 2026-07-31, п. 8). Раньше она ехала вместе с
+         контентом: на пятом экране прокрутки кнопки «Назад» на экране не оставалось, а текст
+         проезжал под часами и значками — экран выглядел сломанным. Фон непрозрачный и равен
+         ВЕРХНЕМУ цвету градиента, поэтому стыка с фоном не видно, а уезжающий текст прячется
+         под шапкой, а не под системной панелью. -->
+    <LinearLayout
+        android:id="@+id/mayak_settings_header"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="start|center_vertical"
+        android:background="@color/mayak_bg_grad_top"
+        android:elevation="4dp"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="8dp">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/mayak_settings_back"
+            style="@style/Mayak.Button.Text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp"
+            android:contentDescription="@string/mayak_back"
+            app:icon="@drawable/ic_arrow_back"
+            app:iconTint="@color/mayak_on_bg"
+            app:iconSize="24dp"
+            android:text="" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="@string/mayak_settings"
+            android:textAppearance="@style/Mayak.Title"
+            android:textSize="24sp" />
+    </LinearLayout>
 </FrameLayout>

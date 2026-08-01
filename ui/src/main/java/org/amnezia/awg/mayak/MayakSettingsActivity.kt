@@ -46,12 +46,19 @@ class MayakSettingsActivity : AppCompatActivity() {
         // Edge-to-edge: контент рисуется под системными барами (градиент во всю высоту). Отступаем контент на
         // высоту статус-бара сверху и НАВИГАЦИОННОЙ панели снизу — иначе кнопка «Выход» уезжала под навбар
         // (правка владельца 2026-07-06, скриншот). Адаптивно: жест-навигация тоньше, 3-кнопочная толще.
+        //
+        // Статус-бар отдан ЗАКРЕПЛЁННОЙ шапке (аудит 2026-07-31, п. 8): она непрозрачная, поэтому
+        // прокручиваемый текст прячется под ней, а не сталкивается с часами. Контент отступает на
+        // высоту шапки — её меряем после разметки, высота зависит от инсета конкретного телефона.
         val content = findViewById<View>(R.id.mayak_settings_content)
+        val header = findViewById<View>(R.id.mayak_settings_header)
         val baseTop = content.paddingTop
         val baseBottom = content.paddingBottom
+        val headerBaseTop = header.paddingTop
         ViewCompat.setOnApplyWindowInsetsListener(content) { v, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.updatePadding(top = baseTop + bars.top, bottom = baseBottom + bars.bottom)
+            header.updatePadding(top = headerBaseTop + bars.top)
+            header.post { v.updatePadding(top = baseTop + header.height, bottom = baseBottom + bars.bottom) }
             insets
         }
 
