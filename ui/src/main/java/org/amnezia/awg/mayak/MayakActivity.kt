@@ -35,8 +35,6 @@ import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
-import com.journeyapps.barcodescanner.ScanContract
-import com.journeyapps.barcodescanner.ScanOptions
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -100,6 +98,9 @@ class MayakActivity : AppCompatActivity() {
     private var connectJob: Job? = null // корутина текущего подключения — чтобы можно было ОТМЕНИТЬ тапом
     // Когда показали текущую надпись шага подключения (SystemClock). 0 = ещё ничего не показывали.
     private var statusShownAt = 0L
+    // Когда под кнопкой появился текст ОШИБКИ. 0 = ошибки на экране нет. Нужен, чтобы вчерашняя
+    // ошибка не встречала человека при следующем открытии приложения (аудит 2026-07-31, п. 17).
+    private var errorShownAt = 0L
     // Поколение подключения: растёт на КАЖДОМ подъёме и КАЖДОМ обрыве. Фоновые пробы запоминают своё
     // и молча выбрасывают результат, если он вернулся уже к другому подключению (диаг #64).
     private var connGeneration = 0
@@ -146,11 +147,6 @@ class MayakActivity : AppCompatActivity() {
                 setStatus(getString(R.string.mayak_err_no_vpn_perm))
             }
         }
-
-    // сканер QR (zxing) → разбираем как регистрационную ссылку
-    private val scanQr = registerForActivityResult(ScanContract()) { result ->
-        result.contents?.let { handleRegLink(it) }
-    }
 
     // POST_NOTIFICATIONS (API 33+) для уведомления «Подключено». Если выдали во время активного
     // коннекта — показываем уведомление сразу; отказ не критичен (просто не будет уведомления).
@@ -336,6 +332,7 @@ class MayakActivity : AppCompatActivity() {
         // Пока экран открыт, надпись под кнопкой ходит за процесс-скоупным сторожем живости: сеть
         // может пропасть между тактами пинга, и человек не должен узнавать об этом позже шторки.
         MayakLiveness.onChange = { runOnUiThread { if (connState == ConnState.CONNECTED) setStatus(connectedStatusText()) } }
+        clearStaleError()
     }
 
     override fun onPause() {
@@ -418,60 +415,12 @@ class MayakActivity : AppCompatActivity() {
         // Кнопка новичка ведёт на РЕГИСТРАЦИЮ, а не на вход (аудит 2026-07-31: голый адрес кабинета
         // роутер уводит на форму входа, и человек без аккаунта упирался в тупик на первом шаге).
         findViewById<MaterialButton>(R.id.mayak_register).setOnClickListener { openUrl(MayakHostList.cabinetRegisterUrl(this)) }
-        // «Другие способы входа» раскрывает QR и регистрационную ссылку — сценарий аккаунтов,
-        // заведённых админом или ботом-магазином. Сама строка после раскрытия не нужна: свернуть
-        // обратно незачем, а вторая одинаковая надпись сбивает.
-        val otherWays = findViewById<MaterialButton>(R.id.mayak_other_ways)
-        val otherWaysBox = findViewById<android.view.View>(R.id.mayak_other_ways_box)
-        otherWays.setOnClickListener {
-            otherWaysBox.visibility = android.view.View.VISIBLE
-            otherWays.visibility = android.view.View.GONE
-        }
-        findViewById<MaterialButton>(R.id.mayak_scan_qr).setOnClickListener {
-            scanQr.launch(ScanOptions().setOrientationLocked(false).setBeepEnabled(false))
-        }
-        findViewById<MaterialButton>(R.id.mayak_paste_link).setOnClickListener { showPasteLinkDialog() }
     }
 
-    /**
-     * Разбор регистрационной ссылки mayak://reg?email=..&password=..[&server=..] → автологин.
-     * email — новый параметр (login оставлен как алиас для совместимости). server необязателен:
-     * без него используем дефолтные адреса (домен + IP).
-     */
-    private fun handleRegLink(raw: String) {
-        val uri = runCatching { Uri.parse(raw.trim()) }.getOrNull()
-        // Только ИЕРАРХИЧЕСКИЙ mayak://-URI. getQueryParameter на OPAQUE-URI (WIFI:/mailto:/tel:/vCard из чужого
-        // QR, или «mayak:reg?…» без «//») кидает UnsupportedOperationException → КРАШ. Проверяем opaque+scheme
-        // ДО чтения query-параметров (раньше scheme-чек шёл ПОСЛЕ getQueryParameter — краш на любом чужом QR).
-        if (uri == null || uri.isOpaque || uri.scheme != "mayak") {
-            setStatus(getString(R.string.mayak_err_bad_link)); return
-        }
-        // server принимаем ТОЛЬКО как валидный https://-URL (RegLink.sanitizeServer): иначе злая ссылка
-        // (server=http://evil / мусор) сохранилась бы как приоритетный адрес ядра → токен plaintext/подмена.
-        val server = org.amnezia.awg.mayak.core.RegLink.sanitizeServer(uri.getQueryParameter("server"))
-        val email = uri.getQueryParameter("email") ?: uri.getQueryParameter("login")
-        val password = uri.getQueryParameter("password")
-        if (email.isNullOrBlank() || password.isNullOrBlank()) {
-            setStatus(getString(R.string.mayak_err_bad_link)); return
-        }
-        doSignIn(email, password, serverOverride = server)
-    }
-
-    private fun showPasteLinkDialog() {
-        val input = TextInputEditText(this).apply { hint = getString(R.string.mayak_paste_link_hint) }
-        val wrapper = TextInputLayout(this).apply {
-            setPadding(dp(24), dp(8), dp(24), 0)
-            addView(input)
-        }
-        // предзаполним из буфера обмена, если там ссылка
-        clipboardText()?.let { if (it.startsWith("mayak://")) input.setText(it) }
-        AlertDialog.Builder(this)
-            .setTitle(getString(R.string.mayak_paste_link_title))
-            .setView(wrapper)
-            .setPositiveButton(getString(R.string.mayak_ok)) { _, _ -> handleRegLink(input.text.toString()) }
-            .setNegativeButton(getString(R.string.mayak_cancel), null)
-            .show()
-    }
+    // Разбор регистрационной ссылки mayak://reg?… жил здесь и вызывался из QR-сканера и диалога
+    // «Вставить ссылку». Оба входа убраны 2026-08-01 (аудит, п. 10): таких ссылок никто не выдаёт.
+    // Разбор со всей защитой (opaque-URI не роняет приложение, server только валидный https) — в
+    // истории git и частично в core/RegLink; возвращать его надо deep-link'ом, а не кнопкой.
 
     /** «Забыли пароль?» шаг 1: спросить email → POST /forgot (код на почту) → шаг 2 (ввод кода+нового пароля). */
     private fun showForgotPasswordDialog(prefillEmail: String) {
@@ -1350,6 +1299,7 @@ class MayakActivity : AppCompatActivity() {
         MayakNotification.clear(this)
         renderState(ConnState.DISCONNECTED)
         setStatus(getString(R.string.mayak_status_cancelled))
+        errorShownAt = SystemClock.elapsedRealtime() // «отменено» — тоже событие, а не состояние
     }
 
     private fun connectTo(d: Direction) {
@@ -1372,6 +1322,7 @@ class MayakActivity : AppCompatActivity() {
         renderState(ConnState.CONNECTING)
         setStatus(getString(R.string.mayak_status_connecting, d.name))
         statusShownAt = SystemClock.elapsedRealtime() // отсюда считается читаемость следующей надписи
+        errorShownAt = 0L // прошлая ошибка ушла с экрана — ей больше нечего протухать
         connGeneration++ // новое подключение → результаты фоновых проб от прошлого больше не наши
         ipv6ProbeJob?.cancel()
         connectJob = lifecycleScope.launch {
@@ -1866,6 +1817,7 @@ class MayakActivity : AppCompatActivity() {
         MayakNotification.clear(this)
         renderState(ConnState.DISCONNECTED)
         setStatus(message)
+        errorShownAt = SystemClock.elapsedRealtime() // с этого момента надпись «протухает» (см. onResume)
         Toast.makeText(this, message, Toast.LENGTH_LONG).show() // ошибку показываем попапом — её надо заметить
         maybeAutoSendDiag() // авто-заливка диаг-лога на ошибку подключения (тихо, rate-limited) — 0.3.48
     }
@@ -2304,11 +2256,6 @@ class MayakActivity : AppCompatActivity() {
         else -> "Ошибка: ${e.message ?: e.javaClass.simpleName}"
     }
 
-    private fun clipboardText(): String? {
-        val cm = getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager ?: return null
-        return cm.primaryClip?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.text?.toString()
-    }
-
     private fun copyToClipboard(label: String, text: String) {
         val cm = getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager ?: return
         cm.setPrimaryClip(ClipData.newPlainText(label, text))
@@ -2408,6 +2355,25 @@ class MayakActivity : AppCompatActivity() {
         if (::status.isInitialized) status.text = text
     }
 
+    /**
+     * Убрать протухшую ошибку с экрана (аудит 2026-07-31, п. 17).
+     *
+     * Было: после провала надпись «Ни один путь не вышел в интернет» оставалась под кнопкой навсегда —
+     * сеть вернулась, человек ушёл в настройки и вернулся, открыл приложение назавтра, а его встречает
+     * вчерашняя авария. Он думает, что всё сломано, хотя сломано ничего.
+     *
+     * Ошибка — сообщение о СОБЫТИИ, а не состояние. Она честна ровно столько, сколько человек её
+     * читает; дальше честное состояние — «Не защищено». Поэтому при возврате на экран (или его
+     * открытии) ошибку старше [ERROR_STALE_MS] заменяем на состояние. Свежую не трогаем: иначе
+     * человек, метнувшийся в настройки за split-туннелем, потерял бы причину отказа.
+     */
+    private fun clearStaleError() {
+        if (errorShownAt == 0L || connState != ConnState.DISCONNECTED) return
+        if (SystemClock.elapsedRealtime() - errorShownAt < ERROR_STALE_MS) return
+        errorShownAt = 0L
+        setStatus(getString(R.string.mayak_status_disconnected))
+    }
+
     private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
 
     companion object {
@@ -2432,6 +2398,9 @@ class MayakActivity : AppCompatActivity() {
         // таймаут пробы 4с + пауза 2с ловят пир около t≈5с (было 8+4 → первый ретрай лишь t≈12с). 6 попыток.
         /** Минимальное время показа надписи шага подключения — чтобы её успели прочитать (см. announce). */
         private const val STATUS_HOLD_MS = 1_500L
+
+        /** Через сколько текст ошибки под кнопкой считается протухшим (см. clearStaleError). */
+        private const val ERROR_STALE_MS = 30_000L
         private const val PROBE_ATTEMPTS = 6
 
         // Проб по ЗАПАСНОМУ каналу — меньше, чем по прямому пути. Прямому нужен запас на sync-таймер

@@ -310,11 +310,6 @@
     <string name="mayak_reset_doing">Меняем пароль…</string>
     <string name="mayak_reset_done">Пароль изменён — войдите с новым паролем.</string>
     <string name="mayak_reset_bad">Неверный/просроченный код или слишком слабый пароль.</string>
-    <string name="mayak_other_ways">Другие способы входа</string>
-    <string name="mayak_scan_qr">Сканировать QR-код</string>
-    <string name="mayak_paste_link">Вставить регистрационную ссылку</string>
-    <string name="mayak_paste_link_title">Регистрационная ссылка</string>
-    <string name="mayak_paste_link_hint">mayak://reg?…</string>
     <string name="mayak_pick_country">Выберите страну:</string>
     <string name="mayak_refresh">Обновить</string>
     <string name="mayak_sort_auto">Авто</string>
@@ -327,11 +322,11 @@
     <string name="mayak_status_signing_in">Вход…</string>
     <string name="mayak_status_loading">Загрузка стран…</string>
     <string name="mayak_status_connecting">Подключение к %1$s…</string>
-    <string name="mayak_status_probing">Туннель поднят, проверяю выход…</string>
-    <string name="mayak_status_connected_direct">Подключено (прямой). IP: %1$s</string>
-    <string name="mayak_status_connected_relay">Подключено (резерв). IP: %1$s</string>
-    <string name="mayak_status_relay_switch">Прямой путь заблокирован — переключаюсь на резерв…</string>
-    <string name="mayak_status_fallback_switch">Прямой путь не отвечает — пробуем запасной…</string>
+    <!-- Надписи под кнопкой пишем человеческим языком: «путь», «конфиг», «ядро», «UDP» — наши
+         внутренние слова, человек ими не думает (аудит 2026-07-31, п. 7). Тон общий, на «мы». -->
+    <string name="mayak_status_probing">Проверяем, что интернет пошёл…</string>
+    <string name="mayak_status_relay_switch">Напрямую не пускают — пробуем через Россию…</string>
+    <string name="mayak_status_fallback_switch">Не проходит — пробуем запасной способ…</string>
     <string name="mayak_fallback_badge">Резерв</string>
     <string name="mayak_route_direct">Напрямую</string>
     <string name="mayak_route_relay">Через Россию</string>
@@ -339,9 +334,9 @@
     <string name="mayak_route_fallback">Запасной канал</string>
     <string name="mayak_details_route">Путь</string>
     <string name="mayak_settings_force_fallback">Всегда использовать запасной канал</string>
-    <string name="mayak_settings_force_fallback_hint">Обычно не нужно: приложение само уходит на запасной канал, когда UDP не проходит. Включи, если в твоей сети UDP не работает никогда — не будешь ждать распознавания при каждом подключении. Запасной канал медленнее прямого.</string>
-    <string name="mayak_status_offline_lastgood">Ядро недоступно — подключаюсь к %1$s по последнему сохранённому конфигу…</string>
-    <string name="mayak_status_no_egress">Ни один путь не вышел в интернет</string>
+    <string name="mayak_settings_force_fallback_hint">Обычно не нужно: приложение само уходит на запасной канал, когда обычный не проходит. Включите, если в вашей сети обычное подключение не работает никогда — не придётся ждать распознавания при каждом подключении. Запасной канал медленнее.</string>
+    <string name="mayak_status_offline_lastgood">Сервер не отвечает — подключаем %1$s по сохранённым настройкам…</string>
+    <string name="mayak_status_no_egress">Подключиться не удалось. Попробуйте ещё раз или выберите другую страну</string>
     <string name="mayak_status_disconnected">Не защищено</string>
     <string name="mayak_status_cancelled">Подключение отменено</string>
     <string name="mayak_connected">Защищено</string>
@@ -402,7 +397,7 @@
     <string name="mayak_settings_appearance">Внешний вид</string>
     <string name="mayak_settings_network">Сеть</string>
     <string name="mayak_settings_ipv6">Использовать IPv6</string>
-    <string name="mayak_settings_ipv6_hint">Приносит IPv6 через туннель туда, где оператор его не даёт. Значок «IPv6» загорается, только когда он реально работает. Выключи, если что-то не работает.</string>
+    <string name="mayak_settings_ipv6_hint">Приносит IPv6 через туннель туда, где оператор его не даёт. Значок «IPv6» загорается, только когда он реально работает. Выключите, если что-то перестало открываться.</string>
     <string name="mayak_settings_ipv6_applied">Применится при следующем подключении</string>
     <string name="mayak_settings_split">Split-туннель</string>
     <string name="mayak_settings_split_count">Split-туннель (%1$d)</string>

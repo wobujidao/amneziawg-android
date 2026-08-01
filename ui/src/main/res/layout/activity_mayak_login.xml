@@ -185,50 +185,13 @@
                         android:layout_marginBottom="@dimen/mayak_space_4"
                         android:background="@color/mayak_divider" />
 
-                    <!-- QR и регистрационная ссылка нужны только аккаунтам, заведённым админом или
-                         ботом-магазином: человек, зарегистрировавшийся на сайте, входит почтой и
-                         паролем. Раньше эти две кнопки весили столько же, сколько «Войти», и стояли
-                         на первом экране у всех — то есть половина главного экрана вела в сценарий,
-                         которым обычный пользователь не пользуется. Прячем за строку «Другие способы
-                         входа»: функция на месте, но не спорит с главным действием. -->
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/mayak_other_ways"
-                        style="@style/Mayak.Button.Text"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:textColor="@color/mayak_outline"
-                        android:text="@string/mayak_other_ways" />
-
-                    <LinearLayout
-                        android:id="@+id/mayak_other_ways_box"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:visibility="gone">
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/mayak_scan_qr"
-                            style="@style/Mayak.Button.Outlined"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="@dimen/mayak_space_2"
-                            app:icon="@drawable/ic_action_scan_qr_code"
-                            app:iconGravity="textStart"
-                            app:iconTint="@color/mayak_outline"
-                            android:text="@string/mayak_scan_qr" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/mayak_paste_link"
-                            style="@style/Mayak.Button.Outlined"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="@dimen/mayak_space_2"
-                            app:icon="@drawable/ic_action_open"
-                            app:iconGravity="textStart"
-                            app:iconTint="@color/mayak_outline"
-                            android:text="@string/mayak_paste_link" />
-                    </LinearLayout>
-
+                    <!-- Здесь были «Сканировать QR-код» и «Вставить регистрационную ссылку».
+                         Убраны (аудит 2026-07-31, п. 10): схему mayak://reg НИКТО не выдаёт — ни сайт,
+                         ни кабинет, ни бот (проверено grep'ом по всему продукту, ноль попаданий). Взять
+                         такую ссылку человеку было негде, то есть оба пункта вели в тупик. Понадобятся
+                         снова — вернуть их надо не кнопкой, а deep-link'ом mayak:// в манифесте;
+                         разбор ссылки со всей защитой (opaque-URI, sanitizeServer) лежит в истории git
+                         и в core/RegLink. -->
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/mayak_register"
                         style="@style/Mayak.Button.Text"

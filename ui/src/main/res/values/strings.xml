@@ -100,11 +100,6 @@
     <string name="mayak_reset_doing">Changing password…</string>
     <string name="mayak_reset_done">Password changed — sign in with the new one.</string>
     <string name="mayak_reset_bad">Invalid/expired code or password too weak.</string>
-    <string name="mayak_other_ways">Other ways to sign in</string>
-    <string name="mayak_scan_qr">Scan QR code</string>
-    <string name="mayak_paste_link">Paste registration link</string>
-    <string name="mayak_paste_link_title">Registration link</string>
-    <string name="mayak_paste_link_hint">mayak://reg?…</string>
     <string name="mayak_pick_country">Pick a country:</string>
     <string name="mayak_refresh">Refresh</string>
     <string name="mayak_sort_auto">Auto</string>
@@ -117,11 +112,11 @@
     <string name="mayak_status_signing_in">Signing in…</string>
     <string name="mayak_status_loading">Loading countries…</string>
     <string name="mayak_status_connecting">Connecting to %1$s…</string>
-    <string name="mayak_status_probing">Tunnel up, checking access…</string>
-    <string name="mayak_status_connected_direct">Connected (direct). IP: %1$s</string>
-    <string name="mayak_status_connected_relay">Connected (reserve). IP: %1$s</string>
-    <string name="mayak_status_relay_switch">Direct path blocked — switching to reserve…</string>
-    <string name="mayak_status_fallback_switch">UDP is blocked — switching to backup channel…</string>
+    <!-- Plain language under the button: «path», «config», «core», «UDP» are our words, not the
+         user's (audit 2026-07-31, item 7). -->
+    <string name="mayak_status_probing">Checking that the internet is flowing…</string>
+    <string name="mayak_status_relay_switch">Direct connection refused — trying via Russia…</string>
+    <string name="mayak_status_fallback_switch">Not getting through — trying a backup way…</string>
     <string name="mayak_fallback_badge">Backup</string>
     <string name="mayak_route_direct">Direct</string>
     <string name="mayak_route_relay">Via Russia</string>
@@ -130,8 +125,8 @@
     <string name="mayak_details_route">Path</string>
     <string name="mayak_settings_force_fallback">Always use backup channel</string>
     <string name="mayak_settings_force_fallback_hint">Normally not needed: the app switches to the backup channel by itself when UDP is blocked. Turn on if UDP never works on your network — saves the wait on every connect. Slower than the direct path.</string>
-    <string name="mayak_status_offline_lastgood">Core unavailable — connecting to %1$s with the last saved config…</string>
-    <string name="mayak_status_no_egress">No path reached the internet</string>
+    <string name="mayak_status_offline_lastgood">Server not responding — connecting to %1$s with saved settings…</string>
+    <string name="mayak_status_no_egress">Could not connect. Try again or pick another country</string>
     <string name="mayak_status_disconnected">Unprotected</string>
     <string name="mayak_status_cancelled">Connection cancelled</string>
     <string name="mayak_connected">Protected</string>
