@@ -318,6 +318,14 @@
     <string name="mayak_sort_custom_hint">Зажмите и перетащите страну, чтобы изменить порядок — он сохранится</string>
     <string name="mayak_disconnect">Отключить</string>
     <string name="mayak_logout">Выйти</string>
+    <string name="mayak_logout_msg">Подключение отключится, а настройки на этом телефоне сотрутся. Чтобы вернуться, понадобится e-mail и пароль. Аккаунт и оплаченный доступ останутся на месте.</string>
+    <string name="mayak_delete_account">Удалить аккаунт</string>
+    <string name="mayak_delete_account_msg">Аккаунт %1$s и все его устройства будут удалены безвозвратно. Оставшийся доступ сгорает, восстановить его нельзя. Для подтверждения введите пароль.</string>
+    <string name="mayak_delete_account_confirm">Удалить навсегда</string>
+    <string name="mayak_delete_account_deleting">Удаляем аккаунт…</string>
+    <string name="mayak_delete_account_done">Аккаунт удалён</string>
+    <string name="mayak_delete_account_wrong_password">Неверный пароль — аккаунт не тронут</string>
+    <string name="mayak_delete_account_failed">Не удалось удалить аккаунт: %1$s</string>
     <string name="mayak_status_ready">Готов</string>
     <string name="mayak_status_signing_in">Вход…</string>
     <string name="mayak_status_loading">Загрузка стран…</string>
@@ -469,7 +477,6 @@
     <string name="mayak_settings_diagnostics">Диагностика и помощь</string>
     <string name="mayak_settings_diag_hint">Если что-то не работает — отправьте нам лог, по нему мы быстро найдём причину. Данные обрабатываются согласно политике конфиденциальности.</string>
     <string name="mayak_settings_send_log">Отправить лог</string>
-    <string name="mayak_settings_logs_view">Посмотреть лог</string>
     <string name="mayak_settings_send_log_sending">Отправляю лог…</string>
     <string name="mayak_settings_send_log_ok">Лог отправлен. Спасибо!</string>
     <string name="mayak_settings_send_log_err">Не удалось отправить лог: %1$s</string>
@@ -485,8 +492,6 @@
     <string name="mayak_oss_licenses_body">Встроенные компоненты с открытым кодом:\n\n• amneziawg-android — Apache-2.0\n• amneziawg-go — MIT\n• WireGuard® (базовый протокол) — GPLv2 / прочие; «основано на WireGuard®», без аффилиации\n• библиотеки AndroidX — Apache-2.0\n• Material Components for Android — Apache-2.0\n• ZXing (сканер QR) — Apache-2.0\n• kotlinx (coroutines, serialization) — Apache-2.0\n\nПолные тексты лицензий доступны в репозиториях соответствующих проектов.</string>
     <string name="mayak_privacy_policy">Политика конфиденциальности</string>
     <string name="mayak_terms">Условия использования</string>
-    <string name="mayak_delete_account">Удалить аккаунт</string>
-    <string name="mayak_delete_account_hint">Удаление аккаунта и данных выполняется в личном кабинете: понадобится пароль. Действие необратимо.</string>
     <string name="mayak_soon">Скоро</string>
 
     <!-- SPEC-0028: редактор пресета сплит-туннеля (полноэкранный) -->

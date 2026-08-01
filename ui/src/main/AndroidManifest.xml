@@ -61,12 +61,18 @@
             android:excludeFromRecents="true"
             android:theme="@style/NoBackgroundTheme" />
 
-        <!-- Экран «Маяк» — точка входа приложения (бета MVP) -->
+        <!-- Экран «Маяк» — точка входа приложения (бета MVP).
+             Настройки плитки быстрых настроек ведут СЮДА (QS_TILE_PREFERENCES): раньше этот фильтр
+             стоял на апстримном экране amnezia, из-за чего тот был exported и открывался снаружи. -->
         <activity
             android:name="org.amnezia.awg.mayak.MayakActivity"
             android:exported="true"
             android:label="@string/app_name"
-            android:theme="@style/MayakTheme" />
+            android:theme="@style/MayakTheme">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity>
 
         <!-- Маскировка приложения (SPEC-0018 F2): лаунчер-запись вынесена в activity-alias, чтобы
              можно было переключать иконку+имя, не трогая саму MayakActivity. Ровно ОДИН alias enabled
@@ -166,14 +172,14 @@
             android:excludeFromRecents="true"
             android:theme="@style/MayakTheme" />
 
-        <!-- Стоковый экран amnezia оставлен (импорт/диагностика), но не лаунчер -->
+        <!-- Стоковый экран amnezia оставлен (импорт/диагностика), но не лаунчер и НЕ exported.
+             Ревью 2026-07-07 п. 5 и аудит 2026-07-31 п. 13: он был открыт наружу, и любое приложение
+             на телефоне могло его запустить — человек видел под нашим заголовком чужой логотип
+             AmneziaWG «W», список туннелей и предложение импортировать произвольный конфиг. Для
+             продукта, который публично не VPN, это раскрытие и чужой бренд одним intent'ом. -->
         <activity
             android:name=".activity.MainActivity"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
-            </intent-filter>
-        </activity>
+            android:exported="false" />
 
         <activity
             android:name=".activity.TvMainActivity"

@@ -202,18 +202,11 @@
                         app:iconGravity="textStart"
                         android:text="@string/mayak_terms" />
 
-                    <!-- Удаление аккаунта. Google Play (с 15.04.2024) требует путь удаления И в
-                         приложении, И по веб-ссылке. Само удаление живёт в кабинете: там пароль,
-                         подтверждение и понятный текст о последствиях — дублировать этот экран в
-                         приложении значит завести вторую реализацию необратимой операции. -->
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/mayak_about_delete_account"
-                        style="@style/Mayak.Button.Outlined"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
-                        app:iconGravity="textStart"
-                        android:text="@string/mayak_delete_account" />
+                    <!-- Кнопка «Удалить аккаунт» переехала в «Настройки» — к email аккаунта и «Выйти»
+                         (аудит 2026-07-31, п. 16). Здесь она стояла в разделе документов и вела на
+                         сайт, поэтому человек, искавший удаление там, где живёт аккаунт, её не находил.
+                         Google Play (с 15.04.2024) требует путь удаления И в приложении, И по
+                         веб-ссылке: в приложении он теперь настоящий, веб-путь остался в кабинете. -->
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
         </LinearLayout>

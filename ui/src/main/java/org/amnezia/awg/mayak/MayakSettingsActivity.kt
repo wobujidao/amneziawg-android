@@ -17,7 +17,6 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.button.MaterialButtonToggleGroup
 import kotlinx.coroutines.launch
 import org.amnezia.awg.R
-import org.amnezia.awg.activity.LogViewerActivity
 import org.amnezia.awg.fragment.AppListDialogFragment
 import org.amnezia.awg.mayak.core.AccountSettings
 import org.amnezia.awg.mayak.core.HostProvider
@@ -72,14 +71,12 @@ class MayakSettingsActivity : AppCompatActivity() {
             startActivity(Intent(this, MayakAboutActivity::class.java))
             MayakTransitions.applyAxis(this)
         }
-        // Диагностика: открываем встроенный лог-вьюер (logcat всего AWG-движка: хендшейки, ошибки),
-        // оттуда юзер делится логом (кнопка Share). Раньше до него не было входа из Маяк-UI.
-        findViewById<MaterialButton>(R.id.mayak_settings_logs).setOnClickListener {
-            startActivity(Intent(this, LogViewerActivity::class.java))
-            MayakTransitions.applyAxis(this)
-        }
         findViewById<MaterialButton>(R.id.mayak_settings_send_log).setOnClickListener { sendLog(it as MaterialButton) }
         findViewById<MaterialButton>(R.id.mayak_settings_logout).setOnClickListener { confirmLogout() }
+        // Удаление аккаунта показываем только вошедшим: удалять нечего, а кнопка пугает.
+        val deleteAccount = findViewById<MaterialButton>(R.id.mayak_settings_delete_account)
+        if (session.hasToken()) deleteAccount.setOnClickListener { confirmDeleteAccount() }
+        else deleteAccount.visibility = View.GONE
 
         // Показываем, под каким email выполнен вход (запрос владельца: в приложении не было видно аккаунта).
         findViewById<TextView>(R.id.mayak_settings_account).text = getString(
@@ -504,6 +501,10 @@ class MayakSettingsActivity : AppCompatActivity() {
     private fun confirmLogout() {
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.mayak_logout))
+            // Диалог был из одного заголовка и двух кнопок (аудит 2026-07-31, п. 18): человек не знал,
+            // что порвётся туннель, сотрутся настройки и понадобится пароль. Теперь знает — и заодно
+            // видит, что выход НЕ то же самое, что удаление аккаунта.
+            .setMessage(getString(R.string.mayak_logout_msg))
             .setPositiveButton(getString(R.string.mayak_ok)) { _, _ ->
                 val store = KeystoreSecureStore(this)
                 val session = MayakSession(store, AwgKeyProvider(), AndroidHwidProvider(this, store))
@@ -523,5 +524,66 @@ class MayakSettingsActivity : AppCompatActivity() {
             }
             .setNegativeButton(getString(R.string.mayak_cancel), null)
             .show()
+    }
+
+    /**
+     * Удаление аккаунта из приложения (аудит 2026-07-31, п. 16).
+     *
+     * Требование Google Play: начать удаление человек должен уметь В приложении — ссылка «Открыть
+     * кабинет» этому не отвечает. Ядро умело это давно (POST /v1/client/account/delete), кнопки не было.
+     *
+     * Пароль спрашивает ЯДРО, не мы: токен живёт 30 дней и мог уехать вместе с телефоном, а
+     * уничтожение данных необратимо. Ошибся в пароле — аккаунт цел, и мы прямо это говорим (иначе
+     * человек в необратимом сценарии не понимает, случилось что-нибудь или нет).
+     */
+    private fun confirmDeleteAccount() {
+        val input = com.google.android.material.textfield.TextInputEditText(this).apply {
+            hint = getString(R.string.mayak_password_hint)
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or
+                android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+        }
+        val wrapper = com.google.android.material.textfield.TextInputLayout(this).apply {
+            val pad = (24 * resources.displayMetrics.density).toInt()
+            setPadding(pad, pad / 3, pad, 0)
+            addView(input)
+        }
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.mayak_delete_account))
+            .setMessage(getString(R.string.mayak_delete_account_msg, session.email().orEmpty()))
+            .setView(wrapper)
+            .setPositiveButton(getString(R.string.mayak_delete_account_confirm)) { _, _ ->
+                deleteAccount(input.text?.toString().orEmpty())
+            }
+            .setNegativeButton(getString(R.string.mayak_cancel), null)
+            .show()
+    }
+
+    private fun deleteAccount(password: String) {
+        Toast.makeText(this, R.string.mayak_delete_account_deleting, Toast.LENGTH_SHORT).show()
+        val tunnel = GoTunnel(this)
+        lifecycleScope.launch {
+            try {
+                session.deleteAccount(backend(), password)
+            } catch (e: Exception) {
+                // Неверный пароль ядро помечает машинным признаком, чтобы клиент не спутал его с
+                // протухшей сессией и не выкинул человека на экран входа (разбор 2026-07-27).
+                val wrongPassword = e is MayakApiException && e.code == "wrong_password"
+                Toast.makeText(
+                    this@MayakSettingsActivity,
+                    if (wrongPassword) getString(R.string.mayak_delete_account_wrong_password)
+                    else getString(R.string.mayak_delete_account_failed, e.message ?: ""),
+                    Toast.LENGTH_LONG,
+                ).show()
+                return@launch
+            }
+            // Аккаунта больше нет: гасим туннель, стираем пресеты и уходим на экран входа.
+            runCatching { tunnel.down() }
+            MayakPresets.clear(this@MayakSettingsActivity)
+            Toast.makeText(this@MayakSettingsActivity, R.string.mayak_delete_account_done, Toast.LENGTH_LONG).show()
+            val intent = Intent(this@MayakSettingsActivity, MayakActivity::class.java)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+            startActivity(intent)
+            finish()
+        }
     }
 }

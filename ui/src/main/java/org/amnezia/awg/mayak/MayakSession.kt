@@ -288,6 +288,17 @@ class MayakSession(
     suspend fun sendDiagLog(backend: MayakBackend, req: org.amnezia.awg.mayak.core.DiagLogRequest) =
         backend.sendDiagLog(requireToken(), req)
 
+    /**
+     * Самоудаление аккаунта (требование Google Play: удаление доступно ИЗ приложения).
+     * Ядро уничтожает профиль, устройства и выдачи; локально после этого держать нечего — стираем
+     * токен и сохранённые конфиги тем же logout(), что и при обычном выходе.
+     * Ошибка ядра (в т.ч. неверный пароль) пробрасывается наверх — локальные данные не трогаем.
+     */
+    suspend fun deleteAccount(backend: MayakBackend, password: String) {
+        backend.deleteAccount(requireToken(), password)
+        logout()
+    }
+
     /** Тихий еженедельный телеметри-бикон (MayakTelemetryWorker). Требует токен — воркер сам no-op'ит
      *  через hasToken() до вызова, если пользователь не вошёл. */
     suspend fun sendTelemetry(backend: MayakBackend, req: org.amnezia.awg.mayak.core.TelemetryRequest) =

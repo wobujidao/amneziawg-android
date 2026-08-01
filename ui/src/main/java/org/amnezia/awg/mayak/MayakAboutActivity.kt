@@ -47,17 +47,10 @@ class MayakAboutActivity : AppCompatActivity() {
         findViewById<MaterialButton>(R.id.mayak_about_terms).setOnClickListener {
             openUrl(MayakHostList.termsUrl(this))
         }
-        // Удаление аккаунта: требование Google Play — путь из приложения обязателен. Предупреждаем о
-        // необратимости и уводим в кабинет, где операция подтверждается паролем (вторую реализацию
-        // необратимого удаления в приложении заводить не станем).
-        findViewById<MaterialButton>(R.id.mayak_about_delete_account).setOnClickListener {
-            AlertDialog.Builder(this)
-                .setTitle(getString(R.string.mayak_delete_account))
-                .setMessage(getString(R.string.mayak_delete_account_hint))
-                .setPositiveButton(getString(R.string.mayak_open_cabinet)) { _, _ -> openUrl(MayakHostList.cabinetLoginUrl(this)) }
-                .setNegativeButton(getString(R.string.mayak_cancel), null)
-                .show()
-        }
+        // Здесь была кнопка «Удалить аккаунт», уводившая в кабинет. Удаление теперь делается прямо в
+        // приложении — в «Настройках», рядом с email аккаунта и кнопкой «Выйти» (аудит 2026-07-31,
+        // п. 16: аудитор прошёл настройки целиком и пути удаления не нашёл, потому что он прятался на
+        // «О приложении» и вёл на сайт). Одно действие — одно место, и это место — аккаунт.
     }
 
     private fun openUrl(url: String) {

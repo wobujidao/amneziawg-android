@@ -385,16 +385,12 @@
                         app:iconGravity="textStart"
                         android:text="@string/mayak_settings_send_log" />
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/mayak_settings_logs"
-                        style="@style/Mayak.Button.Outlined"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        app:icon="@drawable/ic_action_open"
-                        app:iconGravity="textStart"
-                        app:iconTint="@color/mayak_outline"
-                        android:text="@string/mayak_settings_logs_view" />
+                    <!-- Кнопка «Посмотреть лог» убрана (аудит 2026-07-31, п. 14): она стояла рядом с
+                         «Отправить лог» как обычная пользовательская, а открывала сырой logcat —
+                         английские строки движка вида «app_time_stats: avg=100.28ms» и заодно исходный
+                         пакет org.amnezia.awg. Человеку это не помогает, а нам открывает то, что
+                         показывать не нужно. Логи по-прежнему уходят к нам кнопкой «Отправить лог»
+                         (и сами при ошибке подключения) — разбираем их мы, а не человек. -->
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/mayak_settings_about"
@@ -458,6 +454,19 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
                 android:text="@string/mayak_logout" />
+
+            <!-- Удаление аккаунта. Требование Google Play: путь удаления должен начинаться В приложении,
+                 а не только на сайте (аудит 2026-07-31, п. 16 — этого пункта не было вообще; ссылка
+                 «Открыть кабинет» требованию не отвечает). Спокойная текстовая кнопка, не «опасная
+                 красная»: удаление и так спрашивает пароль и подтверждение. -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/mayak_settings_delete_account"
+                style="@style/Mayak.Button.Text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textColor="@color/mayak_on_bg_muted"
+                android:text="@string/mayak_delete_account" />
         </LinearLayout>
     </ScrollView>
 

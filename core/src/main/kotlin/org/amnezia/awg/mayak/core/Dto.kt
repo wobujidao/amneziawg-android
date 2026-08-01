@@ -38,6 +38,14 @@ data class ResetPasswordRequest(
     val password: String,
 )
 
+// Самоудаление аккаунта (POST /v1/client/account/delete). Ядро требует ОБА поля: пароль (токен живёт
+// 30 дней и мог утечь вместе с телефоном, а уничтожение данных необратимо) и явное confirm.
+@Serializable
+data class DeleteAccountRequest(
+    val password: String,
+    val confirm: Boolean = true,
+)
+
 @Serializable
 data class DeviceRequest(
     val pubkey: String,

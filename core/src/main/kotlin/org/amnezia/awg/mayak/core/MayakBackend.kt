@@ -109,6 +109,16 @@ class MayakBackend(
         call("POST", "/v1/auth/password/reset", token = null, body = body)
     }
 
+    /**
+     * Самоудаление аккаунта: POST /v1/client/account/delete {password, confirm}.
+     * Требование Google Play — путь удаления должен быть В приложении, а не только на сайте.
+     * 401 с code=wrong_password — человек ошибся в пароле; это НЕ повод разлогинивать (сессия жива).
+     */
+    suspend fun deleteAccount(token: String, password: String) {
+        val body = json.encodeToString(DeleteAccountRequest.serializer(), DeleteAccountRequest(password))
+        call("POST", "/v1/client/account/delete", token = token, body = body)
+    }
+
     suspend fun registerDevice(
         token: String,
         pubkey: String,

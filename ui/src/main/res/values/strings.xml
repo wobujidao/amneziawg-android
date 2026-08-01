@@ -108,6 +108,14 @@
     <string name="mayak_sort_custom_hint">Long-press and drag a country to reorder; the order is saved</string>
     <string name="mayak_disconnect">Disconnect</string>
     <string name="mayak_logout">Log out</string>
+    <string name="mayak_logout_msg">The connection will drop and settings on this phone will be erased. You will need your e-mail and password to come back. Your account and remaining access stay untouched.</string>
+    <string name="mayak_delete_account">Delete account</string>
+    <string name="mayak_delete_account_msg">Account %1$s and all of its devices will be deleted permanently. Any remaining access is lost and cannot be restored. Enter your password to confirm.</string>
+    <string name="mayak_delete_account_confirm">Delete permanently</string>
+    <string name="mayak_delete_account_deleting">Deleting the account…</string>
+    <string name="mayak_delete_account_done">Account deleted</string>
+    <string name="mayak_delete_account_wrong_password">Wrong password — the account is untouched</string>
+    <string name="mayak_delete_account_failed">Could not delete the account: %1$s</string>
     <string name="mayak_status_ready">Ready</string>
     <string name="mayak_status_signing_in">Signing in…</string>
     <string name="mayak_status_loading">Loading countries…</string>
@@ -257,7 +265,6 @@
     <string name="mayak_settings_diagnostics">Diagnostics &amp; help</string>
     <string name="mayak_settings_diag_hint">If something isn\'t working, send us the log — it lets us find the cause fast. Data is processed per the privacy policy.</string>
     <string name="mayak_settings_send_log">Send log</string>
-    <string name="mayak_settings_logs_view">View log</string>
     <string name="mayak_settings_send_log_sending">Sending log…</string>
     <string name="mayak_settings_send_log_ok">Log sent. Thank you!</string>
     <string name="mayak_settings_send_log_err">Couldn\'t send log: %1$s</string>
@@ -273,8 +280,6 @@
     <string name="mayak_oss_licenses_body">Bundled open-source components:\n\n• amneziawg-android — Apache-2.0\n• amneziawg-go — MIT\n• WireGuard® (underlying protocol) — GPLv2 / various; \"based on WireGuard®\", not affiliated\n• AndroidX libraries — Apache-2.0\n• Material Components for Android — Apache-2.0\n• ZXing (QR scanning) — Apache-2.0\n• kotlinx (coroutines, serialization) — Apache-2.0\n\nFull license texts are available in the respective project repositories.</string>
     <string name="mayak_privacy_policy">Privacy policy</string>
     <string name="mayak_terms">Terms of use</string>
-    <string name="mayak_delete_account">Delete account</string>
-    <string name="mayak_delete_account_hint">Account and data deletion is done in your personal cabinet: your password is required. This action cannot be undone.</string>
     <string name="mayak_soon">Coming soon</string>
     <string name="bad_config_context">%1$s\'s %2$s</string>
     <string name="bad_config_context_top_level">%s</string>
