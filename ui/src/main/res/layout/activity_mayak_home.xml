@@ -93,7 +93,8 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="-2dp"
                         android:scaleX="0.8"
-                        android:scaleY="0.8" />
+                        android:scaleY="0.8"
+                        android:contentDescription="@string/mayak_preset_switch_desc" />
                 </LinearLayout>
 
                 <View

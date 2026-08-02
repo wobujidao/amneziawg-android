@@ -418,6 +418,7 @@
     <string name="mayak_settings_ipv6_hint">Приносит IPv6 через туннель туда, где оператор его не даёт. Значок «IPv6» загорается, только когда он реально работает. Выключите, если что-то перестало открываться.</string>
     <string name="mayak_settings_ipv6_applied">Применится при следующем подключении</string>
     <string name="mayak_settings_split">Split-туннель</string>
+    <string name="mayak_preset_switch_desc">Применять split-туннель этого пресета</string>
     <string name="mayak_settings_split_count">Split-туннель (%1$d)</string>
     <string name="mayak_settings_split_hint">Выберите приложения, которые пойдут МИМО туннеля, по вашему реальному IP (напр. банки, Госуслуги — они режут заграничные IP). Остальной трафик остаётся под защитой. Выбранные приложения сознательно вне туннеля — добавляйте только нужное.</string>
     <string name="mayak_settings_split_applied">Применится при следующем подключении</string>
