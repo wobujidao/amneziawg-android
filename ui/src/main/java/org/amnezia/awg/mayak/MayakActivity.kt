@@ -286,7 +286,7 @@ class MayakActivity : AppCompatActivity() {
         dlg.show()
         lifecycleScope.launch {
             val apk = MayakUpdater.download(
-                this@MayakActivity, info.apkUrl, backend?.currentBase ?: "",
+                this@MayakActivity, info.apkUrl, backend?.knownBases ?: emptyList(),
             ) { pct ->
                 runOnUiThread { bar.progress = pct }
             }
