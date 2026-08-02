@@ -217,6 +217,30 @@
                         android:textColor="@color/mayak_on_surface"
                         android:alpha="0.8"
                         android:textAppearance="@style/Mayak.Tagline" />
+
+                    <!-- Сам split-туннель (какие приложения идут МИМО VPN): выбор/редактор пресетов жил
+                         только за непомеченной кнопкой на главном экране (находка 2026-08-03) — человек,
+                         который ищет эту настройку в «Настройках» (как отправляет справка сайта), её тут
+                         не находил. Кнопка открывает ТОТ ЖЕ диалог через MayakActivity (EXTRA_OPEN_SPLIT_TUNNEL). -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/mayak_settings_split"
+                        style="@style/Mayak.Button.Outlined"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        app:icon="@drawable/ic_chevron_right"
+                        app:iconGravity="end"
+                        app:iconTint="@color/mayak_outline"
+                        android:text="@string/mayak_settings_split" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:text="@string/mayak_settings_split_hint"
+                        android:textColor="@color/mayak_on_surface"
+                        android:alpha="0.8"
+                        android:textAppearance="@style/Mayak.Tagline" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

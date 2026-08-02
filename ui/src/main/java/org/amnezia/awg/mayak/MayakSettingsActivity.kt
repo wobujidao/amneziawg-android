@@ -146,6 +146,14 @@ class MayakSettingsActivity : AppCompatActivity() {
             MayakPrefs.setShowPresetsOnHome(this, checked)
         }
 
+        // Split-туннель (SPEC-0028): сам выбор/редактор пресетов живёт в MayakActivity (состояние,
+        // кэш, редактор — общие с главным экраном) — открываем тот же диалог там же, extra-флагом
+        // (находка 2026-08-03: раньше это было достижимо ТОЛЬКО через непомеченную кнопку на главном).
+        findViewById<MaterialButton>(R.id.mayak_settings_split).setOnClickListener {
+            startActivity(Intent(this, MayakActivity::class.java).putExtra(MayakActivity.EXTRA_OPEN_SPLIT_TUNNEL, true))
+            MayakTransitions.applyAxis(this)
+        }
+
         // Сбросить все настройки к дефолтам (SPEC-0028): настроек много — быстрый сброс с подтверждением.
         findViewById<MaterialButton>(R.id.mayak_settings_reset).setOnClickListener {
             com.google.android.material.dialog.MaterialAlertDialogBuilder(this)

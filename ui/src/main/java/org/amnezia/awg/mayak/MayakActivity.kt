@@ -911,6 +911,14 @@ class MayakActivity : AppCompatActivity() {
 
         setupPresetSelector() // селектор пресета split-туннеля над кнопкой VPN (SPEC-0028)
 
+        // Пришли сюда из «Настроек» → «Split-туннель» (та же кнопка-пресет, но по имени, которое
+        // человек реально ищет) — сразу открыть тот же диалог. removeExtra — иначе пересоздание
+        // активити (смена темы) откроет диалог второй раз без нового перехода из Настроек.
+        if (intent?.getBooleanExtra(EXTRA_OPEN_SPLIT_TUNNEL, false) == true) {
+            intent.removeExtra(EXTRA_OPEN_SPLIT_TUNNEL)
+            showPresetChooser()
+        }
+
         // Тап с press-feedback: лёгкое сжатие 0.96 + haptic-tick, затем toggle.
         connectCircle?.setOnClickListener { v ->
             v.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
@@ -2468,6 +2476,10 @@ class MayakActivity : AppCompatActivity() {
 
     companion object {
         const val KEY_SERVER = "server_url" // доступен из настроек для сборки того же HostProvider (диаг-лог)
+
+        /** «Настройки» → «Split-туннель»: та же непомеченная кнопка-пресет на главном, но по имени,
+         *  которое видит человек (находка 2026-08-03, docs/research/2026-08-03-app-post-login.md). */
+        const val EXTRA_OPEN_SPLIT_TUNNEL = "mayak_open_split_tunnel"
 
         // SPEC-0031: режимы сортировки списка стран.
         private const val SORT_AUTO = 0   // как отдал сервер
