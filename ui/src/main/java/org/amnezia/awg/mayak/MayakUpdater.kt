@@ -30,11 +30,23 @@ object MayakUpdater {
         runCatching { dir(context).deleteRecursively() }
     }
 
-    /** Скачать APK по url в кэш с прогрессом (0..100). null при ошибке/отмене. Только https. */
-    suspend fun download(context: Context, url: String, onProgress: (Int) -> Unit): File? =
+    /**
+     * Скачать APK по url в кэш с прогрессом (0..100). null при ошибке/отмене.
+     *
+     * Только https И только с НАШЕГО домена: `apkUrl` приходит из version.json, то есть снаружи, и
+     * раньше принимался любой https-хост (ревью #3). Настоящий гейт — совпадение подписи (isTrusted),
+     * это второй слой: не тянуть чужой файл вообще.
+     *
+     * Домен не зашит константой намеренно. Прод-домены ещё поменяются (решение владельца о .com), а
+     * зашитый список ломает самообновление молча: люди остаются на старой версии, и никто не узнает.
+     * Поэтому сверяем с доменом ЯДРА, с которым приложение уже работает (`coreBase`): apk обязан
+     * лежать на том же домене второго уровня. Переедет ядро — переедет и разрешённый домен.
+     */
+    suspend fun download(context: Context, url: String, coreBase: String, onProgress: (Int) -> Unit): File? =
         withContext(Dispatchers.IO) {
             runCatching {
                 require(url.startsWith("https://")) { "нужен https" }
+                require(sameSite(url, coreBase)) { "apk не с нашего домена" }
                 val d = dir(context).apply { mkdirs() }
                 val out = File(d, APK)
                 val conn = (URL(url).openConnection() as HttpURLConnection).apply {
@@ -71,9 +83,31 @@ object MayakUpdater {
         val dl = pm.getPackageArchiveInfo(apk.path, sigFlag()) ?: return false
         if (dl.packageName != context.packageName) return false // чужой пакет — не ставим
         val me = pm.getPackageInfo(context.packageName, sigFlag())
+        // «не даунгрейд» обещал KDoc, а проверялись только пакет и подпись (ревью #4). Android сам
+        // режет откат при той же подписи, но полагаться на это — значит держать обещание чужими
+        // руками: подсунутый старый (наш же, подписанный) APK проходил бы наш гейт.
+        if (versionCode(dl) < versionCode(me)) return false
         val a = certHashes(dl); val b = certHashes(me)
         a.isNotEmpty() && a == b
     }.getOrDefault(false)
+
+    /**
+     * Один ли домен второго уровня у ссылки на APK и у ядра. Сравниваем ровно две последние метки
+     * («mayakvpn.ru»), потому что раздача APK живёт на apex, а API — на `api.`; публичного списка
+     * суффиксов в приложении нет и тащить его ради одной проверки незачем.
+     */
+    private fun sameSite(url: String, coreBase: String): Boolean = runCatching {
+        val a = URL(url).host.lowercase()
+        val b = URL(coreBase).host.lowercase()
+        if (a.isEmpty() || b.isEmpty()) return false
+        // IP-фолбэк ядра (без точечного домена) — сравниваем как есть, иначе «две метки» бессмысленны
+        val site = { h: String -> h.split('.').takeLast(2).joinToString(".") }
+        site(a) == site(b)
+    }.getOrDefault(false)
+
+    @Suppress("DEPRECATION")
+    private fun versionCode(pi: PackageInfo): Long =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) pi.longVersionCode else pi.versionCode.toLong()
 
     /** Может ли приложение запускать установку APK (Android 8+ требует разрешения источника)? */
     fun canInstall(context: Context): Boolean =

@@ -69,6 +69,12 @@ class MayakBackend(
     private val connectTimeoutMs: Int = 5_000,
     private val readTimeoutMs: Int = 15_000,
 ) {
+    /**
+     * Текущий базовый адрес ядра («https://api.mayakvpn.ru» или IP-фолбэк). Нужен самообновлению:
+     * ссылку на APK из version.json принимаем только с того же домена второго уровня, что и ядро.
+     */
+    val currentBase: String get() = hosts.current()
+
     companion object {
         val defaultJson = Json {
             ignoreUnknownKeys = true

@@ -83,6 +83,11 @@
     <string name="mayak_status_checking">Checking the connection…</string>
     <string name="mayak_notif_no_traffic">No traffic — you are not protected</string>
     <string name="mayak_err_account_blocked">This account is blocked. Contact support: support@mayakvpn.ru</string>
+    <string name="mayak_err_direction_busy">This country is temporarily out of capacity. Pick another one — we are adding more.</string>
+    <string name="mayak_err_direction_not_in_plan">This country is not included in your plan.</string>
+    <string name="mayak_err_overloaded">The service is busy right now. Try again in a minute.</string>
+    <string name="mayak_err_billing_unavailable">Payments are not available yet.</string>
+    <string name="mayak_err_generic">Something went wrong. Try again a bit later.</string>
     <string name="mayak_open_cabinet">Open cabinet</string>
     <string name="mayak_password_hint">Password</string>
     <string name="mayak_sign_in">Sign in</string>

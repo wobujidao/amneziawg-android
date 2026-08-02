@@ -285,7 +285,9 @@ class MayakActivity : AppCompatActivity() {
             .create()
         dlg.show()
         lifecycleScope.launch {
-            val apk = MayakUpdater.download(this@MayakActivity, info.apkUrl) { pct ->
+            val apk = MayakUpdater.download(
+                this@MayakActivity, info.apkUrl, backend?.currentBase ?: "",
+            ) { pct ->
                 runOnUiThread { bar.progress = pct }
             }
             runCatching { dlg.dismiss() }
@@ -2308,8 +2310,25 @@ class MayakActivity : AppCompatActivity() {
 
     // --- helpers ---
 
+    /**
+     * Текст отказа для ЧЕЛОВЕКА. Раньше любой отказ ядра показывался как «Ошибка ядра (503): …» —
+     * номер статуса человеку не говорит ничего, а «503» читается как «сервис лёг», хотя причина
+     * бывает совсем другая и лечится другим действием.
+     *
+     * Ядро с 03-08 различает причины машинным кодом (`no_line_for_direction`, `pool_exhausted`,
+     * `direction_not_allowed`, `overloaded`, …), поэтому известные случаи переводим в понятную
+     * фразу С ПОДСКАЗКОЙ, ЧТО ДЕЛАТЬ. Незнакомый код — прежний текст сервера, но уже без «Ошибка
+     * ядра (NNN)»: номер уезжает в диагностику, а не на главный экран.
+     */
     private fun humanError(e: Throwable): String = when (e) {
-        is MayakApiException -> "Ошибка ядра (${e.status}): ${e.message}"
+        is MayakApiException -> when (e.code) {
+            "no_line_for_direction", "pool_exhausted" ->
+                getString(R.string.mayak_err_direction_busy)
+            "direction_not_allowed" -> getString(R.string.mayak_err_direction_not_in_plan)
+            "overloaded" -> getString(R.string.mayak_err_overloaded)
+            "billing_unavailable" -> getString(R.string.mayak_err_billing_unavailable)
+            else -> e.message ?: getString(R.string.mayak_err_generic)
+        }
         is NoReachableHostException -> "Ядро недоступно: ${e.message}"
         else -> "Ошибка: ${e.message ?: e.javaClass.simpleName}"
     }

@@ -293,6 +293,11 @@
     <string name="mayak_status_checking">Проверяем соединение…</string>
     <string name="mayak_notif_no_traffic">Трафик не идёт — вы не защищены</string>
     <string name="mayak_err_account_blocked">Аккаунт заблокирован. Напишите в поддержку: support@mayakvpn.ru</string>
+    <string name="mayak_err_direction_busy">На этой стране сейчас нет свободных адресов. Выберите другую — мы добавляем ёмкость.</string>
+    <string name="mayak_err_direction_not_in_plan">Эта страна не входит в ваш тариф.</string>
+    <string name="mayak_err_overloaded">Сервис сейчас перегружен. Попробуйте через минуту.</string>
+    <string name="mayak_err_billing_unavailable">Оплата пока недоступна.</string>
+    <string name="mayak_err_generic">Что-то пошло не так. Попробуйте чуть позже.</string>
     <string name="mayak_open_cabinet">Открыть кабинет</string>
     <string name="mayak_password_hint">Пароль</string>
     <string name="mayak_sign_in">Войти</string>
