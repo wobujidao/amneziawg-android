@@ -286,18 +286,20 @@
                 android:visibility="gone"
                 android:text="" />
 
-            <!-- Список стран. Карточка занимает всё оставшееся место (weight=1), а список внутри
-                 прокручивается сам (правка владельца 2026-07-18): верх экрана остаётся на месте. -->
+            <!-- Список стран. Карточка сжимается под содержимое (было layout_weight=1 — тянуло
+                 карточку на весь низ экрана, при 2 странах ~500px пустоты и в светлой, и в
+                 тёмной теме, дизайн-заход 02-08, APP-BACKLOG.md). Список внутри — на потолке
+                 высоты (MaxHeightScrollView): верх экрана по-прежнему на месте (правка владельца
+                 2026-07-18), а прокрутка появляется, только если строк реально много. -->
             <com.google.android.material.card.MaterialCardView
                 style="@style/Mayak.Card"
                 android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1"
+                android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/mayak_space_4">
 
                 <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
+                    android:layout_height="wrap_content"
                     android:orientation="vertical">
 
                     <LinearLayout
@@ -337,13 +339,16 @@
                             android:focusable="true" />
                     </LinearLayout>
 
-                    <!-- Прокрутка списка внутри карточки; разделители между строками — через
+                    <!-- Прокрутка списка внутри карточки, но с потолком высоты (см. коммент у
+                         карточки выше): при 2-3 странах список просто помещается целиком без
+                         прокрутки, при длинном списке — включается прокрутка вместо ухода
+                         карточки за нижний край экрана. Разделители между строками — через
                          showDividers="middle" на самом контейнере строк (divider = 1dp линия). -->
-                    <ScrollView
+                    <org.amnezia.awg.mayak.MaxHeightScrollView
                         android:layout_width="match_parent"
-                        android:layout_height="0dp"
-                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
+                        android:maxHeight="@dimen/mayak_country_list_max_height"
                         android:scrollbars="none"
                         android:clipToPadding="false">
 
@@ -354,7 +359,7 @@
                             android:orientation="vertical"
                             android:divider="@drawable/mayak_row_divider"
                             android:showDividers="middle" />
-                    </ScrollView>
+                    </org.amnezia.awg.mayak.MaxHeightScrollView>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
         </LinearLayout>

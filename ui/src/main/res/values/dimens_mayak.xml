@@ -16,4 +16,9 @@
     <dimen name="mayak_space_5">20dp</dimen>
     <dimen name="mayak_space_6">24dp</dimen>
     <dimen name="mayak_space_7">32dp</dimen>
+
+    <!-- Потолок высоты карточки «Выберите страну» на главном экране (MaxHeightScrollView) —
+         карточка сжимается под 2-3 строки, а не растягивается на весь низ экрана; список
+         подлиннее просто прокручивается внутри этого потолка (правка 02-08, APP-BACKLOG.md). -->
+    <dimen name="mayak_country_list_max_height">360dp</dimen>
 </resources>
