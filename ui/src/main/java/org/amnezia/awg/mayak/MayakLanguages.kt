@@ -21,14 +21,31 @@ object MayakLanguages {
         "fr" to "Français",
     )
 
-    /** Показать диалог выбора языка и применить выбор. */
+    /**
+     * Показать диалог выбора языка и применить выбор.
+     *
+     * Список — с отметкой текущего языка (`setSingleChoiceItems`, не `setItems`): было
+     * без неё, и открывшему диалог человеку неоткуда узнать, какой пункт активен сейчас,
+     * кроме как закрыть диалог и сверить с уже применённым интерфейсом. Для настройки,
+     * которая ЗАПОМИНАЕТ состояние (а не разовое действие вроде «Отправить лог»),
+     * непомеченный список — не то же самое, что и на выбор.
+     */
     fun showDialog(context: Context) {
         val names = LANGS.map { it.second }.toTypedArray()
+        // Не AppCompatDelegate.getApplicationLocales(): он отражает язык, только если его
+        // САМ выставлял setApplicationLocales в этом же процессе. Локаль, пришедшую от
+        // системы (LocaleManager — так её ставит и adb, и системный экран «Язык приложения»),
+        // appcompat в это поле не подтягивает, хотя ресурсы уже резолвятся по ней и весь
+        // остальной экран уже нарисован на нужном языке. Берём фактически применённую локаль
+        // из конфигурации ресурсов — она всегда совпадает с тем, что человек видит на экране.
+        val currentTag = context.resources.configuration.locales.get(0)?.language.orEmpty()
+        val currentIndex = LANGS.indexOfFirst { it.first == currentTag }
         AlertDialog.Builder(context)
             .setTitle(context.getString(R.string.mayak_language))
-            .setItems(names) { _, which ->
+            .setSingleChoiceItems(names, currentIndex) { dialog, which ->
                 val tag = LANGS[which].first
                 AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(tag))
+                dialog.dismiss()
             }
             .setNegativeButton(context.getString(R.string.mayak_cancel), null)
             .show()
