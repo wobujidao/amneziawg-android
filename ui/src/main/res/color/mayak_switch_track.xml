@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Дорожка переключателя. Включённый = фирменный тон (`mayak_outline`: тёмно-синий в светлой теме,
+     голубой в тёмной) — тот же, которым обведены кнопки и переключатель темы. До этого тумблеры
+     красились дефолтом Material (лавандовый `md_theme_dark_primaryContainer`), и на одном экране
+     оказывалось два разных «включено». -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_checked="true" android:color="@color/mayak_outline" />
+    <item android:color="@color/mayak_switch_track_off" />
+</selector>

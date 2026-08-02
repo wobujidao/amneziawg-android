@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Бегунок. Всегда контрастен своей дорожке: на включённой (насыщенной) он цвета поверхности,
+     на выключенной (приглушённой) — светлый/серый по теме. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_checked="true" android:color="@color/mayak_surface" />
+    <item android:color="@color/mayak_switch_thumb_off" />
+</selector>
