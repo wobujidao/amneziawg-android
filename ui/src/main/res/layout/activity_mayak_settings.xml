@@ -101,8 +101,8 @@
                         style="@style/Mayak.Button.Outlined"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        app:icon="@drawable/ic_settings"
-                        app:iconGravity="textStart"
+                        app:icon="@drawable/ic_chevron_right"
+                        app:iconGravity="end"
                         app:iconTint="@color/mayak_outline"
                         android:text="@string/mayak_language" />
 
@@ -113,8 +113,8 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        app:icon="@drawable/ic_settings"
-                        app:iconGravity="textStart"
+                        app:icon="@drawable/ic_chevron_right"
+                        app:iconGravity="end"
                         app:iconTint="@color/mayak_outline"
                         android:text="@string/mayak_settings_disguise" />
                 </LinearLayout>
@@ -139,6 +139,7 @@
                         android:textAppearance="@style/Mayak.CardTitle" />
 
                     <com.google.android.material.materialswitch.MaterialSwitch
+                        style="@style/Mayak.Switch"
                         android:id="@+id/mayak_settings_ipv6"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -159,6 +160,7 @@
                     <!-- Запасной канал (SPEC-0039): в норме включается САМ, когда UDP не проходит.
                          Тумблер — для сетей, где UDP не работает всегда (не ждать 6с каждый раз). -->
                     <com.google.android.material.materialswitch.MaterialSwitch
+                        style="@style/Mayak.Switch"
                         android:id="@+id/mayak_settings_force_fallback"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -177,6 +179,7 @@
                         android:textAppearance="@style/Mayak.Tagline" />
 
                     <com.google.android.material.materialswitch.MaterialSwitch
+                        style="@style/Mayak.Switch"
                         android:id="@+id/mayak_settings_speed"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -197,6 +200,7 @@
                     <!-- Пресеты split-туннеля (SPEC-0028): само управление — на ГЛАВНОМ экране (селектор
                          пресета + тумблер у кнопки VPN). Здесь — только показывать ли этот селектор. -->
                     <com.google.android.material.materialswitch.MaterialSwitch
+                        style="@style/Mayak.Switch"
                         android:id="@+id/mayak_settings_show_presets"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -243,8 +247,8 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="10dp"
-                        app:icon="@drawable/ic_settings"
-                        app:iconGravity="textStart"
+                        app:icon="@drawable/ic_chevron_right"
+                        app:iconGravity="end"
                         app:iconTint="@color/mayak_outline"
                         android:text="@string/mayak_settings_dns_loading" />
 
@@ -289,6 +293,7 @@
                         android:textAppearance="@style/Mayak.CardTitle" />
 
                     <com.google.android.material.materialswitch.MaterialSwitch
+                        style="@style/Mayak.Switch"
                         android:id="@+id/mayak_settings_autoconnect"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -314,8 +319,8 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="14dp"
-                        app:icon="@drawable/ic_settings"
-                        app:iconGravity="textStart"
+                        app:icon="@drawable/ic_chevron_right"
+                        app:iconGravity="end"
                         app:iconTint="@color/mayak_outline"
                         android:text="@string/mayak_settings_killswitch" />
 
@@ -329,6 +334,7 @@
                         android:textAppearance="@style/Mayak.Tagline" />
 
                     <com.google.android.material.materialswitch.MaterialSwitch
+                        style="@style/Mayak.Switch"
                         android:id="@+id/mayak_settings_applock"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"

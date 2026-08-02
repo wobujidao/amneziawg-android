@@ -138,4 +138,6 @@
     <color name="mayak_map_route">#CE8E27</color>
     <color name="mayak_map_glow">#EBB65A</color>
     <color name="mayak_map_device">#1B2431</color>
+    <color name="mayak_switch_track_off">#D4DAE4</color>
+    <color name="mayak_switch_thumb_off">#FFFFFF</color>
 </resources>

@@ -243,4 +243,13 @@
         <item name="android:textSize">14sp</item>
         <item name="iconTint">@color/mayak_on_bg</item>
     </style>
+
+    <!-- Переключатель настроек. Материаловский дефолт красил «включено» лавандовым
+         (colorPrimaryContainer сборной темы), хотя рядом на том же экране переключатель темы
+         обведён фирменным тоном. Задаём цвета явно — и они theme-aware через mayak_outline. -->
+    <style name="Mayak.Switch" parent="Widget.Material3.CompoundButton.MaterialSwitch">
+        <item name="trackTint">@color/mayak_switch_track</item>
+        <item name="thumbTint">@color/mayak_switch_thumb</item>
+        <item name="trackDecorationTint">@android:color/transparent</item>
+    </style>
 </resources>

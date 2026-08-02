@@ -58,5 +58,7 @@
     <color name="mayak_map_route">#F4C879</color>
     <color name="mayak_map_glow">#FFDE9E</color>
     <color name="mayak_map_device">#EAF1F8</color>
+    <color name="mayak_switch_track_off">#33415C</color>
+    <color name="mayak_switch_thumb_off">#8494B0</color>
 </resources>
 
