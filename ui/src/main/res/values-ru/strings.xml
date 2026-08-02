@@ -315,6 +315,8 @@
     <string name="mayak_reset_doing">Меняем пароль…</string>
     <string name="mayak_reset_done">Пароль изменён — войдите с новым паролем.</string>
     <string name="mayak_reset_bad">Неверный/просроченный код или слишком слабый пароль.</string>
+    <string name="mayak_reset_bad_code">Неверный или просроченный код. Проверьте письмо или запросите новый код.</string>
+    <string name="mayak_reset_weak_password">Пароль слишком простой — минимум 8 символов, буквы и цифры/символы.</string>
     <string name="mayak_pick_country">Выберите страну:</string>
     <string name="mayak_refresh">Обновить</string>
     <string name="mayak_sort_auto">Авто</string>

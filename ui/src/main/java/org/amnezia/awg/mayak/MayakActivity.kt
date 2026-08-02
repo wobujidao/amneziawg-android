@@ -485,7 +485,19 @@ class MayakActivity : AppCompatActivity() {
                         setStatus(getString(R.string.mayak_reset_done))
                         findViewById<TextInputEditText>(R.id.mayak_login)?.setText(email)
                     } catch (e: MayakApiException) {
-                        setStatus(if (e.status == 400) getString(R.string.mayak_reset_bad) else humanError(e))
+                        // Ядро возвращает разные code для "код неверный/просрочен" (bad_code) и
+                        // "пароль слишком простой" (weak_password) — раньше оба 400 схлопывались в
+                        // одну строку "Неверный/просроченный код или слишком слабый пароль.", и
+                        // человек с верным кодом, но слабым паролем, начинал перепроверять письмо
+                        // вместо пароля. Ветвимся по e.code, как везде в этом файле (humanError).
+                        setStatus(
+                            when {
+                                e.code == "bad_code" -> getString(R.string.mayak_reset_bad_code)
+                                e.code == "weak_password" -> getString(R.string.mayak_reset_weak_password)
+                                e.status == 400 -> getString(R.string.mayak_reset_bad)
+                                else -> humanError(e)
+                            }
+                        )
                     } catch (e: Exception) { setStatus(humanError(e)) }
                 }
             }

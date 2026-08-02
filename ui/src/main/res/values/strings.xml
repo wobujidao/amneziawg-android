@@ -105,6 +105,8 @@
     <string name="mayak_reset_doing">Changing password…</string>
     <string name="mayak_reset_done">Password changed — sign in with the new one.</string>
     <string name="mayak_reset_bad">Invalid/expired code or password too weak.</string>
+    <string name="mayak_reset_bad_code">Invalid or expired code. Check the email or request a new one.</string>
+    <string name="mayak_reset_weak_password">Password is too weak — at least 8 characters, letters and digits/symbols.</string>
     <string name="mayak_pick_country">Pick a country:</string>
     <string name="mayak_refresh">Refresh</string>
     <string name="mayak_sort_auto">Auto</string>
