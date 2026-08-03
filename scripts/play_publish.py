@@ -75,6 +75,14 @@ def main():
     print(f"uploaded versionCode={vcode}")
 
     # 3) assign to track
+    #
+    # Play режет заметки к релизу на 500 символов, и ловится это НЕ на записи трека (она отвечает
+    # 200 с любой длиной), а только на commit — причём кодом 403, который читается как «нет прав».
+    # 03-08 это стоило получаса поисков не там. Проверяем сами и падаем сразу с понятным текстом.
+    NOTES_MAX = 500
+    if a.notes and len(a.notes) > NOTES_MAX:
+        sys.exit(f"заметки к релизу {len(a.notes)} символов, Play принимает не больше {NOTES_MAX}; "
+                 f"сократите --notes (в CHANGELOG.md текст длиннее — это нормально, для Play нужна выжимка)")
     rel = {"status": "completed", "versionCodes": [str(vcode)]}
     if a.notes:
         rel["releaseNotes"] = [{"language": "ru-RU", "text": a.notes}]
@@ -87,7 +95,22 @@ def main():
     print(f"track={a.track} set")
 
     # 4) commit
+    #
+    # Пока приложение в Play не прошло первую проверку, оно висит «unreviewed», и обычный commit
+    # отбивается 403: Google не может отправить правку на ревью автоматически. Для этого случая
+    # у API есть флаг changesNotSentForReview — правка применяется, но на ревью не уходит.
+    # Пробуем сначала обычный путь (правильный для нормального состояния), и только на этой
+    # конкретной ошибке повторяем с флагом. Тело ответа печатаем ВСЕГДА: без него 403 не отличить
+    # от протухших прав сервис-аккаунта, а это разные починки (03-08).
     r = requests.post(f"{BASE}/{pkg}/edits/{edit_id}:commit", headers=h, timeout=120)
+    if r.status_code == 403 and "changesNotSentForReview" in r.text:
+        print("commit: приложение ещё не проверено Google → повторяю с changesNotSentForReview=true")
+        r = requests.post(
+            f"{BASE}/{pkg}/edits/{edit_id}:commit?changesNotSentForReview=true",
+            headers=h, timeout=120,
+        )
+    if not r.ok:
+        print(f"commit failed {r.status_code}: {r.text[:800]}", file=sys.stderr)
     r.raise_for_status()
     print(f"committed edit={edit_id} versionCode={vcode} track={a.track}")
 
