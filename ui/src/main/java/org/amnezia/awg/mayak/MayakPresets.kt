@@ -101,6 +101,16 @@ object MayakPresets {
         }
     }
 
+    /** Реально ли у человека применяется СИСТЕМНЫЙ РФ-пресет (для телеметри-бикона, 2026-08-03): тумблер
+     *  «применять активный пресет» включён И активный пресет — системный («РФ напрямую»), а не свой.
+     *  Раньше поле в биконе читало мёртвый MayakPrefs.ruDirect — тот тумблер нигде не выставляется и
+     *  не влияет на туннель (реальный split строится через effectiveSplit() отсюда же), поэтому бикон
+     *  всегда врал бы `false`. Источник правды один и тот же для UI и для метрики. */
+    fun ruSplitActive(ctx: Context): Boolean {
+        if (!MayakPrefs.presetEnabled(ctx)) return false
+        return activePreset(ctx)?.source == "system"
+    }
+
     /** Приложения пресета среди УСТАНОВЛЕННЫХ (addDisallowedApplication кидает на неустановленный пакет).
      *  Системный (rule-based): (matches regex И не в исключениях) ИЛИ в явных. Пользовательский: явные пакеты. */
     fun resolveApps(ctx: Context, p: Preset): Set<String> {
