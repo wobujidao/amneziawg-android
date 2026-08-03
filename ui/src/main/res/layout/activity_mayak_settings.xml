@@ -9,6 +9,7 @@
     android:background="@drawable/mayak_bg_gradient">
 
     <ScrollView
+        android:id="@+id/mayak_settings_scroll"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:fillViewport="true"
@@ -380,6 +381,7 @@
 
             <!-- ===== Диагностика и помощь ===== -->
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/mayak_settings_diagnostics_card"
                 style="@style/Mayak.Card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

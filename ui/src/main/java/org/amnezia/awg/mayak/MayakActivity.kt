@@ -101,6 +101,11 @@ class MayakActivity : AppCompatActivity() {
     // Когда под кнопкой появился текст ОШИБКИ. 0 = ошибки на экране нет. Нужен, чтобы вчерашняя
     // ошибка не встречала человека при следующем открытии приложения (аудит 2026-07-31, п. 17).
     private var errorShownAt = 0L
+    // Тап по надписи после ПРОВАЛА подключения ведёт в диагностику (находка 2026-08-03: раньше
+    // «Диагностика и помощь» была достижима, только если человек сам знал спуститься в самый низ
+    // «Настроек» — на месте отказа ни слова, ни кнопки в её сторону не было). Живёт своей жизнью,
+    // не через errorShownAt: «Подключение отменено» — тоже errorShownAt, но не отказ, помощь тут не нужна.
+    private var errorHelpAvailable = false
     // Поколение подключения: растёт на КАЖДОМ подъёме и КАЖДОМ обрыве. Фоновые пробы запоминают своё
     // и молча выбрасывают результат, если он вернулся уже к другому подключению (диаг #64).
     private var connGeneration = 0
@@ -936,9 +941,17 @@ class MayakActivity : AppCompatActivity() {
         // Тап по статусу/таймеру (когда подключены) → лист «Подробности подключения» с IP/пингом/
         // сервером (правка владельца: IP убрали с главного, показываем по запросу в окне).
         val openDetails = View.OnClickListener {
-            if (connState == ConnState.CONNECTED) {
-                it.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                showConnectionDetails()
+            when {
+                connState == ConnState.CONNECTED -> {
+                    it.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                    showConnectionDetails()
+                }
+                // Провал подключения: тот же жест (тап по надписи под кнопкой), но ведёт в помощь,
+                // а не в подробности — подключения-то и не случилось.
+                errorHelpAvailable -> {
+                    it.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                    openErrorHelp()
+                }
             }
         }
         status.setOnClickListener(openDetails)
@@ -1876,6 +1889,11 @@ class MayakActivity : AppCompatActivity() {
         renderState(ConnState.DISCONNECTED)
         setStatus(message)
         errorShownAt = SystemClock.elapsedRealtime() // с этого момента надпись «протухает» (см. onResume)
+        // Диагностика уходит сама (ниже), но человеку в моменте это не помогает — на экране только
+        // фраза. «Отправить лог» — на самом дне «Настроек», найти его в моменте отказа неоткуда
+        // (находка 2026-08-03). Тап по этой же надписи — путь туда, значок подсказывает, что можно тапнуть.
+        errorHelpAvailable = true
+        setStatusInfoIcon(true)
         Toast.makeText(this, message, Toast.LENGTH_LONG).show() // ошибку показываем попапом — её надо заметить
         maybeAutoSendDiag() // авто-заливка диаг-лога на ошибку подключения (тихо, rate-limited) — 0.3.48
     }
@@ -1990,6 +2008,7 @@ class MayakActivity : AppCompatActivity() {
                 fallbackBadge?.visibility = View.GONE
                 if (::status.isInitialized) status.text = getString(R.string.mayak_status_disconnected)
                 setStatusInfoIcon(false)
+                errorHelpAvailable = false // «Не защищено» — обычное состояние, а не отказ, подсказка не нужна
             }
             ConnState.CONNECTING -> {
                 startPulse()
@@ -2476,7 +2495,22 @@ class MayakActivity : AppCompatActivity() {
         if (errorShownAt == 0L || connState != ConnState.DISCONNECTED) return
         if (SystemClock.elapsedRealtime() - errorShownAt < ERROR_STALE_MS) return
         errorShownAt = 0L
+        errorHelpAvailable = false
+        setStatusInfoIcon(false)
         setStatus(getString(R.string.mayak_status_disconnected))
+    }
+
+    /**
+     * Тап по надписи об отказе → «Диагностика и помощь» в настройках (находка 2026-08-03, см.
+     * `errorHelpAvailable`). Отдельный экран для этого заводить незачем — секция уже есть, её
+     * просто не было видно с места отказа; открываем настройки и сразу прокручиваем к ней.
+     */
+    private fun openErrorHelp() {
+        startActivity(
+            Intent(this, MayakSettingsActivity::class.java)
+                .putExtra(MayakSettingsActivity.EXTRA_OPEN_DIAGNOSTICS, true)
+        )
+        MayakTransitions.applyAxis(this)
     }
 
     private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()

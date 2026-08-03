@@ -4,6 +4,7 @@ package org.amnezia.awg.mayak
 
 import android.content.Intent
 import android.os.Bundle
+import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import android.view.View
@@ -233,6 +234,15 @@ class MayakSettingsActivity : AppCompatActivity() {
             if (mode != MayakPrefs.themeMode(this)) {
                 MayakPrefs.setThemeMode(this, mode) // setDefaultNightMode пересоздаст активити с новой темой
             }
+        }
+
+        // Пришли сюда с провала подключения (тап по надписи об ошибке на главном, находка 2026-08-03:
+        // «Диагностика и помощь» лежит на самом дне списка, и с места отказа до неё не дойти). Секция
+        // и так на экране — просто сразу докручиваем к ней, отдельного пункта меню заводить не нужно.
+        if (intent?.getBooleanExtra(EXTRA_OPEN_DIAGNOSTICS, false) == true) {
+            val scroll = findViewById<ScrollView>(R.id.mayak_settings_scroll)
+            val card = findViewById<View>(R.id.mayak_settings_diagnostics_card)
+            scroll.post { scroll.smoothScrollTo(0, card.top) }
         }
     }
 
@@ -552,5 +562,10 @@ class MayakSettingsActivity : AppCompatActivity() {
             startActivity(intent)
             finish()
         }
+    }
+
+    companion object {
+        /** См. `MayakActivity.openErrorHelp()` — тап по надписи об отказе подключения ведёт сюда. */
+        const val EXTRA_OPEN_DIAGNOSTICS = "mayak_open_diagnostics"
     }
 }
