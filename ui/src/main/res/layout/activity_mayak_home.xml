@@ -379,4 +379,20 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
         </LinearLayout>
+
+    <!-- Версия бледным штампом у нижнего края (просьба владельца 2026-08-03). Зачем: люди присылают
+         скриншоты, и до сих пор приходилось отдельно спрашивать «а какая у вас версия» — теперь она
+         на самом кадре. Намеренно тихая (alpha), не кликается и скринридеру не читается: это метка
+         для нас, а не элемент интерфейса. -->
+    <TextView
+        android:id="@+id/mayak_version_stamp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="10dp"
+        android:alpha="0.38"
+        android:textSize="11sp"
+        android:textColor="@color/mayak_on_bg"
+        android:importantForAccessibility="no"
+        tools:text="v0.3.90 (137)" />
 </FrameLayout>

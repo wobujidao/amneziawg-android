@@ -114,10 +114,7 @@ class MayakSettingsActivity : AppCompatActivity() {
                     SpeedNotifier.start(this)
                 } else {
                     SpeedNotifier.stop()
-                    MayakNotification.show(
-                        this, GoTunnel.connectedLabel, GoTunnel.connectedPingMs,
-                        ipv6 = GoTunnel.egressIpv6 != null,
-                    )
+                    MayakNotification.show(this, GoTunnel.connectedLabel, GoTunnel.connectedPingMs)
                 }
             }
         }

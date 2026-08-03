@@ -25,6 +25,10 @@ object MayakNotification {
     private const val CHANNEL_ID = "mayak_vpn_status"
     private const val NOTIF_ID = 0x4D41 // 'MA'
 
+    // Тег «AmneziaWG/*» — только такие строки попадают в присланный диаг-лог (SPEC-0012). Сюда пишем
+    // единственный случай, который сам себя не покажет: уведомление попросили без метки направления.
+    private const val TAG = "AmneziaWG/mayak-notif"
+
     /** Метка направления для уведомления/персиста: флаг + подпись РОВНО как в списке приложения
      *  ("🇳🇱 Нидерланды (nl)"), либо дефолт. Текст берём из displayLabel() — один источник со списком. */
     fun labelFor(ctx: Context, dir: Direction?): String {
@@ -70,9 +74,12 @@ object MayakNotification {
 
     /** Показать/обновить уведомление о НАШЕМ подключении. label — из labelFor (или GoTunnel.connectedLabel);
      *  pingMs — пинг сервера для подзаголовка «Защищено · Пинг: 42 мс» (null → без пинга);
-     *  speed — строка «↓… ↑…» в тексте уведомления (в статус-баре — всегда обычный значок Маяка). */
+     *  speed — строка «↓… ↑…» в тексте уведомления (в статус-баре — всегда обычный значок Маяка).
+     *  Значок IPv6 и пометка пути НЕ параметры, а чтение GoTunnel: уведомление обновляется из
+     *  полудюжины мест, и параметр там забывали. Именно так значок IPv6 и пропадал — проба ставила
+     *  его один раз, а следующий такт пинг-цикла (через пару секунд) затирал значением по умолчанию. */
     @SuppressLint("MissingPermission") // notify защищён canPost() (проверка POST_NOTIFICATIONS выше)
-    fun show(ctx: Context, label: String?, pingMs: Int? = null, ipv6: Boolean = false, speed: String? = null) {
+    fun show(ctx: Context, label: String?, pingMs: Int? = null, speed: String? = null) {
         // ⛔ ЕДИНСТВЕННЫЙ ЗАМОК: нет НАШЕГО поднятого туннеля — нет и уведомления, кто бы ни попросил.
         //
         // Аудит 2026-07-31 поймал «осиротевшее» уведомление «Защищено» при полностью провалившемся
@@ -99,11 +106,23 @@ object MayakNotification {
         )
         // Макет как в Happ: имя приложения «Маяк» рисует система в шапке, крупная строка — направление.
         val status = statusText(ctx)
+        // ЗАПАСНАЯ МЕТКА НАПРАВЛЕНИЯ (жалоба владельца 2026-08-03: в шторке осталось голое «Защищено»
+        // без страны, пинга и IPv6, хотя туннель жив и на главном экране всё на месте).
+        //
+        // Метка процесс-скоупная (GoTunnel.connectedLabel) и обнуляется на КАЖДОМ переподъёме туннеля:
+        // GoBackend.setState(UP) внутри сначала делает DOWN, а тот приходит к нам как «внешний обрыв»
+        // и сбрасывает состояние коннекта. Возвращает метку ТОЛЬКО успешный onConnected на открытом
+        // экране — значит любой путь, где туннель остался поднятым, а onConnected не дошёл, оставлял
+        // шторку без метки до самого отключения. Поэтому метку персистим и берём с диска, когда её нет.
+        val shownLabel = label ?: MayakPrefs.lastConnLabel(ctx)?.also {
+            android.util.Log.w(TAG, "уведомление без метки направления — беру сохранённую ($it)")
+            GoTunnel.connectedLabel = it // вернуть и в состояние: из него читают «Подробности» и плитка
+        }
         val builder = NotificationCompat.Builder(ctx, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_mayak) // всегда значок Маяка (скорость — в тексте/на экране)
             // Без метки направления заголовком идёт САМ СТАТУС. Раньше сюда подставлялось «Защищено» —
             // и именно так выглядело осиротевшее уведомление из аудита: одно слово, и то неправда.
-            .setContentTitle(label ?: status)
+            .setContentTitle(shownLabel ?: status)
             .setOngoing(true)          // нельзя смахнуть, пока подключены
             .setOnlyAlertOnce(true)    // обновление метки не «пикает» повторно
             .setShowWhen(false)
@@ -112,26 +131,31 @@ object MayakNotification {
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .addAction(0, ctx.getString(R.string.mayak_notif_disconnect), disconnectPi)
-        if (label != null) {
-            // Подзаголовок: честный статус + пинг сервера («Пинг: 0» = нет ответа) + IPv6, если измерены.
-            // Пинг/скорость/IPv6 дописываем ТОЛЬКО к подтверждённому статусу: рядом со словом
-            // «трафик не идёт» цифры прошлого замера лишь путают.
-            val ok = GoTunnel.liveness == GoTunnel.LIVE_OK
-            val text = buildString {
-                append(status)
-                if (!ok) return@buildString
-                if (pingMs != null) { append(" · "); append(ctx.getString(R.string.mayak_ping_label, pingMs)) }
-                if (ipv6) { append(" · "); append(ctx.getString(R.string.mayak_ipv6_badge)) } // честный значок IPv6
+        // Подзаголовок: честный статус + пинг сервера («Пинг: 0» = нет ответа) + IPv6, если измерены.
+        // Пинг/скорость/IPv6 дописываем ТОЛЬКО к подтверждённому статусу: рядом со словом
+        // «трафик не идёт» цифры прошлого замера лишь путают.
+        //
+        // Строка рисуется ВСЕГДА, а не только при известном направлении. Раньше весь этот блок стоял
+        // под `if (label != null)`, и потеря одной метки уносила из шторки заодно пинг, IPv6, «Резерв»
+        // и скорость — человек видел одно слово вместо всего, что мы про подключение знаем.
+        val ok = GoTunnel.liveness == GoTunnel.LIVE_OK
+        val parts = buildList {
+            if (shownLabel != null) add(status) // заголовок занят направлением → статус идёт сюда
+            if (ok) {
+                if (pingMs != null) add(ctx.getString(R.string.mayak_ping_label, pingMs))
+                // Честный значок IPv6 — по факту УДАВШЕЙСЯ пробы выхода (GoTunnel.egressIpv6), а не по
+                // тому, вспомнил ли о нём вызывающий (см. комментарий к сигнатуре).
+                if (GoTunnel.egressIpv6 != null) add(ctx.getString(R.string.mayak_ipv6_badge))
                 // «Резерв» — идём через запасной канал (SPEC-0039). Флаг процесс-скоупный (GoTunnel), а не
                 // параметр: уведомление обновляется из полудюжины мест, и все они его бы просто забыли.
                 when (GoTunnel.connectedRoute) {
-                    GoTunnel.ROUTE_RELAY -> { append(" · "); append(ctx.getString(R.string.mayak_route_relay_badge)) }
-                    GoTunnel.ROUTE_FALLBACK -> { append(" · "); append(ctx.getString(R.string.mayak_fallback_badge)) }
+                    GoTunnel.ROUTE_RELAY -> add(ctx.getString(R.string.mayak_route_relay_badge))
+                    GoTunnel.ROUTE_FALLBACK -> add(ctx.getString(R.string.mayak_fallback_badge))
                 }
-                if (speed != null) { append(" · "); append(speed) } // ↓/↑ скорость (видно в шторке при свёрнутом app)
+                if (speed != null) add(speed) // ↓/↑ скорость (видно в шторке при свёрнутом app)
             }
-            builder.setContentText(text)
         }
+        if (parts.isNotEmpty()) builder.setContentText(parts.joinToString(" · "))
         NotificationManagerCompat.from(ctx).notify(NOTIF_ID, builder.build())
     }
 

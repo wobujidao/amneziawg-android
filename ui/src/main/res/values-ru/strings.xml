@@ -499,6 +499,8 @@
     <string name="mayak_settings_send_log_err">Не удалось отправить лог: %1$s</string>
     <string name="mayak_settings_send_log_need_login">Сначала войдите, чтобы отправить лог.</string>
     <string name="mayak_version">Версия %1$s (сборка %2$d)</string>
+    <!-- Компактный штамп версии на главном экране (2026-08-03): его читают со скриншотов. -->
+    <string name="mayak_version_stamp">v%1$s (%2$d)</string>
     <string name="mayak_based_on">Основано на</string>
     <string name="mayak_engine">Движок</string>
     <string name="mayak_protocol">Протокол</string>

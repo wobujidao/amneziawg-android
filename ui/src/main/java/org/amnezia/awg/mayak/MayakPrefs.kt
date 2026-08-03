@@ -13,6 +13,7 @@ object MayakPrefs {
     private const val PREFS = "mayak_ui_prefs"
     private const val KEY_THEME = "theme_mode"
     private const val KEY_LAST_DIR = "last_direction_id"
+    private const val KEY_LAST_CONN_LABEL = "last_conn_label" // метка направления для шторки (переживает всё)
     private const val KEY_UPDATE_DISMISSED = "update_dismissed_code" // versionCode, для которого нажали «Позже»
     private const val KEY_USE_IPV6 = "use_ipv6" // тумблер «использовать IPv6 в туннеле» (по умолч. ВКЛ)
     private const val KEY_FORCE_FALLBACK = "force_fallback" // «всегда запасной канал» (SPEC-0039, по умолч. ВЫКЛ)
@@ -224,6 +225,21 @@ object MayakPrefs {
 
     fun setLastDirectionId(context: Context, id: Long) {
         prefs(context).edit().putLong(KEY_LAST_DIR, id).apply()
+    }
+
+    /**
+     * Метка направления ПОСЛЕДНЕГО подключения («🇳🇱 Нидерланды») — запасной источник для шторки.
+     *
+     * Зачем на диске: в памяти она процесс-скоупная (GoTunnel.connectedLabel) и обнуляется на каждом
+     * переподъёме туннеля, а возвращает её только успешный коннект при открытом экране. Один такой
+     * промах — и в шторке до конца сессии висело голое «Защищено» без страны, пинга и IPv6 (жалоба
+     * владельца 2026-08-03). Пишем при КАЖДОЙ попытке подключения, ещё до подъёма туннеля.
+     */
+    fun lastConnLabel(context: Context): String? =
+        prefs(context).getString(KEY_LAST_CONN_LABEL, null)?.takeIf { it.isNotBlank() }
+
+    fun setLastConnLabel(context: Context, label: String?) {
+        prefs(context).edit().putString(KEY_LAST_CONN_LABEL, label).apply()
     }
 
     /** Всего успешных подключений (кумулятивно) — для телеметри-бикона. */

@@ -927,6 +927,21 @@ class MayakActivity : AppCompatActivity() {
         setContentView(R.layout.activity_mayak_home)
         status = findViewById(R.id.mayak_status)
         dirsContainer = findViewById(R.id.mayak_dirs_container)
+        // Бледный штамп версии внизу экрана (просьба владельца 2026-08-03): на присланном скриншоте
+        // сразу видно сборку, спрашивать отдельно больше не нужно.
+        findViewById<android.widget.TextView?>(R.id.mayak_version_stamp)?.let { stamp ->
+            stamp.text = getString(R.string.mayak_version_stamp, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE)
+            // Поднимаем над системной панелью по фактическому отступу: на жестовой навигации штамп
+            // иначе перечёркивает «пилюля» (видно на эмуляторе), а на трёхкнопочной он уезжает под кнопки.
+            androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(stamp) { v, insets ->
+                val bottom = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars()).bottom
+                (v.layoutParams as? android.view.ViewGroup.MarginLayoutParams)?.let { lp ->
+                    lp.bottomMargin = bottom + (6 * resources.displayMetrics.density).toInt()
+                    v.layoutParams = lp
+                }
+                insets
+            }
+        }
         // SPEC-0031: перетаскивание строк в режиме «свои» (long-press на строке стартует drag).
         dirsContainer?.setOnDragListener { _, event -> handleRowDrag(event) }
         // Кнопка «Обновить» — явно перетянуть список стран с сервера (новые направления без перелогина).
@@ -1022,7 +1037,7 @@ class MayakActivity : AppCompatActivity() {
             setIpv6Badge(v6 != null)
             setRouteBadge(GoTunnel.connectedRoute) // пометка маршрута тоже персистится в GoTunnel
             if (GoTunnel.egressIpv4 != null) renderEgress() // IP не на главном (в деталях) — mayak_ip скрыт
-            MayakNotification.show(this, GoTunnel.connectedLabel, GoTunnel.connectedPingMs, ipv6 = v6 != null) // персист-метка направления
+            MayakNotification.show(this, GoTunnel.connectedLabel, GoTunnel.connectedPingMs) // персист-метка направления
         } else {
             MayakNotification.clear(this)
         }
@@ -1443,6 +1458,10 @@ class MayakActivity : AppCompatActivity() {
         if (!MayakNet.hasNetwork(this)) { fail(getString(R.string.mayak_status_no_network)); return }
         renderState(ConnState.CONNECTING)
         setStatus(getString(R.string.mayak_status_connecting, d.name))
+        // Метку направления кладём на диск СРАЗУ, до подъёма туннеля: подъём обнуляет процесс-скоупную
+        // (см. MayakPrefs.lastConnLabel), и если коннект не дойдёт до onConnected, шторке будет из чего
+        // взять страну. Пишем цель ЭТОГО подключения — тогда даже при смене страны она не отстаёт.
+        MayakPrefs.setLastConnLabel(this, MayakNotification.labelFor(this, d))
         statusShownAt = SystemClock.elapsedRealtime() // отсюда считается читаемость следующей надписи
         errorShownAt = 0L // прошлая ошибка ушла с экрана — ей больше нечего протухать
         connGeneration++ // новое подключение → результаты фоновых проб от прошлого больше не наши
@@ -1805,7 +1824,7 @@ class MayakActivity : AppCompatActivity() {
                 setIpv6Badge(true)
                 renderEgress() // показать выходной IPv6 рядом с IPv4 (SPEC-0014)
                 // Обновляем уведомление — теперь с честным значком IPv6.
-                MayakNotification.show(this@MayakActivity, GoTunnel.connectedLabel, GoTunnel.connectedPingMs, ipv6 = true)
+                MayakNotification.show(this@MayakActivity, GoTunnel.connectedLabel, GoTunnel.connectedPingMs)
             }
         }
     }
@@ -1906,6 +1925,7 @@ class MayakActivity : AppCompatActivity() {
         connectedDir = d // направление ЖИВОГО туннеля — из аргумента, не из мутабельного выбора в списке
         GoTunnel.connectedDirectionId = d?.id // надёжный процесс-скоупный источник активной страны (для показа её пинга без hairpin)
         GoTunnel.connectedLabel = MayakNotification.labelFor(this, d)
+        MayakPrefs.setLastConnLabel(this, GoTunnel.connectedLabel) // запасной источник для шторки (см. MayakPrefs)
         MayakNotification.show(this, GoTunnel.connectedLabel, GoTunnel.connectedPingMs)
         Toast.makeText(this, getString(R.string.mayak_connected), Toast.LENGTH_SHORT).show()
     }

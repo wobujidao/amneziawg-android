@@ -60,7 +60,9 @@ class MayakQuickTileService : TileService() {
         tile.label = getString(R.string.app_name)
         // Подпись — страна, к которой подключены (её же показывает уведомление), иначе статус.
         tile.subtitle = if (up) {
-            GoTunnel.connectedLabel ?: getString(R.string.mayak_connected)
+            // Метка в памяти могла потеряться (переподъём туннеля её обнуляет) — тогда берём
+            // сохранённую на диск, ту же, что и шторка. Иначе плитка теряла страну вместе с ней.
+            GoTunnel.connectedLabel ?: MayakPrefs.lastConnLabel(this) ?: getString(R.string.mayak_connected)
         } else {
             getString(R.string.mayak_status_disconnected)
         }

@@ -99,10 +99,7 @@ object MayakLiveness {
         if (GoTunnel.liveness == state) return
         GoTunnel.liveness = state
         runCatching {
-            MayakNotification.show(
-                context.applicationContext, GoTunnel.connectedLabel, GoTunnel.connectedPingMs,
-                ipv6 = GoTunnel.egressIpv6 != null,
-            )
+            MayakNotification.show(context.applicationContext, GoTunnel.connectedLabel, GoTunnel.connectedPingMs)
         }
         onChange?.invoke(state)
     }

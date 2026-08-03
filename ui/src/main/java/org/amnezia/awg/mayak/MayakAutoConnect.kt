@@ -97,12 +97,13 @@ object MayakAutoConnect {
             // Метки для уведомления «Подключено» (процесс-скоупны в GoTunnel): на headless-подъёме
             // Activity нет, поэтому проставляем здесь, чтобы шторка/повторное открытие показали страну.
             GoTunnel.connectedLabel = paths.directionName
+            MayakPrefs.setLastConnLabel(ctx, paths.directionName) // запасной источник для шторки (см. MayakPrefs)
             GoTunnel.connectedServerHost = MayakPing.hostOf(endpoint)
             // Пробы выхода тут нет (Activity нет, сеть может быть ещё не готова) → в шторке честное
             // «Проверяем соединение…», а не «Защищено». Сторож живости подтвердит или опровергнет сам,
             // как только пойдёт трафик или устареет рукопожатие (аудит 2026-07-31).
             MayakLiveness.start(ctx)
-            runCatching { MayakNotification.show(ctx, paths.directionName, null, ipv6 = false) }
+            runCatching { MayakNotification.show(ctx, paths.directionName, null) }
             Log.i(TAG, "туннель поднят автоподключением: ${paths.directionName}")
             true
         } catch (e: Exception) {
