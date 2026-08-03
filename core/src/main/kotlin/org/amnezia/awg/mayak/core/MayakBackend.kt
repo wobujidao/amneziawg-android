@@ -207,6 +207,17 @@ class MayakBackend(
             json.decodeFromString(HostList.serializer(), resp)
         }.getOrNull()
 
+    /** Страна по текущему внешнему IP: публичный /v1/egress-check, БЕЗ токена (нужен и до входа).
+     *  Ядро определяет страну локально по реестрам RIPE — для РФ-адресов отдаёт "RU". Зовущий ОБЯЗАН
+     *  убедиться, что в момент вызова не поднят VPN (ни свой, ни чужой) — иначе IP чужой и страна
+     *  определится неверно (см. MayakActivity.maybeAutoEnableRuPreset). Любая ошибка/таймаут → null:
+     *  вызывающий код не ставит «проверили» и пробует снова при следующем случае. */
+    suspend fun egressCheck(): EgressCheck? =
+        runCatching {
+            val resp = call("GET", "/v1/egress-check", token = null, body = null)
+            json.decodeFromString(EgressCheck.serializer(), resp)
+        }.getOrNull()
+
     /** Пресеты split-туннеля (SPEC-0028): системные + пользователя (авторизованный). */
     suspend fun listPresets(token: String): List<Preset> {
         val resp = call("GET", "/v1/client/presets", token = token, body = null)
