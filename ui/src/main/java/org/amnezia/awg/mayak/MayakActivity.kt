@@ -189,6 +189,7 @@ class MayakActivity : AppCompatActivity() {
             checkAppUpdate() // мягкий нудж, если вышла новая версия (Вариант А)
             refreshRuDirect() // OTA-подтяжка РФ-списка split-туннеля (в фоне, best-effort)
             refreshHosts()    // адреса ядра и кабинета из реестра доменов (в фоне, best-effort)
+            maybeAutoEnableRuPreset() // авто-РФ-пресет при первом запуске (в фоне, best-effort)
         } else {
             showLogin()
             // Пришли сюда из-за отозванного входа (см. sessionExpired) — объясняем, а не молчим.
@@ -225,6 +226,44 @@ class MayakActivity : AppCompatActivity() {
             runCatching { session.syncPresets(this@MayakActivity, b) }
             MayakPresets.invalidate()
             runCatching { updatePresetSelector() }
+        }
+    }
+
+    /**
+     * Авто-включение РФ-пресета split-туннеля при первом запуске (прямой запрос владельца 2026-08-03):
+     * человеку из РФ иначе банки и Госуслуги идут через туннель и не пускают его, а тумблер в
+     * настройках он сам не найдёт. Включаем один раз и только когда это безопасно проверить:
+     *  - ещё не пробовали (`MayakPrefs.ruAutoTried`) — иначе лезли бы в сеть на каждом запуске;
+     *  - человек ещё не тронул тумблер пресета РУКАМИ (`MayakPrefs.presetUserDecided`) — иначе
+     *    перебили бы его осознанный выбор своей догадкой;
+     *  - не поднят НИКАКОЙ VPN — ни наш, ни чужой (`MayakNet.vpnActive`): под чужим VPN внешний IP
+     *    чужой, страна определится неверно, а выключить чужой VPN Android не позволяет.
+     *
+     * Если VPN поднят — НИЧЕГО не делаем и `ruAutoTried` НЕ ставим: это перенос проверки на следующий
+     * запуск, а не отказ от неё. Сеть — best-effort и в фоне, НЕ на пути коннекта (тот же принцип,
+     * что и у refreshRuDirect: DPI палит домен рядом с хендшейком) — зовём отсюда же, на старте/
+     * после входа. Ошибка/таймаут → тихо ничего, флаг тоже не ставим — попробуем ещё раз.
+     */
+    private fun maybeAutoEnableRuPreset() {
+        if (ruAutoCheckedThisProcess) return
+        if (MayakPrefs.ruAutoTried(this) || MayakPrefs.presetUserDecided(this)) return
+        val b = backend ?: return
+        if (MayakNet.vpnActive(this)) return // откладываем БЕЗ пометки — попробуем при следующем запуске
+        ruAutoCheckedThisProcess = true
+        lifecycleScope.launch {
+            val check = b.egressCheck() ?: run {
+                ruAutoCheckedThisProcess = false // сеть подвела — не считаем это «попыткой», повторим
+                return@launch
+            }
+            MayakPrefs.setRuAutoTried(this@MayakActivity, true)
+            if (check.country != "RU") return@launch
+            if (MayakPrefs.activePresetId(this@MayakActivity) == 0L) {
+                MayakPresets.cached(this@MayakActivity).firstOrNull { it.source == "system" }
+                    ?.let { MayakPrefs.setActivePresetId(this@MayakActivity, it.id) }
+            }
+            MayakPrefs.setPresetEnabled(this@MayakActivity, true)
+            runCatching { updatePresetSelector() }
+            Toast.makeText(this@MayakActivity, R.string.mayak_ru_preset_auto_enabled, Toast.LENGTH_LONG).show()
         }
     }
 
@@ -600,10 +639,12 @@ class MayakActivity : AppCompatActivity() {
                 // специально избегаем). Перезапуск Activity эти флаги НЕ сбрасывает: они статические.
                 sessionExpiredHandled = false // новый вход — следующий отзыв снова должен сработать
                 ruDirectRefreshedThisProcess = false
+                ruAutoCheckedThisProcess = false
                 homeWarmedThisProcess = false
                 hideTotpField()
                 showHome(); loadDirections(forceRefresh = true)
                 refreshRuDirect() // OTA-подтяжка РФ-списка split-туннеля после входа
+                maybeAutoEnableRuPreset() // авто-РФ-пресет при первом запуске (в фоне, best-effort)
             } catch (e: MayakApiException) {
                 when {
                     // Сначала машинный признак: под 403 живут ДВА разных случая (email не подтверждён
@@ -731,6 +772,11 @@ class MayakActivity : AppCompatActivity() {
     private var presetSwitch: com.google.android.material.materialswitch.MaterialSwitch? = null
     private var presetHint: TextView? = null // короткая подпись под полоской (находка 03-08-2026)
     private var editingPresetId: Long = 0L // id правимого пресета (0 = создаём новый/форк)
+    // Программно синхронизируем тумблер с сохранённым состоянием (updatePresetSelector) — на время
+    // этого присваивания слушатель ниже должен молчать, иначе синхронизация UI выглядит как то, что
+    // человек САМ тронул тумблер (presetUserDecided), и авто-включение РФ-пресета (2026-08-03)
+    // потеряло бы право когда-либо его включить.
+    private var suppressPresetSwitchListener = false
 
     private val presetEditorLauncher =
         registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()) { res ->
@@ -756,7 +802,10 @@ class MayakActivity : AppCompatActivity() {
         presetNameBtn?.setOnClickListener { showPresetChooser() }
         presetNameBtn?.setOnLongClickListener { confirmDeleteActivePreset(); true }
         presetSwitch?.setOnCheckedChangeListener { _, checked ->
+            if (suppressPresetSwitchListener) return@setOnCheckedChangeListener // это МЫ синхронизируем UI, не человек
             MayakPrefs.setPresetEnabled(this, checked)
+            // Человек САМ тронул тумблер — авто-включение РФ-пресета больше не имеет права его трогать.
+            MayakPrefs.setPresetUserDecided(this, true)
             // применится при следующем подключении; текущий туннель не рвём молча.
             if (::status.isInitialized) { /* без тоста-спама */ }
         }
@@ -775,7 +824,9 @@ class MayakActivity : AppCompatActivity() {
         presetHint?.visibility = View.VISIBLE
         val active = MayakPresets.activePreset(this)
         presetNameBtn?.text = active?.name ?: getString(R.string.app_name)
+        suppressPresetSwitchListener = true
         presetSwitch?.isChecked = MayakPrefs.presetEnabled(this)
+        suppressPresetSwitchListener = false
     }
 
     /** Диалог выбора пресета: «Выбрать» — сделать активным; «Изменить» — редактировать/форкнуть выбранный;
@@ -2580,6 +2631,7 @@ class MayakActivity : AppCompatActivity() {
         @Volatile private var updateCheckedThisProcess = false
         @Volatile private var ruDirectRefreshedThisProcess = false // OTA-подтяжка РФ-списка split-туннеля — раз на процесс
         @Volatile private var hostsRefreshedThisProcess = false    // реестр доменов (ядро + кабинет) — раз на процесс
+        @Volatile private var ruAutoCheckedThisProcess = false // авто-РФ-пресет (2026-08-03) — раз на процесс, не спамим egress-check
 
         // Тёплый /connect-кэш (DPI: не дёргать api.mayakvpn.ru рядом с хендшейком) греем один раз за процесс
         // при первом входе на главный. Пересоздание Activity (смена темы) уже НЕ греет (баг владельца 2026-07-06).

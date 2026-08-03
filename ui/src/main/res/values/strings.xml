@@ -214,6 +214,9 @@
     <string name="mayak_settings_rudirect">Russian services direct (no VPN)</string>
     <string name="mayak_settings_rudirect_hint">One tap: Russian apps (banks, government services, marketplaces, streaming) go directly over your real IP, so they work as if you were at home. Everything else stays protected by the VPN. Applies on the next connection.</string>
     <string name="mayak_settings_rudirect_applied">Russian services will go direct on the next connection</string>
+    <!-- Auto-enabled the RU preset on first launch (2026-08-03): the person didn't touch the toggle
+         themselves, we turned it on based on the detected exit country — explain what happened and how to undo it. -->
+    <string name="mayak_ru_preset_auto_enabled">Russian services will now open directly — that\'s how banking and government apps work. You can turn this off in Settings.</string>
     <string name="mayak_settings_show_presets">Show presets on the home screen</string>
     <string name="mayak_settings_show_presets_hint">The preset selector and toggle appear above the connect button. Turn off if you don\'t use split-tunnel presets.</string>
     <!-- Short caption under the home-screen preset bar (2026-08-03): a first-time user sees a
