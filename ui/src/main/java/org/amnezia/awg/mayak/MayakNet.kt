@@ -35,4 +35,22 @@ object MayakNet {
             true
         }
     }
+
+    /**
+     * Поднят ли СЕЙЧАС какой-то VPN — наш или чужой (2026-08-03, авто-включение РФ-пресета).
+     * Смотрим ИМЕННО активную сеть (в отличие от [hasNetwork], который перебирает все): под поднятым
+     * VPN активной сетью становится сама VPN — ровно её и нужно поймать. NET_CAPABILITY_NOT_VPN
+     * отсутствует ИЛИ явно есть TRANSPORT_VPN → VPN поднят.
+     *
+     * Ошибку/отсутствие активной сети читаем как «VPN есть»: безопаснее отложить проверку страны
+     * до следующего запуска, чем один раз ошибочно включить пресет по IP чужого VPN.
+     */
+    fun vpnActive(context: Context): Boolean {
+        val cm = context.applicationContext
+            .getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return true
+        val net = cm.activeNetwork ?: return true
+        val caps = cm.getNetworkCapabilities(net) ?: return true
+        return caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN) ||
+            !caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
+    }
 }
