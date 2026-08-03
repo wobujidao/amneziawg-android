@@ -427,6 +427,9 @@
     <string name="mayak_settings_rudirect_applied">Российские сервисы пойдут напрямую при следующем подключении</string>
     <string name="mayak_settings_show_presets">Показывать пресеты на главном экране</string>
     <string name="mayak_settings_show_presets_hint">Селектор пресета и тумблер появляются над кнопкой подключения. Выключите, если не пользуетесь пресетами split-туннеля.</string>
+    <!-- Короткая подпись под полоской пресета на главном (03-08-2026): человек впервые открывший
+         приложение видит имя и тумблер без единого пояснения, что это вообще такое. -->
+    <string name="mayak_home_preset_hint">Сплит-туннель: при включении выбранные сервисы (по умолчанию российские) идут напрямую, минуя VPN</string>
     <string name="mayak_settings_filtering">Фильтрация</string>
     <string name="mayak_settings_dns_hint">Профиль DNS общий для всех устройств аккаунта (телефон, роутер, кабинет). Меняется здесь же, применяется при следующем подключении.</string>
     <string name="mayak_settings_dns_loading">Загружаю…</string>

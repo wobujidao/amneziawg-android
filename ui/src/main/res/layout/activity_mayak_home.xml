@@ -119,6 +119,21 @@
                     android:text="" />
             </LinearLayout>
 
+            <!-- Подпись под полоской пресета (находка 03-08-2026): человек впервые открывший приложение
+                 видит только имя пресета и тумблер — без объяснения, что это split-туннель и что
+                 по умолчанию он пускает российские сервисы напрямую. Видимость — вместе с mayak_preset_bar
+                 (updatePresetSelector), мелкий приглушённый шрифт, чтобы не спорить с заголовком. -->
+            <TextView
+                android:id="@+id/mayak_preset_hint"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:gravity="center"
+                android:textColor="@color/mayak_on_bg_muted"
+                android:textSize="11sp"
+                android:visibility="gone"
+                android:text="@string/mayak_home_preset_hint" />
+
             <!-- Центр: волны (ripple) + внешний ореол (glow) + круглая кнопка подключения.
                  marginTop уменьшен (space_5→space_2) — кнопка выше на экране (правка владельца 2026-07-02). -->
             <FrameLayout

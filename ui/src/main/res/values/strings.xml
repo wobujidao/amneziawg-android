@@ -216,6 +216,9 @@
     <string name="mayak_settings_rudirect_applied">Russian services will go direct on the next connection</string>
     <string name="mayak_settings_show_presets">Show presets on the home screen</string>
     <string name="mayak_settings_show_presets_hint">The preset selector and toggle appear above the connect button. Turn off if you don\'t use split-tunnel presets.</string>
+    <!-- Short caption under the home-screen preset bar (2026-08-03): a first-time user sees a
+         name and a switch with no explanation of what it does. -->
+    <string name="mayak_home_preset_hint">Split tunnel: with it on, selected services (Russian ones by default) go direct, bypassing the VPN</string>
     <string name="mayak_settings_filtering">Filtering</string>
     <string name="mayak_settings_dns_hint">The DNS profile is shared by every device on the account (phone, router, dashboard). Change it here; it applies on the next connection.</string>
     <string name="mayak_settings_dns_loading">Loading…</string>

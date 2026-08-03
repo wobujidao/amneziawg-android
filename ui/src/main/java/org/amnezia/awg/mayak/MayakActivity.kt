@@ -724,6 +724,7 @@ class MayakActivity : AppCompatActivity() {
     private var presetBar: View? = null
     private var presetNameBtn: com.google.android.material.button.MaterialButton? = null
     private var presetSwitch: com.google.android.material.materialswitch.MaterialSwitch? = null
+    private var presetHint: TextView? = null // короткая подпись под полоской (находка 03-08-2026)
     private var editingPresetId: Long = 0L // id правимого пресета (0 = создаём новый/форк)
 
     private val presetEditorLauncher =
@@ -746,6 +747,7 @@ class MayakActivity : AppCompatActivity() {
         presetBar = findViewById(R.id.mayak_preset_bar)
         presetNameBtn = findViewById(R.id.mayak_preset_name)
         presetSwitch = findViewById(R.id.mayak_preset_switch)
+        presetHint = findViewById(R.id.mayak_preset_hint)
         presetNameBtn?.setOnClickListener { showPresetChooser() }
         presetNameBtn?.setOnLongClickListener { confirmDeleteActivePreset(); true }
         presetSwitch?.setOnCheckedChangeListener { _, checked ->
@@ -759,8 +761,13 @@ class MayakActivity : AppCompatActivity() {
     /** Обновить селектор пресета: видимость (настройка), имя активного, состояние тумблера. */
     private fun updatePresetSelector() {
         val bar = presetBar ?: return
-        if (!MayakPrefs.showPresetsOnHome(this)) { bar.visibility = View.GONE; return }
+        if (!MayakPrefs.showPresetsOnHome(this)) {
+            bar.visibility = View.GONE
+            presetHint?.visibility = View.GONE
+            return
+        }
         bar.visibility = View.VISIBLE
+        presetHint?.visibility = View.VISIBLE
         val active = MayakPresets.activePreset(this)
         presetNameBtn?.text = active?.name ?: getString(R.string.app_name)
         presetSwitch?.isChecked = MayakPrefs.presetEnabled(this)
