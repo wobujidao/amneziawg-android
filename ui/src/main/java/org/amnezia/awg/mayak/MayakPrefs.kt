@@ -25,6 +25,10 @@ object MayakPrefs {
     private const val KEY_PRESET_ACTIVE = "preset_active_id"   // id активного пресета (0 = нет)
     private const val KEY_PRESET_ENABLED = "preset_enabled"    // тумблер «применять активный пресет» (по умолч. ВЫКЛ)
     private const val KEY_PRESET_SHOW = "preset_show_on_home"   // показывать селектор пресетов на главном (по умолч. ВКЛ)
+    // Авто-включение РФ-пресета при первом запуске (2026-08-03, прямой запрос владельца): человеку из
+    // РФ иначе банки и Госуслуги идут через туннель и не пускают его, а тумблер он сам не найдёт.
+    private const val KEY_RU_AUTO_TRIED = "ru_auto_tried" // проверка страны РЕАЛЬНО состоялась — не повторяем
+    private const val KEY_PRESET_USER_DECIDED = "preset_user_decided" // человек сам тронул тумблер пресета руками
     private const val KEY_LEARNED_HOSTS = "learned_hosts" // адреса ядра, полученные от сервера (реестр доменов), CSV
     private const val KEY_LEARNED_CABINET = "learned_cabinet" // адрес кабинета из того же реестра (роль cabinet)
     private const val KEY_AUTOCONNECT = "autoconnect" // F3: автоподнятие последнего рабочего туннеля (по умолч. ВЫКЛ)
@@ -179,6 +183,25 @@ object MayakPrefs {
 
     fun setShowPresetsOnHome(context: Context, show: Boolean) {
         prefs(context).edit().putBoolean(KEY_PRESET_SHOW, show).apply()
+    }
+
+    /** Авто-включение РФ-пресета (2026-08-03): проверка страны по внешнему IP уже РЕАЛЬНО состоялась
+     *  (успешно — сеть ответила) хотя бы раз. Пока false — при подходящих условиях пробуем снова на
+     *  каждом следующем запуске (см. MayakActivity.maybeAutoEnableRuPreset). Отложенная проверка
+     *  (например, из-за поднятого VPN) флаг НЕ ставит — это не «попытка», а перенос на потом. */
+    fun ruAutoTried(context: Context): Boolean = prefs(context).getBoolean(KEY_RU_AUTO_TRIED, false)
+
+    fun setRuAutoTried(context: Context, tried: Boolean) {
+        prefs(context).edit().putBoolean(KEY_RU_AUTO_TRIED, tried).apply()
+    }
+
+    /** Человек САМ переключил тумблер «применять пресет» руками (а не мы программно синхронизировали
+     *  UI с сохранённым состоянием). Как только это случилось — авто-включение РФ-пресета больше не
+     *  имеет права трогать тумблер: осознанный выбор человека важнее нашей догадки по IP. */
+    fun presetUserDecided(context: Context): Boolean = prefs(context).getBoolean(KEY_PRESET_USER_DECIDED, false)
+
+    fun setPresetUserDecided(context: Context, decided: Boolean) {
+        prefs(context).edit().putBoolean(KEY_PRESET_USER_DECIDED, decided).apply()
     }
 
     /** Сброс ВСЕХ настроек «Маяка» к дефолтам (кнопка в Настройках). Тему/язык appcompat перечитает при
