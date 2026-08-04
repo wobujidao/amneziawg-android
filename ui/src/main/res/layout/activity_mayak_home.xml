@@ -6,6 +6,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:clipChildren="false"
     android:background="@drawable/mayak_bg_gradient">
 
     <!-- Самый нижний слой: абстрактная сеть/карта (узлы + дуги + бегущие частицы), тихая,
@@ -25,6 +26,7 @@
         android:layout_height="match_parent"
         android:orientation="vertical"
         android:gravity="center_horizontal"
+        android:clipChildren="false"
         android:paddingStart="20dp"
         android:paddingEnd="20dp"
         android:paddingTop="28dp"
@@ -137,28 +139,32 @@
                 android:text="@string/mayak_home_preset_hint" />
 
             <!-- Центр: волны (ripple) + внешний ореол (glow) + круглая кнопка подключения.
-                 marginTop уменьшен (space_5→space_2) — кнопка выше на экране (правка владельца 2026-07-02).
-                 Размеры — из dimens (mayak_connect_area/mayak_connect_circle): квадрат больше круга,
-                 в нём расходятся волны. Менять их ради места под список не надо — его даёт
-                 резиновая карточка ниже (владелец вернул прежний размер кнопки 04-08). -->
+                 Отсек ростом РОВНО с круг (mayak_connect_circle), а волны и ореол крупнее его
+                 (mayak_connect_area) и рисуются ЗА его границами — поэтому у них clipChildren="false"
+                 на всех родителях выше. Раньше отсек был размером с волны, и по 40dp сверху и снизу
+                 кнопки всегда пустовало: при подключении строки статуса (Защищено/пинг/IPv6) толкали
+                 список вниз, хотя место рядом с кнопкой простаивало (голосовая правка владельца 04-08:
+                 «подними кнопку выше, размер оставь, отступы сверху и снизу сожми вдвое»).
+                 Размер кнопки при этом прежний — 176dp, ход волн прежний (256/2 − 176/2 = 40dp). -->
             <FrameLayout
-                android:layout_width="@dimen/mayak_connect_area"
-                android:layout_height="@dimen/mayak_connect_area"
-                android:layout_marginTop="@dimen/mayak_space_2">
+                android:layout_width="@dimen/mayak_connect_circle"
+                android:layout_height="@dimen/mayak_connect_circle"
+                android:layout_marginTop="@dimen/mayak_space_5"
+                android:clipChildren="false">
 
                 <!-- Концентрические волны от кнопки (sonar/активация при подключении) -->
                 <org.amnezia.awg.mayak.RippleView
                     android:id="@+id/mayak_ripple"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
+                    android:layout_width="@dimen/mayak_connect_area"
+                    android:layout_height="@dimen/mayak_connect_area"
                     android:layout_gravity="center"
                     android:importantForAccessibility="no" />
 
                 <!-- Ореол за кругом: больше круга, выходит за его границы. Альфа меняется кодом. -->
                 <View
                     android:id="@+id/mayak_connect_glow"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
+                    android:layout_width="@dimen/mayak_connect_area"
+                    android:layout_height="@dimen/mayak_connect_area"
                     android:layout_gravity="center"
                     android:background="@drawable/mayak_circle_glow"
                     android:alpha="0"
@@ -185,12 +191,14 @@
                 </FrameLayout>
             </FrameLayout>
 
-            <!-- Статус + блок инфо (время/IP/пинг) подтянуты ближе к кнопке (space_4→space_2, правка владельца) -->
+            <!-- Статус + блок инфо (время/IP/пинг). Отступ считается от КРАЯ КРУГА (отсек кнопки
+                 теперь ростом с сам круг, волны рисуются поверх) — поэтому space_2→space_5: на глаз
+                 зазор стал вдвое меньше прежнего (было 40dp пустого поля волн + 8dp), а не вплотную. -->
             <TextView
                 android:id="@+id/mayak_status"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/mayak_space_2"
+                android:layout_marginTop="@dimen/mayak_space_5"
                 android:gravity="center"
                 android:textColor="@color/mayak_on_bg"
                 android:textSize="18sp"
