@@ -18,9 +18,26 @@
         android:importantForAccessibility="no" />
 
     <!-- Верх экрана фиксирован (шапка / кнопка / статус), а прокручивается ТОЛЬКО список стран
-         внутри карточки (правка владельца 2026-07-18). Поэтому корень — LinearLayout, не ScrollView.
-         paddingBottom (20→32dp) больше штампа версии, который лежит поверх у нижнего края: иначе
-         доросший до низа список подлезает под него и последняя строка читается сквозь текст. -->
+         внутри карточки (правка владельца 2026-07-18) — в ПОРТРЕТЕ это ровно так и работает:
+         fillViewport отдаёт содержимому в точности высоту экрана, отсек с weight=1 забирает остаток,
+         внешней прокрутки не возникает вовсе.
+         А вот в АЛЬБОМНОЙ ориентации высоты (~393dp против ~851dp) не хватает даже на круг со
+         статусом: отсек схлопывался в ноль, и с экрана пропадали пинг, срок доступа и ВСЯ карточка
+         выбора страны — сервер было не переключить, прокрутки не было (замер на эмуляторе 04-08).
+         Поэтому корень содержимого обёрнут в ScrollView, а сам отсек в альбоме переводится в
+         wrap_content без веса (MayakActivity.applyOrientationLayout) — тогда содержимое становится
+         выше экрана и честно прокручивается.
+         paddingBottom вернулся с 32dp к 20dp: запас держали ради штампа версии, лежавшего слоем
+         ПОВЕРХ содержимого (доросший до низа список подлезал под него), а теперь штамп — последняя
+         строка самого содержимого, подлезать некуда. -->
+    <ScrollView
+        android:id="@+id/mayak_home_scroll"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        android:scrollbars="none"
+        android:clipChildren="false">
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -30,7 +47,7 @@
         android:paddingStart="20dp"
         android:paddingEnd="20dp"
         android:paddingTop="28dp"
-        android:paddingBottom="32dp">
+        android:paddingBottom="20dp">
 
             <!-- Шапка (правка владельца 2026-07-18): слева — тема (солнце/луна/авто),
                  ПО ЦЕНТРУ — селектор пресета split-туннеля (SPEC-0028), справа — настройки.
@@ -326,6 +343,7 @@
                  только список. Фиксированный потолок 360dp больше не нужен — потолком служит
                  сам отсек, поэтому и MaxHeightScrollView удалён. -->
             <FrameLayout
+                android:id="@+id/mayak_dirs_slot"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:layout_weight="1"
@@ -402,21 +420,25 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
             </FrameLayout>
-        </LinearLayout>
 
-    <!-- Версия бледным штампом у нижнего края (просьба владельца 2026-08-03). Зачем: люди присылают
-         скриншоты, и до сих пор приходилось отдельно спрашивать «а какая у вас версия» — теперь она
-         на самом кадре. Намеренно тихая (alpha), не кликается и скринридеру не читается: это метка
-         для нас, а не элемент интерфейса. -->
-    <TextView
-        android:id="@+id/mayak_version_stamp"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|center_horizontal"
-        android:layout_marginBottom="10dp"
-        android:alpha="0.38"
-        android:textSize="11sp"
-        android:textColor="@color/mayak_on_bg"
-        android:importantForAccessibility="no"
-        tools:text="v0.3.90 (137)" />
+            <!-- Версия бледным штампом у нижнего края (просьба владельца 2026-08-03). Зачем: люди
+                 присылают скриншоты, и до сих пор приходилось отдельно спрашивать «а какая у вас
+                 версия» — теперь она на самом кадре. Намеренно тихая (alpha), не кликается и
+                 скринридеру не читается: это метка для нас, а не элемент интерфейса.
+                 Лежит ПОСЛЕДНЕЙ строкой содержимого, а не слоем поверх экрана: слоем она в альбомной
+                 ориентации наезжала на таймер сессии (замер 04-08). В портрете место то же — отсек
+                 над ней забирает весь остаток высоты и прижимает штамп к низу. -->
+            <TextView
+                android:id="@+id/mayak_version_stamp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="8dp"
+                android:alpha="0.38"
+                android:textSize="11sp"
+                android:textColor="@color/mayak_on_bg"
+                android:importantForAccessibility="no"
+                tools:text="v0.3.90 (137)" />
+        </LinearLayout>
+    </ScrollView>
 </FrameLayout>

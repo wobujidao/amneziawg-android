@@ -922,11 +922,36 @@ class MayakActivity : AppCompatActivity() {
 
     // --- главный экран (Happ-стиль): круг-подключение + список стран с флагами ---
 
+    /**
+     * Отсек под карточку стран живёт на `weight=1`, то есть забирает «весь остаток высоты». В
+     * ПОРТРЕТЕ это и нужно: верх экрана неподвижен, прокручивается только список внутри карточки.
+     * В АЛЬБОМЕ остатка нет — высоты (~393dp против ~851dp) не хватает даже на круг со статусом,
+     * отсек схлопывался в ноль, и с экрана пропадали пинг, срок доступа и ВСЯ карточка выбора
+     * страны: сервер было не переключить, прокрутки тоже не было (замер на эмуляторе 04-08).
+     *
+     * Лечим без второго layout-файла: в альбоме отсек становится `wrap_content` без веса, содержимое
+     * оказывается выше экрана, и внешний ScrollView (`mayak_home_scroll`, `fillViewport=true`)
+     * начинает честно прокручиваться. В портрете `fillViewport` отдаёт содержимому ровно высоту
+     * экрана — вес работает как раньше, внешней прокрутки не возникает вовсе.
+     *
+     * Активность не объявляет `configChanges`, поэтому поворот пересоздаёт её и заново зовёт
+     * [showHome] — отдельного слушателя конфигурации не нужно.
+     */
+    private fun applyOrientationLayout() {
+        val slot = findViewById<android.view.View?>(R.id.mayak_dirs_slot) ?: return
+        val lp = slot.layoutParams as? android.widget.LinearLayout.LayoutParams ?: return
+        val land = resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+        lp.height = if (land) android.view.ViewGroup.LayoutParams.WRAP_CONTENT else 0
+        lp.weight = if (land) 0f else 1f
+        slot.layoutParams = lp
+    }
+
     private fun showHome() {
         isHomeShown = true
         setContentView(R.layout.activity_mayak_home)
         status = findViewById(R.id.mayak_status)
         dirsContainer = findViewById(R.id.mayak_dirs_container)
+        applyOrientationLayout()
         // Бледный штамп версии внизу экрана (просьба владельца 2026-08-03): на присланном скриншоте
         // сразу видно сборку, спрашивать отдельно больше не нужно.
         findViewById<android.widget.TextView?>(R.id.mayak_version_stamp)?.let { stamp ->
