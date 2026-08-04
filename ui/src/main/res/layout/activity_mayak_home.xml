@@ -17,7 +17,9 @@
         android:importantForAccessibility="no" />
 
     <!-- Верх экрана фиксирован (шапка / кнопка / статус), а прокручивается ТОЛЬКО список стран
-         внутри карточки (правка владельца 2026-07-18). Поэтому корень — LinearLayout, не ScrollView. -->
+         внутри карточки (правка владельца 2026-07-18). Поэтому корень — LinearLayout, не ScrollView.
+         paddingBottom (20→32dp) больше штампа версии, который лежит поверх у нижнего края: иначе
+         доросший до низа список подлезает под него и последняя строка читается сквозь текст. -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -25,8 +27,8 @@
         android:gravity="center_horizontal"
         android:paddingStart="20dp"
         android:paddingEnd="20dp"
-        android:paddingTop="48dp"
-        android:paddingBottom="20dp">
+        android:paddingTop="28dp"
+        android:paddingBottom="32dp">
 
             <!-- Шапка (правка владельца 2026-07-18): слева — тема (солнце/луна/авто),
                  ПО ЦЕНТРУ — селектор пресета split-туннеля (SPEC-0028), справа — настройки.
@@ -135,10 +137,12 @@
                 android:text="@string/mayak_home_preset_hint" />
 
             <!-- Центр: волны (ripple) + внешний ореол (glow) + круглая кнопка подключения.
-                 marginTop уменьшен (space_5→space_2) — кнопка выше на экране (правка владельца 2026-07-02). -->
+                 marginTop уменьшен (space_5→space_2) — кнопка выше на экране (правка владельца 2026-07-02).
+                 Размеры — из dimens (mayak_connect_area/mayak_connect_circle): квадрат больше круга,
+                 в нём расходятся волны. Уменьшены 04-08, чтобы низ экрана достался направлениям. -->
             <FrameLayout
-                android:layout_width="256dp"
-                android:layout_height="256dp"
+                android:layout_width="@dimen/mayak_connect_area"
+                android:layout_height="@dimen/mayak_connect_area"
                 android:layout_marginTop="@dimen/mayak_space_2">
 
                 <!-- Концентрические волны от кнопки (sonar/активация при подключении) -->
@@ -161,8 +165,8 @@
 
                 <FrameLayout
                     android:id="@+id/mayak_connect_circle"
-                    android:layout_width="176dp"
-                    android:layout_height="176dp"
+                    android:layout_width="@dimen/mayak_connect_circle"
+                    android:layout_height="@dimen/mayak_connect_circle"
                     android:layout_gravity="center"
                     android:background="@drawable/mayak_circle_disconnected"
                     android:clickable="true"
@@ -171,8 +175,8 @@
 
                     <ImageView
                         android:id="@+id/mayak_connect_icon"
-                        android:layout_width="64dp"
-                        android:layout_height="64dp"
+                        android:layout_width="56dp"
+                        android:layout_height="56dp"
                         android:layout_gravity="center"
                         android:importantForAccessibility="no"
                         android:src="@drawable/ic_power"
@@ -302,16 +306,27 @@
                 android:visibility="gone"
                 android:text="" />
 
-            <!-- Список стран. Карточка сжимается под содержимое (было layout_weight=1 — тянуло
-                 карточку на весь низ экрана, при 2 странах ~500px пустоты и в светлой, и в
-                 тёмной теме, дизайн-заход 02-08, APP-BACKLOG.md). Список внутри — на потолке
-                 высоты (MaxHeightScrollView): верх экрана по-прежнему на месте (правка владельца
-                 2026-07-18), а прокрутка появляется, только если строк реально много. -->
+            <!-- Список стран. Отсек под карточку забирает ВСЁ место, оставшееся до низа экрана
+                 (0dp + weight=1), а сама карточка внутри него — wrap_content и прижата к верху.
+                 Отсюда оба нужных поведения без единой строки кода:
+                   • 2-3 строки  → карточка ровно по содержимому, внутри неё пустоты нет
+                     (при layout_weight на самой карточке было ~500px пустоты — заход 02-08);
+                   • 10 строк    → список дорастает точно до нижнего края и дальше прокручивается
+                     внутри себя, а не уезжает за экран (правка владельца 04-08).
+                 Верх экрана при этом неподвижен (правка владельца 2026-07-18): прокручивается
+                 только список. Фиксированный потолок 360dp больше не нужен — потолком служит
+                 сам отсек, поэтому и MaxHeightScrollView удалён. -->
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:layout_marginTop="@dimen/mayak_space_4">
+
             <com.google.android.material.card.MaterialCardView
                 style="@style/Mayak.Card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/mayak_space_4">
+                android:layout_gravity="top">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -355,16 +370,15 @@
                             android:focusable="true" />
                     </LinearLayout>
 
-                    <!-- Прокрутка списка внутри карточки, но с потолком высоты (см. коммент у
-                         карточки выше): при 2-3 странах список просто помещается целиком без
-                         прокрутки, при длинном списке — включается прокрутка вместо ухода
-                         карточки за нижний край экрана. Разделители между строками — через
+                    <!-- Прокрутка списка внутри карточки. Высоты хватает ровно на то, что даёт
+                         отсек-родитель (см. коммент у карточки выше): при 2-3 странах список
+                         помещается целиком без прокрутки, при длинном — прокручивается, а не
+                         уходит за нижний край. Разделители между строками — через
                          showDividers="middle" на самом контейнере строк (divider = 1dp линия). -->
-                    <org.amnezia.awg.mayak.MaxHeightScrollView
+                    <ScrollView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
-                        android:maxHeight="@dimen/mayak_country_list_max_height"
                         android:scrollbars="none"
                         android:clipToPadding="false">
 
@@ -375,9 +389,10 @@
                             android:orientation="vertical"
                             android:divider="@drawable/mayak_row_divider"
                             android:showDividers="middle" />
-                    </org.amnezia.awg.mayak.MaxHeightScrollView>
+                    </ScrollView>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
+            </FrameLayout>
         </LinearLayout>
 
     <!-- Версия бледным штампом у нижнего края (просьба владельца 2026-08-03). Зачем: люди присылают

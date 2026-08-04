@@ -977,8 +977,9 @@ class MayakActivity : AppCompatActivity() {
         // НОВЫЙ дизайн (dev-сборка): «живой» фон-карта — мерцающие города тёплым маячным светом. В прод/
         // релизе NEW_DESIGN=false → карта статична, поведение прежнее. См. DESIGN-VISION §2.
         if (org.amnezia.awg.BuildConfig.NEW_DESIGN) networkBg?.livingMode = true
-        // волны стартуют от края круга (176dp/2)
-        rippleView?.coreRadiusPx = 88f * resources.displayMetrics.density
+        // волны стартуют от края круга — радиус берём из того же dimen, что задаёт круг в раскладке,
+        // иначе при смене размера кнопки кольца снова начнут расходиться не от её края
+        rippleView?.coreRadiusPx = resources.getDimension(R.dimen.mayak_connect_circle) / 2f
 
         setupThemeButton()
         // Язык убран с главной (правка владельца 2026-07-18) — переключение только в настройках.
@@ -1301,12 +1302,17 @@ class MayakActivity : AppCompatActivity() {
                 }
             }
         }
-        // Новый дизайн (SPEC-0037, approved-idle.png): название — жирным; город — подзаголовком снизу.
-        // Пусто (старые направления без city) → подзаголовок скрыт, показываем только название.
+        // Название — жирным; город приписан СБОКУ, в ту же строку («Нидерланды · Амстердам»).
+        // Был подзаголовком снизу (SPEC-0037), но строка выходила ~54dp и десяток направлений на
+        // экран не помещался (правка владельца 04-08). Пусто (старые направления без city) →
+        // город скрыт, видно только название.
         row.findViewById<TextView>(R.id.mayak_row_name).text = d.name
         row.findViewById<TextView>(R.id.mayak_row_city).apply {
             val c = d.city.trim()
-            if (c.isNotEmpty()) { text = c; visibility = View.VISIBLE } else { visibility = View.GONE }
+            if (c.isNotEmpty()) {
+                text = getString(R.string.mayak_row_city_inline, c)
+                visibility = View.VISIBLE
+            } else visibility = View.GONE
         }
         row.tag = d.id
         row.setOnClickListener {
