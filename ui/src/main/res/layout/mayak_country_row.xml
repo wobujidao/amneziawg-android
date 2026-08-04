@@ -17,13 +17,35 @@
     android:clickable="true"
     android:focusable="true">
 
-    <ImageView
-        android:id="@+id/mayak_row_flag"
+    <!-- Флаг. По умолчанию — ЭМОДЗИ (те же, что в шторке уведомления): владелец 04-08 сказал, что
+         они симпатичнее наших плоских прямоугольников — у системных глифов скруглённые углы и лёгкая
+         тень. Но эмодзи-флаги есть не в каждой прошивке (часть китайских сборок их вырезает), а
+         страна без флага в списке — это пустой квадрат вместо картинки. Поэтому в строке лежат ОБА
+         варианта, и код показывает эмодзи, только если система умеет его нарисовать
+         (Paint.hasGlyph); иначе остаётся наш векторный флаг из ресурсов. -->
+    <FrameLayout
         android:layout_width="26dp"
-        android:layout_height="18dp"
-        android:importantForAccessibility="no"
-        android:scaleType="fitXY"
-        android:src="@drawable/flag_globe" />
+        android:layout_height="20dp">
+
+        <ImageView
+            android:id="@+id/mayak_row_flag"
+            android:layout_width="26dp"
+            android:layout_height="18dp"
+            android:layout_gravity="center"
+            android:importantForAccessibility="no"
+            android:scaleType="fitXY"
+            android:src="@drawable/flag_globe" />
+
+        <TextView
+            android:id="@+id/mayak_row_flag_emoji"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:textSize="17sp"
+            android:visibility="gone"
+            android:importantForAccessibility="no" />
+    </FrameLayout>
 
     <!-- Название + город В ОДНУ строку (правка владельца 04-08). Было двумя строками (SPEC-0037,
          approved-idle.png) — строка выходила ~54dp, и десяток направлений на экран не помещался.

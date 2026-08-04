@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Карточка «Выберите страну» — ОБЩАЯ для обеих ориентаций (portrait и layout-land). Родитель
+     («отсек») задаёт ей место: в портрете это полоса от кнопки до низа экрана, в альбоме — ЛЕВАЯ
+     колонка во всю высоту. Сама карточка всегда wrap_content и прижата к верху отсека: при двух
+     странах в ней нет пустоты, при длинном списке прокручивается внутренний ScrollView. -->
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    style="@style/Mayak.Card"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_gravity="top">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/mayak_pick_country"
+                android:textAppearance="@style/Mayak.CardTitle" />
+
+            <!-- SPEC-0031: режим сортировки (Авто/Пинг/Свои) — циклический переключатель. -->
+            <TextView
+                android:id="@+id/mayak_sort_mode"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:padding="8dp"
+                android:text="@string/mayak_sort_auto"
+                android:textColor="?attr/colorPrimary"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <TextView
+                android:id="@+id/mayak_refresh_dirs"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:padding="8dp"
+                android:text="@string/mayak_refresh"
+                android:textColor="?attr/colorPrimary"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true" />
+        </LinearLayout>
+
+        <!-- Прокрутка списка внутри карточки. Высоты хватает ровно на то, что даёт
+             отсек-родитель (см. коммент у карточки выше): при 2-3 странах список
+             помещается целиком без прокрутки, при длинном — прокручивается, а не
+             уходит за нижний край. Разделители между строками — через
+             showDividers="middle" на самом контейнере строк (divider = 1dp линия). -->
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:scrollbars="none"
+            android:clipToPadding="false">
+
+            <LinearLayout
+                android:id="@+id/mayak_dirs_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:divider="@drawable/mayak_row_divider"
+                android:showDividers="middle" />
+        </ScrollView>
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

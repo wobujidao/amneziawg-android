@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Главный экран «Mayak Networks» в стиле Happ: шапка (тема/настройки), большая круглая
-     кнопка-подключение с состояниями + таймер сессии, ниже — список стран с флагами. -->
+<!-- Главный экран «Mayak Networks», ПОРТРЕТ: шапка (тема/пресет/настройки), большая круглая
+     кнопка-подключение со статусом, ниже — карточка со списком стран.
+     Альбомная версия — res/layout-land/activity_mayak_home.xml (две колонки). Общие куски лежат
+     в mayak_home_header.xml / mayak_home_hero.xml / mayak_home_countries.xml и правятся ТАМ:
+     двух копий одной разметки быть не должно, они разъезжаются. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -17,19 +19,11 @@
         android:layout_height="match_parent"
         android:importantForAccessibility="no" />
 
-    <!-- Верх экрана фиксирован (шапка / кнопка / статус), а прокручивается ТОЛЬКО список стран
-         внутри карточки (правка владельца 2026-07-18) — в ПОРТРЕТЕ это ровно так и работает:
-         fillViewport отдаёт содержимому в точности высоту экрана, отсек с weight=1 забирает остаток,
-         внешней прокрутки не возникает вовсе.
-         А вот в АЛЬБОМНОЙ ориентации высоты (~393dp против ~851dp) не хватает даже на круг со
-         статусом: отсек схлопывался в ноль, и с экрана пропадали пинг, срок доступа и ВСЯ карточка
-         выбора страны — сервер было не переключить, прокрутки не было (замер на эмуляторе 04-08).
-         Поэтому корень содержимого обёрнут в ScrollView, а сам отсек в альбоме переводится в
-         wrap_content без веса (MayakActivity.applyOrientationLayout) — тогда содержимое становится
-         выше экрана и честно прокручивается.
-         paddingBottom вернулся с 32dp к 20dp: запас держали ради штампа версии, лежавшего слоем
-         ПОВЕРХ содержимого (доросший до низа список подлезал под него), а теперь штамп — последняя
-         строка самого содержимого, подлезать некуда. -->
+    <!-- Верх экрана неподвижен (шапка / кнопка / статус), прокручивается ТОЛЬКО список стран внутри
+         карточки — правка владельца 2026-07-18. Внешний ScrollView с fillViewport этого не меняет:
+         содержимому отдаётся ровно высота экрана, отсек с weight=1 забирает остаток, прокрутки не
+         возникает. Он тут страховкой на случай, когда содержимое всё же выше экрана (крупный
+         системный шрифт, маленький экран) — иначе низ просто обрезался бы. -->
     <ScrollView
         android:id="@+id/mayak_home_scroll"
         android:layout_width="match_parent"
@@ -38,310 +32,28 @@
         android:scrollbars="none"
         android:clipChildren="false">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:gravity="center_horizontal"
-        android:clipChildren="false"
-        android:paddingStart="20dp"
-        android:paddingEnd="20dp"
-        android:paddingTop="28dp"
-        android:paddingBottom="20dp">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:clipChildren="false"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp"
+            android:paddingTop="28dp"
+            android:paddingBottom="20dp">
 
-            <!-- Шапка (правка владельца 2026-07-18): слева — тема (солнце/луна/авто),
-                 ПО ЦЕНТРУ — селектор пресета split-туннеля (SPEC-0028), справа — настройки.
-                 Переключатель языка убран с главной — он теперь только в настройках. -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical">
+            <include layout="@layout/mayak_home_header" />
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/mayak_theme_button"
-                    style="@style/Mayak.Button.Text"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:minWidth="0dp"
-                    android:minHeight="0dp"
-                    android:paddingStart="10dp"
-                    android:paddingEnd="10dp"
-                    android:contentDescription="@string/mayak_theme"
-                    app:icon="@drawable/ic_theme_system"
-                    app:iconTint="@color/mayak_on_bg"
-                    app:iconSize="24dp"
-                    app:iconPadding="0dp"
-                    android:text="" />
+            <include layout="@layout/mayak_home_hero" />
 
-                <View
-                    android:layout_width="0dp"
-                    android:layout_height="1dp"
-                    android:layout_weight="1" />
-
-                <!-- Селектор пресета split-туннеля (SPEC-0028): имя активного пресета (тап → выбор/
-                     создание/правка) + тумблер «применять пресет». Видимость — настройка
-                     «Показывать пресеты на главном» (по умолч. ВКЛ). Текст имени ставится в коде. -->
-                <LinearLayout
-                    android:id="@+id/mayak_preset_bar"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
-
-                    <!-- Имя пресета: без иконки (правка владельца 2026-07-18 — «без 3х точек»),
-                         компактно, имя влезает целиком (без maxWidth/ellipsize), шрифт помельче. -->
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/mayak_preset_name"
-                        style="@style/Mayak.Button.Outlined"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:minWidth="0dp"
-                        android:minHeight="34dp"
-                        android:insetTop="0dp"
-                        android:insetBottom="0dp"
-                        android:paddingStart="12dp"
-                        android:paddingEnd="12dp"
-                        android:maxLines="1"
-                        android:textSize="12sp"
-                        android:text="РФ напрямую" />
-
-                    <!-- Тумблер «применять пресет»: уменьшен (scale 0.8) и подтянут вплотную —
-                         компактнее, чтобы имя пресета помещалось целиком (правка владельца). -->
-                    <com.google.android.material.materialswitch.MaterialSwitch
-                        android:id="@+id/mayak_preset_switch"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="-2dp"
-                        android:scaleX="0.8"
-                        android:scaleY="0.8"
-                        android:contentDescription="@string/mayak_preset_switch_desc" />
-                </LinearLayout>
-
-                <View
-                    android:layout_width="0dp"
-                    android:layout_height="1dp"
-                    android:layout_weight="1" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/mayak_settings_button"
-                    style="@style/Mayak.Button.Text"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:minWidth="0dp"
-                    android:minHeight="0dp"
-                    android:paddingStart="10dp"
-                    android:paddingEnd="10dp"
-                    android:contentDescription="@string/mayak_settings"
-                    app:icon="@drawable/ic_settings"
-                    app:iconTint="@color/mayak_on_bg"
-                    app:iconSize="22dp"
-                    app:iconPadding="0dp"
-                    android:text="" />
-            </LinearLayout>
-
-            <!-- Подпись под полоской пресета (находка 03-08-2026): человек впервые открывший приложение
-                 видит только имя пресета и тумблер — без объяснения, что это split-туннель и что
-                 по умолчанию он пускает российские сервисы напрямую. Видимость — вместе с mayak_preset_bar
-                 (updatePresetSelector), мелкий приглушённый шрифт, чтобы не спорить с заголовком. -->
-            <TextView
-                android:id="@+id/mayak_preset_hint"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:gravity="center"
-                android:textColor="@color/mayak_on_bg_muted"
-                android:textSize="11sp"
-                android:visibility="gone"
-                android:text="@string/mayak_home_preset_hint" />
-
-            <!-- Центр: волны (ripple) + внешний ореол (glow) + круглая кнопка подключения.
-                 Отсек ростом РОВНО с круг (mayak_connect_circle), а волны и ореол крупнее его
-                 (mayak_connect_area) и рисуются ЗА его границами — поэтому у них clipChildren="false"
-                 на всех родителях выше. Раньше отсек был размером с волны, и по 40dp сверху и снизу
-                 кнопки всегда пустовало: при подключении строки статуса (Защищено/пинг/IPv6) толкали
-                 список вниз, хотя место рядом с кнопкой простаивало (голосовая правка владельца 04-08:
-                 «подними кнопку выше, размер оставь, отступы сверху и снизу сожми вдвое»).
-                 Размер кнопки при этом прежний — 176dp, ход волн прежний (256/2 − 176/2 = 40dp). -->
-            <FrameLayout
-                android:layout_width="@dimen/mayak_connect_circle"
-                android:layout_height="@dimen/mayak_connect_circle"
-                android:layout_marginTop="@dimen/mayak_space_5"
-                android:clipChildren="false">
-
-                <!-- Концентрические волны от кнопки (sonar/активация при подключении) -->
-                <org.amnezia.awg.mayak.RippleView
-                    android:id="@+id/mayak_ripple"
-                    android:layout_width="@dimen/mayak_connect_area"
-                    android:layout_height="@dimen/mayak_connect_area"
-                    android:layout_gravity="center"
-                    android:importantForAccessibility="no" />
-
-                <!-- Ореол за кругом: больше круга, выходит за его границы. Альфа меняется кодом. -->
-                <View
-                    android:id="@+id/mayak_connect_glow"
-                    android:layout_width="@dimen/mayak_connect_area"
-                    android:layout_height="@dimen/mayak_connect_area"
-                    android:layout_gravity="center"
-                    android:background="@drawable/mayak_circle_glow"
-                    android:alpha="0"
-                    android:importantForAccessibility="no" />
-
-                <FrameLayout
-                    android:id="@+id/mayak_connect_circle"
-                    android:layout_width="@dimen/mayak_connect_circle"
-                    android:layout_height="@dimen/mayak_connect_circle"
-                    android:layout_gravity="center"
-                    android:background="@drawable/mayak_circle_disconnected"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:contentDescription="@string/mayak_a11y_connect">
-
-                    <ImageView
-                        android:id="@+id/mayak_connect_icon"
-                        android:layout_width="64dp"
-                        android:layout_height="64dp"
-                        android:layout_gravity="center"
-                        android:importantForAccessibility="no"
-                        android:src="@drawable/ic_power"
-                        app:tint="@color/mayak_circle_icon_off" />
-                </FrameLayout>
-            </FrameLayout>
-
-            <!-- Статус + блок инфо (время/IP/пинг). Отступ считается от КРАЯ КРУГА (отсек кнопки
-                 теперь ростом с сам круг, волны рисуются поверх) — поэтому space_2→space_5: на глаз
-                 зазор стал вдвое меньше прежнего (было 40dp пустого поля волн + 8dp), а не вплотную. -->
-            <TextView
-                android:id="@+id/mayak_status"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/mayak_space_5"
-                android:gravity="center"
-                android:textColor="@color/mayak_on_bg"
-                android:textSize="18sp"
-                android:textStyle="bold"
-                android:text="@string/mayak_status_disconnected" />
-
-            <!-- Таймер сессии (виден только при подключении) -->
-            <TextView
-                android:id="@+id/mayak_timer"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/mayak_space_1"
-                android:gravity="center"
-                android:textColor="@color/mayak_on_bg_muted"
-                android:textSize="15sp"
-                android:visibility="gone"
-                tools:ignore="HardcodedText"
-                android:text="00:00:00" />
-
-            <!-- Внешний IP (виден при подключении) -->
-            <TextView
-                android:id="@+id/mayak_ip"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:gravity="center"
-                android:textColor="@color/mayak_on_bg_muted"
-                android:textSize="13sp"
-                android:visibility="gone"
-                android:text="" />
-
-            <!-- Компактная строка: пинг + значок IPv6 в ОДНУ линию (правка владельца: меньше строк на главном).
-                 Каждый элемент показывается/прячется кодом независимо; при отключении строка схлопывается. -->
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/mayak_space_1"
-                android:orientation="horizontal"
-                android:gravity="center_vertical">
-
-                <TextView
-                    android:id="@+id/mayak_ping"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:gravity="center"
-                    android:textColor="@color/mayak_on_bg_muted"
-                    android:textSize="14sp"
-                    android:visibility="gone"
-                    android:text="" />
-
-                <!-- Значок «IPv6» (только когда IPv6 реально работает через туннель — честно) -->
-                <TextView
-                    android:id="@+id/mayak_ipv6_badge"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="10dp"
-                    android:background="@drawable/mayak_bg_ipv6_badge"
-                    android:paddingHorizontal="8dp"
-                    android:paddingVertical="2dp"
-                    android:gravity="center"
-                    android:textColor="@color/mayak_accent"
-                    android:textSize="11sp"
-                    android:textStyle="bold"
-                    android:visibility="gone"
-                    tools:ignore="HardcodedText"
-                    android:text="IPv6" />
-
-                <!-- Значок «Резерв»: подключены через запасной канал (AWG внутри HTTPS), а не по UDP.
-                     Канал медленнее прямого — пользователь должен видеть, почему цифры другие (SPEC-0039). -->
-                <TextView
-                    android:id="@+id/mayak_fallback_badge"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="10dp"
-                    android:background="@drawable/mayak_bg_ipv6_badge"
-                    android:paddingHorizontal="8dp"
-                    android:paddingVertical="2dp"
-                    android:gravity="center"
-                    android:textColor="@color/mayak_accent"
-                    android:textSize="11sp"
-                    android:textStyle="bold"
-                    android:visibility="gone"
-                    android:text="@string/mayak_fallback_badge" />
-            </LinearLayout>
-
-            <!-- Скорость (↓/↑; включается в настройках) — одна мелкая строка -->
-            <TextView
-                android:id="@+id/mayak_speed"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:gravity="center"
-                android:textColor="@color/mayak_on_bg_muted"
-                android:textSize="13sp"
-                android:visibility="gone"
-                android:text="" />
-
-            <!-- Срок доступа. До 2026-08-01 человек узнавал про свои пробные 7 дней ТОЛЬКО в самом
-                 низу настроек, на пятом экране прокрутки (аудит 31-07, п. 11) — то есть не узнавал.
-                 Строка появляется, когда ядро ответило про аккаунт; тап ведёт в кабинет (продлить).
-                 Текст общий с настройками — MayakAccessLine. -->
-            <TextView
-                android:id="@+id/mayak_access"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:gravity="center"
-                android:textColor="@color/mayak_on_bg_muted"
-                android:textSize="13sp"
-                android:padding="4dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:clickable="true"
-                android:focusable="true"
-                android:visibility="gone"
-                android:text="" />
-
-            <!-- Список стран. Отсек под карточку забирает ВСЁ место, оставшееся до низа экрана
-                 (0dp + weight=1), а сама карточка внутри него — wrap_content и прижата к верху.
-                 Отсюда оба нужных поведения без единой строки кода:
+            <!-- Отсек под карточку забирает ВСЁ место, оставшееся до низа экрана (0dp + weight=1),
+                 а сама карточка внутри него — wrap_content и прижата к верху. Отсюда оба нужных
+                 поведения без единой строки кода:
                    • 2-3 строки  → карточка ровно по содержимому, внутри неё пустоты нет
                      (при layout_weight на самой карточке было ~500px пустоты — заход 02-08);
                    • 10 строк    → список дорастает точно до нижнего края и дальше прокручивается
-                     внутри себя, а не уезжает за экран (правка владельца 04-08).
-                 Верх экрана при этом неподвижен (правка владельца 2026-07-18): прокручивается
-                 только список. Фиксированный потолок 360dp больше не нужен — потолком служит
-                 сам отсек, поэтому и MaxHeightScrollView удалён. -->
+                     внутри себя, а не уезжает за экран (правка владельца 04-08). -->
             <FrameLayout
                 android:id="@+id/mayak_dirs_slot"
                 android:layout_width="match_parent"
@@ -349,76 +61,7 @@
                 android:layout_weight="1"
                 android:layout_marginTop="@dimen/mayak_space_4">
 
-            <com.google.android.material.card.MaterialCardView
-                style="@style/Mayak.Card"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_gravity="top">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical">
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="@string/mayak_pick_country"
-                            android:textAppearance="@style/Mayak.CardTitle" />
-
-                        <!-- SPEC-0031: режим сортировки (Авто/Пинг/Свои) — циклический переключатель. -->
-                        <TextView
-                            android:id="@+id/mayak_sort_mode"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:padding="8dp"
-                            android:text="@string/mayak_sort_auto"
-                            android:textColor="?attr/colorPrimary"
-                            android:background="?attr/selectableItemBackgroundBorderless"
-                            android:clickable="true"
-                            android:focusable="true" />
-
-                        <TextView
-                            android:id="@+id/mayak_refresh_dirs"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:padding="8dp"
-                            android:text="@string/mayak_refresh"
-                            android:textColor="?attr/colorPrimary"
-                            android:background="?attr/selectableItemBackgroundBorderless"
-                            android:clickable="true"
-                            android:focusable="true" />
-                    </LinearLayout>
-
-                    <!-- Прокрутка списка внутри карточки. Высоты хватает ровно на то, что даёт
-                         отсек-родитель (см. коммент у карточки выше): при 2-3 странах список
-                         помещается целиком без прокрутки, при длинном — прокручивается, а не
-                         уходит за нижний край. Разделители между строками — через
-                         showDividers="middle" на самом контейнере строк (divider = 1dp линия). -->
-                    <ScrollView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:scrollbars="none"
-                        android:clipToPadding="false">
-
-                        <LinearLayout
-                            android:id="@+id/mayak_dirs_container"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="vertical"
-                            android:divider="@drawable/mayak_row_divider"
-                            android:showDividers="middle" />
-                    </ScrollView>
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+                <include layout="@layout/mayak_home_countries" />
             </FrameLayout>
 
             <!-- Версия бледным штампом у нижнего края (просьба владельца 2026-08-03). Зачем: люди
@@ -426,8 +69,7 @@
                  версия» — теперь она на самом кадре. Намеренно тихая (alpha), не кликается и
                  скринридеру не читается: это метка для нас, а не элемент интерфейса.
                  Лежит ПОСЛЕДНЕЙ строкой содержимого, а не слоем поверх экрана: слоем она в альбомной
-                 ориентации наезжала на таймер сессии (замер 04-08). В портрете место то же — отсек
-                 над ней забирает весь остаток высоты и прижимает штамп к низу. -->
+                 ориентации наезжала на таймер сессии (замер 04-08). -->
             <TextView
                 android:id="@+id/mayak_version_stamp"
                 android:layout_width="wrap_content"

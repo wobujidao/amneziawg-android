@@ -1,7 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Тонкий разделитель между строками стран (showDividers="middle" у mayak_dirs_container). -->
-<shape xmlns:android="http://schemas.android.com/apk/res/android"
-    android:shape="rectangle">
-    <size android:height="1dp" />
-    <solid android:color="@color/mayak_divider" />
-</shape>
+<!-- Тонкий разделитель между строками стран (showDividers="middle" у mayak_dirs_container).
+     Раньше линия шла от края до края контейнера и потому ТОРЧАЛА за скруглённым углом подсветки
+     выбранной строки — было видно на скриншоте (замечание владельца 04-08). Теперь линия утоплена
+     по краям: 12dp слева ставит её ровно по границе подсветки (её отступ такой же), 12dp справа —
+     симметрично. Разделитель перестаёт спорить с округлением и читается как часть списка. -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:insetLeft="12dp"
+    android:insetRight="12dp">
+    <shape android:shape="rectangle">
+        <size android:height="1dp" />
+        <solid android:color="@color/mayak_divider" />
+    </shape>
+</inset>

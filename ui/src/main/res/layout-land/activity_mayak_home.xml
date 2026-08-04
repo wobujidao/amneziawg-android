@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Главный экран, АЛЬБОМНАЯ ориентация (идея владельца 04-08): в альбоме места вширь вдвое больше,
+     чем вглубь, поэтому экран делится на две колонки — СЛЕВА список стран, СПРАВА кнопка со
+     статусом. Ничего не прячется, прокрутка нужна только списку внутри карточки, ровно как в
+     портрете.
+
+     Что было до этого: единственный вертикальный макет на обе ориентации. Отсек под карточку жил
+     на «весь остаток высоты», в альбоме (~393dp против ~851dp) остатка не оставалось — с экрана
+     пропадали пинг, срок доступа и ВСЯ карточка стран, сервер было не переключить (замер 04-08).
+     Промежуточным лечением была внешняя прокрутка (0.3.92); здесь она больше не нужна.
+
+     Разметка блоков ОБЩАЯ с портретом — mayak_home_header / _hero / _countries. Правится там.
+     Круг в альбоме меньше (values-land/dimens_mayak.xml): иначе правая колонка не влезает в высоту. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:clipChildren="false"
+    android:background="@drawable/mayak_bg_gradient">
+
+    <org.amnezia.awg.mayak.NetworkBackgroundView
+        android:id="@+id/mayak_network_bg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:clipChildren="false"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="10dp">
+
+        <!-- Шапка тянется во всю ширину над обеими колонками: тема, пресет и настройки относятся
+             ко всему экрану, а не к одной его половине. -->
+        <include layout="@layout/mayak_home_header" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:clipChildren="false"
+            android:layout_marginTop="@dimen/mayak_space_3">
+
+            <!-- ЛЕВАЯ колонка — страны. Отсек во всю высоту колонки, карточка внутри прижата к
+                 верху и растёт по содержимому; длинный список прокручивается внутри карточки. -->
+            <FrameLayout
+                android:id="@+id/mayak_dirs_slot"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1">
+
+                <include layout="@layout/mayak_home_countries" />
+            </FrameLayout>
+
+            <!-- ПРАВАЯ колонка — кнопка со статусом. gravity=center: круг стоит по центру своей
+                 половины, а не жмётся к верху. clipChildren=false обязателен — волны и ореол
+                 рисуются ЗА границами круга.
+                 ScrollView здесь страховкой, а не средством навигации: в отключённом состоянии всё
+                 помещается и прокрутки нет, но при ПОДКЛЮЧЕНИИ добавляются таймер, строка пинга со
+                 значками и скорость — на невысоком альбомном экране столбец перестаёт помещаться, и
+                 без него нижняя строка («Доступ до …») просто обрезалась бы (замер 04-08, ровно это
+                 и произошло на первом заходе). Левый столбец со странами при этом не затронут — до
+                 списка человек добирается всегда, ради чего раскладка и делалась. -->
+            <ScrollView
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:fillViewport="true"
+                android:scrollbars="none"
+                android:clipChildren="false"
+                android:layout_marginStart="20dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="0dp"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:clipChildren="false">
+
+                    <include layout="@layout/mayak_home_hero" />
+                </LinearLayout>
+            </ScrollView>
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/mayak_version_stamp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="4dp"
+            android:alpha="0.38"
+            android:textSize="11sp"
+            android:textColor="@color/mayak_on_bg"
+            android:importantForAccessibility="no"
+            tools:text="v0.3.90 (137)" />
+    </LinearLayout>
+</FrameLayout>
