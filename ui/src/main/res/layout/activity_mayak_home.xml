@@ -139,7 +139,8 @@
             <!-- Центр: волны (ripple) + внешний ореол (glow) + круглая кнопка подключения.
                  marginTop уменьшен (space_5→space_2) — кнопка выше на экране (правка владельца 2026-07-02).
                  Размеры — из dimens (mayak_connect_area/mayak_connect_circle): квадрат больше круга,
-                 в нём расходятся волны. Уменьшены 04-08, чтобы низ экрана достался направлениям. -->
+                 в нём расходятся волны. Менять их ради места под список не надо — его даёт
+                 резиновая карточка ниже (владелец вернул прежний размер кнопки 04-08). -->
             <FrameLayout
                 android:layout_width="@dimen/mayak_connect_area"
                 android:layout_height="@dimen/mayak_connect_area"
@@ -175,8 +176,8 @@
 
                     <ImageView
                         android:id="@+id/mayak_connect_icon"
-                        android:layout_width="56dp"
-                        android:layout_height="56dp"
+                        android:layout_width="64dp"
+                        android:layout_height="64dp"
                         android:layout_gravity="center"
                         android:importantForAccessibility="no"
                         android:src="@drawable/ic_power"
