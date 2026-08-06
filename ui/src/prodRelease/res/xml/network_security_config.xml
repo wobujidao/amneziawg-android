@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ПРОД-вариант (buildType prodRelease, поднято 2026-08-06). Переопределяет
+  ui/src/main/res/xml/network_security_config.xml для этой сборки — AGP берёт файл из
+  buildType-варианта поверх main автоматически (тот же путь res/xml/network_security_config.xml).
+
+  Доверие к серверному сертификату ПРОД-ядра «Маяк» (de1). Ядро держит TLS-серт, выпущенный СВОИМ
+  CA (CN=Mayak Prod CA — отдельным от дев-CA CN=Mayak Core CA намеренно: компрометация дева не
+  должна давать подделать прод), поэтому телефон должен доверять прод-CA для адреса прод-ядра.
+  В приложение зашит только ПУБЛИЧНЫЙ сертификат CA (res/raw/mayak_ca.pem, этот же файл переопределён
+  в ui/src/prodRelease/res/raw) — это не секрет. Приватный ключ CA остаётся на сервере.
+-->
+<network-security-config>
+    <!-- По умолчанию: только TLS (без cleartext), системные корни. Под это попадает публичный
+         домен api.mayaknetworks.com (DNS-only, НЕ за Cloudflare) с обычным сертификатом
+         Let's Encrypt — спец-настройки не нужны (проверено живьём 2026-08-06). -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+
+    <!-- Прод-ядро по IP (серт выпущен НАШИМ Mayak Prod CA) — доверяем прод-CA только для адреса
+         прод-ядра. IP-фолбэк на случай DNS-блокировки домена api.mayaknetworks.com в РФ.
+         Живое прод-ядро de1 — 213.226.71.181 (с 2026-08-06).
+         ⚠️ Серт client-api :8443 ядра ДОЛЖЕН иметь SAN=IP:213.226.71.181 (иначе hostname-проверка
+         не пройдёт) — проверено живьём (openssl s_client) 2026-08-06. -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="false">213.226.71.181</domain>
+        <trust-anchors>
+            <certificates src="@raw/mayak_ca" />
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+</network-security-config>
