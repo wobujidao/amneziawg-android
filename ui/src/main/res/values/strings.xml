@@ -519,4 +519,6 @@
     <string name="mayak_preset_editor_all_hint">All apps go through the VPN — nothing to select.</string>
     <string name="mayak_preset_editor_save">Save</string>
     <string name="mayak_preset_editor_save_copy">Save as my copy</string>
+    <string name="mayak_update_via_play">A new version is available. This app was installed from Google Play — update it there.</string>
+    <string name="mayak_update_open_play">Open Google Play</string>
 </resources>

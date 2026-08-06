@@ -25,6 +25,39 @@ object MayakUpdater {
 
     private fun dir(context: Context) = File(context.cacheDir, DIR)
 
+    /**
+     * Установлено ли приложение из Google Play.
+     *
+     * Зачем это апдейтеру: сборка из Play подписана ключом Google (Play App Signing), а APK с сайта —
+     * нашим. Предлагать такому человеку «обновиться» с сайта бессмысленно и вредно: он скачивает файл,
+     * ждёт, а установщик отказывает по несовпадению подписи — и выглядит это как поломка приложения,
+     * а не как разные каналы. Владелец наткнулся сам 2026-08-06: «нажимаю обновить, она качает версию
+     * с сайта, хотя я обновлялся через Google Play, и не ставит — что за бред».
+     *
+     * Способ определения уже есть в проекте (DiagCollector/телеметрия) — апдейтер просто не спрашивал.
+     */
+    fun installedFromPlay(context: Context): Boolean = try {
+        val pm = context.packageManager
+        val installer = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
+            pm.getInstallSourceInfo(context.packageName).installingPackageName
+        else @Suppress("DEPRECATION") pm.getInstallerPackageName(context.packageName)
+        installer == "com.android.vending" || installer == "com.google.android.feedback"
+    } catch (e: Exception) {
+        // Не смогли определить — считаем, что НЕ из Play: это возвращает прежнее поведение
+        // (обновление с сайта), а не отключает обновления совсем.
+        false
+    }
+
+    /** Открыть карточку приложения в Play (обновление там делает сам Play). */
+    fun openPlay(context: Context) {
+        val market = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=" + context.packageName))
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        val web = Intent(Intent.ACTION_VIEW,
+            Uri.parse("https://play.google.com/store/apps/details?id=" + context.packageName))
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        runCatching { context.startActivity(market) }.recoverCatching { context.startActivity(web) }
+    }
+
     /** Удалить скачанные APK (вызов на старте — «подчистить лишнее» после обновления). */
     fun cleanup(context: Context) {
         runCatching { dir(context).deleteRecursively() }

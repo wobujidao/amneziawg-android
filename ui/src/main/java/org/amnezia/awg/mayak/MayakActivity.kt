@@ -288,8 +288,27 @@ class MayakActivity : AppCompatActivity() {
                 return@launch
             }
             if (!force && MayakPrefs.updateDismissedCode(this@MayakActivity) >= info.latestVersionCode) return@launch
+            // Установлено из Play — обновляет сам Play. Наш APK с сайта подписан ДРУГИМ ключом, и
+            // установка такому человеку гарантированно падает на несовпадении подписи: он качает
+            // файл, ждёт и получает отказ, который читается как поломка приложения. Поэтому здесь
+            // не предлагаем скачивание вовсе: по кнопке «проверить» отправляем в Play, а сами по
+            // себе молчим — Play уже следит за версией.
+            if (MayakUpdater.installedFromPlay(this@MayakActivity)) {
+                if (force) showPlayUpdateDialog()
+                return@launch
+            }
             showUpdateDialog(info)
         }
+    }
+
+    /** Обновление для установки из Play: ведём в Play вместо скачивания APK с сайта. */
+    private fun showPlayUpdateDialog() {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.mayak_update_title)
+            .setMessage(R.string.mayak_update_via_play)
+            .setPositiveButton(R.string.mayak_update_open_play) { _, _ -> MayakUpdater.openPlay(this) }
+            .setNegativeButton(R.string.mayak_update_later, null)
+            .show()
     }
 
     private fun showUpdateDialog(info: AppVersionInfo) {

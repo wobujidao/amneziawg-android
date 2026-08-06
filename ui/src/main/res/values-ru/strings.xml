@@ -530,4 +530,6 @@
     <string name="mayak_preset_editor_all_hint">Через «Маяк» идут все приложения — выбирать ничего не нужно.</string>
     <string name="mayak_preset_editor_save">Сохранить</string>
     <string name="mayak_preset_editor_save_copy">Сохранить как свою копию</string>
+    <string name="mayak_update_via_play">Вышла новая версия. Приложение установлено из Google Play — обновите его там.</string>
+    <string name="mayak_update_open_play">Открыть Google Play</string>
 </resources>
