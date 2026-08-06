@@ -49,6 +49,11 @@ android {
                 .firstNotNullOfOrNull { Regex("""amneziawg-go\s+(v\S+)""").find(it)?.groupValues?.get(1) }
                 ?: "") + "\"",
         )
+        // Разводит ДВА бэкенда (дев mayakvpn.ru / прод mayaknetworks.com — своя корневая CA у каждого,
+        // 2026-08-06). ДЕФОЛТ = false (дев, как было всегда); buildType prodRelease переопределяет на
+        // true. Единственная точка ветвления — MayakHostList (адреса/CA берутся из buildType-варианта,
+        // а не из константы рядом с константой: 2026-08-05 поймали 4 бага ровно на вшитых списках).
+        buildConfigField("boolean", "MAYAK_PROD_TARGET", "false")
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -100,6 +105,18 @@ android {
         create("googleplay") {
             initWith(getByName("release"))
             matchingFallbacks += "release"
+        }
+        // Сборка под ПРОД-ядро de1/mayaknetworks.com (поднято 2026-08-06), отдельное от дева
+        // mayakvpn.ru. Тот же release (unsigned → подписываем релиз-ключом руками/CI), но
+        // MAYAK_PROD_TARGET=true переключает MayakHostList на MayakProdHosts, а ui/src/prodRelease/res
+        // подменяет res/raw/mayak_ca.pem и res/xml/network_security_config.xml на прод-CA (CN=Mayak
+        // Prod CA) и IP прод-ядра — AGP берёт ресурс из buildType-варианта поверх main автоматически,
+        // дублировать/редактировать main не нужно. Задача :ui:assembleProdRelease (аддитивная — старые
+        // :ui:assembleRelease/:ui:assembleDebug и их пути вывода не меняются, CI build.yml не трогаем).
+        create("prodRelease") {
+            initWith(getByName("release"))
+            matchingFallbacks += "release"
+            buildConfigField("boolean", "MAYAK_PROD_TARGET", "true")
         }
     }
     androidResources {

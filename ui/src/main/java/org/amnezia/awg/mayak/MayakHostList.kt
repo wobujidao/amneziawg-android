@@ -10,25 +10,40 @@
 // Порядок сборки итогового списка:
 //   1. сервер, заданный руками в настройках (или пришедший в рег-ссылке) — воля пользователя выше всего;
 //   2. адреса, полученные от ядра (GET /v1/client/hosts) и сохранённые локально — самые свежие;
-//   3. зашитые в сборку (MayakHosts.baked) — работают, даже когда сеть не пускает никуда.
+//   3. зашитые в сборку (baked, см. ниже) — работают, даже когда сеть не пускает никуда.
 // Дубликаты убираем с сохранением порядка: HostProvider обходит список по кругу, и повтор означал бы
 // лишний таймаут на том же мёртвом адресе.
+//
+// ДВА бэкенда (2026-08-06): дев mayakvpn.ru и прод mayaknetworks.com — своя корневая CA у каждого,
+// дев-сборка к прод-ядру не подключится и наоборот (намеренно). Разводит их buildType (см.
+// ui/build.gradle.kts): prodRelease собирается с BuildConfig.MAYAK_PROD_TARGET=true и своими
+// res/raw/mayak_ca.pem + res/xml/network_security_config.xml (ui/src/prodRelease/res). ЭТО —
+// единственная точка ветвления между MayakHosts (:core, дев) и MayakProdHosts (:ui, прод): не
+// хардкодим второй список рядом с первым в одном файле — так его нельзя случайно взять не в той
+// сборке (2026-08-05 поймали 4 бага ровно на вшитых списках/доменах).
 package org.amnezia.awg.mayak
 
 import android.content.Context
 import android.util.Log
+import org.amnezia.awg.BuildConfig
 import org.amnezia.awg.mayak.core.MayakBackend
 import org.amnezia.awg.mayak.core.MayakHosts
 
 object MayakHostList {
     private const val TAG = "Mayak/Hosts"
 
+    private val bakedHosts: List<String>
+        get() = if (BuildConfig.MAYAK_PROD_TARGET) MayakProdHosts.baked else MayakHosts.baked
+
+    private val bakedCabinet: String
+        get() = if (BuildConfig.MAYAK_PROD_TARGET) MayakProdHosts.bakedCabinet else MayakHosts.bakedCabinet
+
     /** Итоговый список базовых URL для HostProvider. savedServer — сервер из настроек (может быть null). */
     fun effective(context: Context, savedServer: String?): List<String> {
         val out = LinkedHashSet<String>()
         savedServer?.trimEnd('/')?.takeIf { it.isNotBlank() }?.let { out.add(it) }
         out.addAll(MayakPrefs.learnedHosts(context))
-        out.addAll(MayakHosts.baked)
+        out.addAll(bakedHosts)
         return out.toList()
     }
 
@@ -39,7 +54,7 @@ object MayakHostList {
      */
     fun cabinetUrl(context: Context): String {
         val learned = MayakPrefs.learnedCabinet(context).trim().removeSuffix("/")
-        val host = learned.ifEmpty { MayakHosts.bakedCabinet }
+        val host = learned.ifEmpty { bakedCabinet }
         return if (host.startsWith("http")) host else "https://$host"
     }
 

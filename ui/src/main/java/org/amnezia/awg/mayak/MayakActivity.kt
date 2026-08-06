@@ -2618,12 +2618,14 @@ class MayakActivity : AppCompatActivity() {
         private const val SORT_PING = 1   // по клиентскому пингу (быстрейший вверху)
         private const val SORT_CUSTOM = 2 // пользовательский порядок (перетаскивание)
 
-        // Адреса ядра, ЗАШИТЫЕ в сборку, — генерируются из реестра доменов (админка → «Домены»)
-        // скриптом scripts/gen-app-hosts.sh в :core/MayakHosts. Домен идёт первым (LE-серт, системное
-        // доверие), прямой IP ядра — последним (наш CA, network_security_config + res/raw/mayak_ca.pem).
+        // Адреса ядра, ЗАШИТЫЕ в сборку. Дев (MayakHosts, :core) — генерируется из реестра доменов
+        // (админка → «Домены») скриптом scripts/gen-app-hosts.sh. Прод (MayakProdHosts, :ui) — свой
+        // buildType prodRelease, BuildConfig.MAYAK_PROD_TARGET (см. MayakHostList, 2026-08-06). Домен
+        // идёт первым (LE-серт, системное доверие), прямой IP ядра — последним (свой CA, см.
+        // network_security_config + res/raw/mayak_ca.pem — оба тоже per-buildType для прод).
         // Актуальный список приложение подхватывает живьём (MayakHostList.refresh); здесь — то, с чем
         // оно стартует «из коробки» и к чему всегда может вернуться.
-        val DEFAULT_HOSTS: List<String> = MayakHosts.baked
+        val DEFAULT_HOSTS: List<String> = if (BuildConfig.MAYAK_PROD_TARGET) MayakProdHosts.baked else MayakHosts.baked
 
         // Адрес кабинета больше не константа: он приходит из реестра доменов вместе с адресами ядра
         // (MayakHostList.cabinetUrl). Зашитый в сборку стартовый адрес — MayakHosts.bakedCabinet.
