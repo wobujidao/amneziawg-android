@@ -2396,9 +2396,16 @@ class MayakActivity : AppCompatActivity() {
             while (isActive) {
                 val ms = MayakPing.ping(host)
                 GoTunnel.connectedPingMs = ms
-                val shown = ms ?: 0 // нет ответа → «Пинг: 0» (красный); иначе значение с цветом по порогам
+                val shown = ms ?: 0 // для шторки: «нет ответа» она рисует своим способом
                 pingView?.apply {
-                    text = getString(R.string.mayak_ping_label, shown)
+                    // Нет ответа — так и пишем («Пинг: —»), а НЕ «Пинг: 0 мс». Ноль миллисекунд —
+                    // это утверждение, что сервер отвечает мгновенно, то есть ровно обратное правде;
+                    // и именно эта строка стоит на экране в самом коварном случае — «Защищено, а
+                    // интернета нет» (снято на эмуляторе 2026-08-07: «Защищено», «Пинг: 0 мс»,
+                    // интернет мёртв). Строка mayak_ping_label_na для этого уже была, но нигде не
+                    // использовалась. Цвет — тот же «плохой», что и раньше.
+                    text = if (ms == null) getString(R.string.mayak_ping_label_na)
+                    else getString(R.string.mayak_ping_label, ms)
                     setTextColor(pingColor(shown))
                 }
                 refreshActiveRowPing(ms)
@@ -2438,7 +2445,9 @@ class MayakActivity : AppCompatActivity() {
                 }
                 // Когда включена скорость — уведомление ведёт SpeedNotifier (пинг+скорость, живёт при сворачивании).
                 if (connState == ConnState.CONNECTED && !MayakPrefs.showSpeed(this@MayakActivity)) {
-                    MayakNotification.show(this@MayakActivity, GoTunnel.connectedLabel, shown)
+                    // ms, а не shown: при отсутствии ответа шторка ПРОПУСКАЕТ строку пинга (так делают
+                    // и все остальные вызывающие), вместо того чтобы написать «Пинг: 0 мс».
+                    MayakNotification.show(this@MayakActivity, GoTunnel.connectedLabel, ms)
                 }
                 delay(PING_INTERVAL_MS)
             }
