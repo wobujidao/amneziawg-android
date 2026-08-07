@@ -41,10 +41,77 @@ object MayakHostList {
     /** Итоговый список базовых URL для HostProvider. savedServer — сервер из настроек (может быть null). */
     fun effective(context: Context, savedServer: String?): List<String> {
         val out = LinkedHashSet<String>()
-        savedServer?.trimEnd('/')?.takeIf { it.isNotBlank() }?.let { out.add(it) }
-        out.addAll(MayakPrefs.learnedHosts(context))
+        savedServer?.trimEnd('/')?.takeIf { it.isNotBlank() && ownContour(it) }?.let { out.add(it) }
+        out.addAll(MayakPrefs.learnedHosts(context).filter { ownContour(it) })
         out.addAll(bakedHosts)
         return out.toList()
+    }
+
+    /**
+     * Адрес принадлежит контуру ЭТОЙ сборки?
+     *
+     * 🔴 Зачем (находка владельца 2026-08-07, живьём): выученные и сохранённые адреса стоят в списке
+     * ВЫШЕ вшитых — так и задумано, иначе после блокировки домена установленное приложение осталось
+     * бы с мёртвым адресом до следующего релиза. Но при обновлении ПОВЕРХ старой установки данные
+     * переживают подмену сборки: прод-сборка, поставленная поверх дев-версии, честно пошла по
+     * сохранённому ДЕВ-адресу, показала дев-страны и оставила человека залогиненным в деве. Снаружи
+     * всё выглядит здоровым — заметить можно только по списку стран.
+     *
+     * Чистая установка этого не показывает (сохранённого нет) — поэтому проверка на эмуляторе была
+     * зелёной. Сверяем с ВШИТЫМИ адресами сборки: они единственные, кто заведомо знает свой контур.
+     */
+    fun ownContour(url: String): Boolean {
+        val host = hostOf(url) ?: return false
+        for (baked in bakedHosts + bakedCabinet) {
+            val own = hostOf(baked) ?: continue
+            if (host == own) return true
+            // Домен контура: любое имя внутри него своё (api./cabinet./mayaknetworks.com).
+            // У адреса-IP «своих поддоменов» не бывает — там только точное совпадение выше.
+            val zone = registrable(own) ?: continue
+            if (host == zone || host.endsWith(".$zone")) return true
+        }
+        return false
+    }
+
+    private fun hostOf(url: String): String? {
+        val noScheme = url.trim().substringAfter("://", url.trim())
+        val hostPort = noScheme.substringBefore('/').substringBefore('?')
+        val host = if (hostPort.startsWith("[")) hostPort.substringAfter('[').substringBefore(']')
+        else hostPort.substringBefore(':')
+        return host.lowercase().takeIf { it.isNotBlank() }
+    }
+
+    /** Домен второго уровня; null — если это адрес-IP (у него «зоны» нет). */
+    private fun registrable(host: String): String? {
+        if (host.none { it.isLetter() }) return null // 213.226.71.181 и прочие v4-адреса
+        val parts = host.split('.')
+        if (parts.size < 2) return null
+        return parts.takeLast(2).joinToString(".")
+    }
+
+    /**
+     * Разовая уборка при переезде между контурами: если в памяти лежат адреса ЧУЖОГО контура —
+     * стереть их вместе с сессией. Токен, device_id и кэш направлений принадлежат чужому ядру: на
+     * своём они не работают, а оставленные молча создают вид, что человек вошёл.
+     *
+     * Возвращает true, если что-то чистили (вызывающий покажет экран входа).
+     */
+    fun dropForeignContour(context: Context, store: KeystoreSecureStore, session: MayakSession): Boolean {
+        val savedServer = store.get(MayakActivity.KEY_SERVER)
+        val foreignSaved = savedServer != null && savedServer.isNotBlank() && !ownContour(savedServer)
+        val learned = MayakPrefs.learnedHosts(context)
+        val foreignLearned = learned.any { !ownContour(it) }
+        val cabinet = MayakPrefs.learnedCabinet(context)
+        val foreignCabinet = cabinet.isNotBlank() && !ownContour(cabinet)
+        if (!foreignSaved && !foreignLearned && !foreignCabinet) return false
+
+        Log.w(TAG, "адреса чужого контура в памяти — стираю вместе с сессией (переезд сборки)")
+        if (foreignSaved) store.remove(MayakActivity.KEY_SERVER)
+        if (foreignLearned) MayakPrefs.setLearnedHosts(context, learned.filter { ownContour(it) })
+        if (foreignCabinet) MayakPrefs.setLearnedCabinet(context, "")
+        MayakPresets.clear(context) // пресеты — настройки аккаунта ЧУЖОГО ядра
+        session.logout()
+        return true
     }
 
     /**

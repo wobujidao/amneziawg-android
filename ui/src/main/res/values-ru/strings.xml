@@ -481,6 +481,8 @@
     <string name="mayak_devices_err">Не удалось получить список устройств: %1$s</string>
     <string name="mayak_devices_revoke_err">Не удалось отключить устройство: %1$s</string>
     <string name="mayak_close">Закрыть</string>
+    <!-- Приложение переехало на другое ядро (обновление поверх сборки другого контура). -->
+    <string name="mayak_moved_contour">Приложение переключилось на новый сервер «Маяка» — войдите заново, логин и пароль прежние.</string>
     <string name="mayak_status_access_expired">Доступ закончился</string>
     <string name="mayak_status_device_limit">Занято максимум устройств</string>
     <string name="mayak_device_limit_msg">На аккаунте уже подключено максимум устройств, поэтому это добавить не получается. Откройте «Мои устройства», отключите то, которым больше не пользуетесь, и попробуйте снова.</string>

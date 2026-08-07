@@ -183,6 +183,10 @@ class MayakActivity : AppCompatActivity() {
         tunnel = GoTunnel(this)
         MayakUpdater.cleanup(this) // подчистить скачанный APK после обновления/отмены («убрать лишнее»)
 
+        // Обновились ПОВЕРХ сборки другого контура — стереть чужие адреса и сессию до первого запроса.
+        // Иначе прод-сборка молча продолжает работать с дев-ядром (находка владельца 07-08).
+        val movedContour = MayakHostList.dropForeignContour(this, store, session)
+
         if (session.hasToken()) {
             backend = MayakBackend(hostProvider())
             showHome(); loadDirections()
@@ -196,6 +200,10 @@ class MayakActivity : AppCompatActivity() {
             if (intent?.getBooleanExtra(EXTRA_SESSION_EXPIRED, false) == true) {
                 setStatus(getString(R.string.mayak_session_expired))
                 Toast.makeText(this, R.string.mayak_session_expired, Toast.LENGTH_LONG).show()
+            } else if (movedContour) {
+                // Человек не выходил сам — объясняем, почему вдруг просим пароль.
+                setStatus(getString(R.string.mayak_moved_contour))
+                Toast.makeText(this, R.string.mayak_moved_contour, Toast.LENGTH_LONG).show()
             }
         }
     }

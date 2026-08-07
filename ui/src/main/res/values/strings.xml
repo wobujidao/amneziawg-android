@@ -270,6 +270,8 @@
     <string name="mayak_devices_err">Could not load your devices: %1$s</string>
     <string name="mayak_devices_revoke_err">Could not disconnect the device: %1$s</string>
     <string name="mayak_close">Close</string>
+    <!-- The app switched cores (update installed over a build of another environment). -->
+    <string name="mayak_moved_contour">The app has switched to the new Mayak server — please sign in again with the same credentials.</string>
     <string name="mayak_status_access_expired">Access ended</string>
     <string name="mayak_status_device_limit">Device limit reached</string>
     <string name="mayak_device_limit_msg">Your account already has the maximum number of devices, so this one can\'t be added. Open “My devices”, disconnect one you no longer use, and try again.</string>
