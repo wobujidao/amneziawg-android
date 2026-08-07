@@ -209,6 +209,7 @@
     <string name="mayak_settings_ipv6">Use IPv6</string>
     <string name="mayak_settings_ipv6_hint">Brings IPv6 through the tunnel where your carrier doesn\'t give it. The IPv6 badge lights up only when it really works. Turn off if it causes issues.</string>
     <string name="mayak_settings_ipv6_applied">Applies on the next connection</string>
+    <string name="mayak_apps_loading">Loading the list of apps…</string>
     <string name="mayak_settings_split">Split tunneling</string>
     <string name="mayak_preset_switch_desc">Apply this preset\'s split tunneling</string>
     <string name="mayak_settings_split_count">Split tunneling (%1$d)</string>

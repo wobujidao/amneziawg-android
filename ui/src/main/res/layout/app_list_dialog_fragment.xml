@@ -45,14 +45,33 @@
             android:layout_height="match_parent"
             android:minHeight="200dp">
 
-            <ProgressBar
-                android:id="@+id/progress_bar"
+            <!-- Крутилка БЕЗ подписи висела 6–9 секунд (замер на эмуляторе 2026-08-07): список
+                 приложений собирается опросом пакетного менеджера, и всё это время экран выглядит
+                 зависшим. Кладём подпись рядом — она объясняет ожидание и сама исчезает вместе с
+                 крутилкой. -->
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
-                android:indeterminate="true"
+                android:orientation="vertical"
+                android:gravity="center"
                 android:visibility="@{appData.isEmpty() ? View.VISIBLE : View.GONE}"
-                tools:visibility="gone" />
+                tools:visibility="gone">
+
+                <ProgressBar
+                    android:id="@+id/progress_bar"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:indeterminate="true" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:gravity="center"
+                    android:text="@string/mayak_apps_loading"
+                    android:textAppearance="?attr/textAppearanceBody2" />
+            </LinearLayout>
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/app_list"
