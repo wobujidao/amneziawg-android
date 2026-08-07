@@ -1673,7 +1673,24 @@ class MayakActivity : AppCompatActivity() {
         GoTunnel.connectedRoute = route
         GoTunnel.connectedServerHost = serverHost
         announce(getString(R.string.mayak_status_probing))
-        return if (hasNextRung) probeUntilThreshold(peerSyncSlackMs) else probeWithRetry()
+        // Ожидание ОБЪЯСНЯЕМ, а не просто держим надпись.
+        //
+        // На ПОСЛЕДНЕЙ ступени бюджет пробы — 6 попыток × 5 с + 5 пауз × 2 с = до 40 секунд, и всё
+        // это время под кнопкой стояла одна и та же строка «Проверяем, что интернет пошёл…». Причина
+        // задержки при этом штатная и известная: пир заводится на выходе следующим поллингом агента
+        // (до 15 с), то есть ждать НАДО. Но неподвижная надпись полминуты читается как зависание —
+        // человек жмёт кнопку ещё раз (тап = ОТМЕНА) и уходит с мыслью «не работает».
+        // Поэтому через PATIENCE_MS говорим ровно то, что происходит, и называем срок.
+        val patience = lifecycleScope.launch {
+            delay(PATIENCE_MS)
+            setStatus(getString(R.string.mayak_status_peer_sync))
+            statusShownAt = SystemClock.elapsedRealtime() // следующую надпись держим читаемой, как обычно
+        }
+        return try {
+            if (hasNextRung) probeUntilThreshold(peerSyncSlackMs) else probeWithRetry()
+        } finally {
+            patience.cancel()
+        }
     }
 
     /**
@@ -2713,6 +2730,10 @@ class MayakActivity : AppCompatActivity() {
 
         /** Через сколько текст ошибки под кнопкой считается протухшим (см. clearStaleError). */
         private const val ERROR_STALE_MS = 30_000L
+
+        /** Сколько ждём молча, прежде чем ОБЪЯСНИТЬ задержку (см. bringUpUdp). 6 с — быстрый путь
+         *  (обычный случай, ~5-9 с до «Защищено») успевает закончиться и лишней надписи не показывает. */
+        private const val PATIENCE_MS = 6_000L
         private const val PROBE_ATTEMPTS = 6
 
         // Проб по ЗАПАСНОМУ каналу — меньше, чем по прямому пути. Прямому нужен запас на sync-таймер

@@ -135,6 +135,8 @@
     <!-- Plain language under the button: «path», «config», «core», «UDP» are our words, not the
          user's (audit 2026-07-31, item 7). -->
     <string name="mayak_status_probing">Checking that the internet is flowing…</string>
+    <!-- Показывается, когда проба идёт дольше обычного: пир заводится на выходе до 15 с (sync-таймер). -->
+    <string name="mayak_status_peer_sync">Waiting for the server — a first connection takes up to 15 seconds…</string>
     <string name="mayak_status_relay_switch">Direct connection refused — trying via Russia…</string>
     <string name="mayak_status_fallback_switch">Not getting through — trying a backup way…</string>
     <string name="mayak_fallback_badge">Backup</string>
