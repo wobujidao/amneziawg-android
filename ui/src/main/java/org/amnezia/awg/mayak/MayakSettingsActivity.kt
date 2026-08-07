@@ -17,6 +17,7 @@ import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.button.MaterialButtonToggleGroup
 import kotlinx.coroutines.launch
+import org.amnezia.awg.BuildConfig
 import org.amnezia.awg.R
 import org.amnezia.awg.fragment.AppListDialogFragment
 import org.amnezia.awg.mayak.core.AccountSettings
@@ -495,10 +496,16 @@ class MayakSettingsActivity : AppCompatActivity() {
         }
     }
 
-    /** Показать/спрятать «Поделиться логом» по факту наличия несданного файла на диске. */
+    /** Показать/спрятать «Поделиться логом» по факту наличия несданного файла на диске.
+     *  Вместе с кнопкой показываем и ПОДПИСЬ: без неё на экране просто возникает новая кнопка,
+     *  а объяснение («отправить не вышло, лог сохранён») живёт в тосте и через 3 секунды пропадает. */
     private fun refreshShareLogButton() {
-        findViewById<MaterialButton>(R.id.mayak_settings_share_log).visibility =
-            if (DiagLogPending.exists(this)) View.VISIBLE else View.GONE
+        val visible = if (DiagLogPending.exists(this)) View.VISIBLE else View.GONE
+        findViewById<MaterialButton>(R.id.mayak_settings_share_log).visibility = visible
+        findViewById<TextView>(R.id.mayak_settings_share_log_hint)?.apply {
+            visibility = visible
+            text = getString(R.string.mayak_settings_share_log_hint, BuildConfig.MAYAK_SUPPORT_EMAIL)
+        }
     }
 
     /** Отдать сохранённый лог системному диалогу «Поделиться» — человек сам решает, в какой мессенджер. */

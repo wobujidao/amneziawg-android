@@ -421,6 +421,20 @@
                          неудачной попытки на диске остался несданный лог (DiagLogPending) — в норме
                          скрыта. Позволяет переслать файл вручную (мессенджер), когда отправка через
                          приложение не проходит вообще (сеть/туннель мертвы и мимо туннеля не выходит). -->
+                    <!-- Объяснение живёт РЯДОМ с кнопкой, а не только в тосте: тост через 3 секунды
+                         исчезает, и человек, отвернувшийся на минуту, возвращается к экрану, где
+                         просто появилась новая кнопка без единого слова о том, что случилось и
+                         зачем она (снято на эмуляторе 07-08). Показывается вместе с кнопкой. -->
+                    <TextView
+                        android:id="@+id/mayak_settings_share_log_hint"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:visibility="gone"
+                        android:textColor="@color/mayak_on_bg_muted"
+                        android:textSize="14sp"
+                        android:text="@string/mayak_settings_share_log_hint" />
+
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/mayak_settings_share_log"
                         style="@style/Mayak.Button.Outlined"
