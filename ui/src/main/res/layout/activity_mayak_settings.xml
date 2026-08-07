@@ -417,6 +417,21 @@
                         app:iconGravity="textStart"
                         android:text="@string/mayak_settings_send_log" />
 
+                    <!-- «Поделиться сохранённым логом» (0.3.99): появляется, только если с прошлой
+                         неудачной попытки на диске остался несданный лог (DiagLogPending) — в норме
+                         скрыта. Позволяет переслать файл вручную (мессенджер), когда отправка через
+                         приложение не проходит вообще (сеть/туннель мертвы и мимо туннеля не выходит). -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/mayak_settings_share_log"
+                        style="@style/Mayak.Button.Outlined"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:visibility="gone"
+                        app:icon="@drawable/ic_upload"
+                        app:iconGravity="textStart"
+                        android:text="@string/mayak_settings_share_log" />
+
                     <!-- Кнопка «Посмотреть лог» убрана (аудит 2026-07-31, п. 14): она стояла рядом с
                          «Отправить лог» как обычная пользовательская, а открывала сырой logcat —
                          английские строки движка вида «app_time_stats: avg=100.28ms» и заодно исходный

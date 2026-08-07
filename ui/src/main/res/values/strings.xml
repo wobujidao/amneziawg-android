@@ -307,8 +307,12 @@
     <string name="mayak_settings_send_log">Send log</string>
     <string name="mayak_settings_send_log_sending">Sending log…</string>
     <string name="mayak_settings_send_log_ok">Log sent. Thank you!</string>
-    <string name="mayak_settings_send_log_err">Couldn\'t send log: %1$s</string>
+    <!-- Отправка не прошла (ни напрямую, ни в обход туннеля), но лог сохранён на телефоне — не потерян. -->
+    <string name="mayak_settings_send_log_saved">Couldn\'t send it right now, but the log is saved on your phone. We\'ll retry automatically next time, or you can send the file yourself below.</string>
     <string name="mayak_settings_send_log_need_login">Sign in first to send a log.</string>
+    <!-- Кнопка появляется только когда есть недоставленный лог с прошлой попытки. -->
+    <string name="mayak_settings_share_log">Share saved log</string>
+    <string name="mayak_settings_share_log_title">Send diagnostic log</string>
     <string name="mayak_version">Version %1$s (build %2$d)</string>
     <!-- Компактный штамп версии на главном экране (2026-08-03): его читают со скриншотов. -->
     <string name="mayak_version_stamp">v%1$s (%2$d)</string>

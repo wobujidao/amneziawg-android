@@ -8,6 +8,7 @@ import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatDelegate
 import org.amnezia.awg.R
+import org.amnezia.awg.mayak.core.AutoDiagGate
 
 object MayakPrefs {
     private const val PREFS = "mayak_ui_prefs"
@@ -42,8 +43,12 @@ object MayakPrefs {
     private const val KEY_ACTIVE_DAYS = "telemetry_active_days"     // число РАЗНЫХ дней с подключением
     private const val KEY_LAST_ACTIVE_DAY = "telemetry_last_active_day" // последняя учтённая дата (yyyy-MM-dd)
     private const val KEY_FALLBACK_COUNT = "telemetry_fallback_count" // подключений через запасной канал (SPEC-0039)
-    private const val KEY_LAST_AUTO_DIAG = "auto_diag_last_ms" // ts последней АВТО-заливки диаг-лога (rate-limit)
-    private const val AUTO_DIAG_MIN_INTERVAL_MS = 6L * 60 * 60 * 1000 // не чаще раза в 6ч на установку
+    // Rate-limit авто-заливки диаг-лога (0.3.48, переработан 0.3.99): два зазора, арифметика — в
+    // :core.AutoDiagGate (юнит-тест на JVM). lastAttempt — короткий анти-шквал (ставим ДО сети,
+    // независимо от исхода); lastSuccess — основной 6-часовой лимит (ставим ТОЛЬКО после того, как
+    // лог реально дошёл до сервера — иначе постоянно ломающаяся сеть выжигала бы лимит без пользы).
+    private const val KEY_LAST_AUTO_DIAG_ATTEMPT = "auto_diag_last_attempt_ms"
+    private const val KEY_LAST_AUTO_DIAG_OK = "auto_diag_last_ok_ms"
 
     // Режим сортировки списка стран (SPEC-0031): 0 — как отдал сервер (авто), 1 — по клиентскому пингу,
     // 2 — пользовательский (свой порядок перетаскиванием). По умолчанию 0.
@@ -276,18 +281,32 @@ object MayakPrefs {
         p.edit().putInt(KEY_FALLBACK_COUNT, p.getInt(KEY_FALLBACK_COUNT, 0) + 1).apply()
     }
 
-    /** Rate-limit авто-заливки диаг-лога при ошибке подключения (0.3.48): если с прошлой авто-заливки
-     *  прошло >= 6ч (или её не было) — помечает «сейчас» и возвращает true (можно слать); иначе false
-     *  (слишком часто, пропускаем). Атомарно (проверка+пометка вместе), чтобы шквал ошибок подряд не
-     *  породил шквал заливок. Ручную кнопку это НЕ трогает. */
-    fun noteAutoDiagIfDue(context: Context): Boolean {
+    /** Можно ли сейчас пробовать авто-заливку (правило — AutoDiagGate в :core). ТОЛЬКО читает,
+     *  ничего не помечает — пометки раздельные (см. noteAutoDiagAttempt/noteAutoDiagSuccess ниже),
+     *  чтобы неудачная попытка не сжигала лимит наравне с успешной. Ручную кнопку это НЕ трогает. */
+    fun autoDiagDue(context: Context): Boolean {
         val p = prefs(context)
-        val now = System.currentTimeMillis()
-        val last = p.getLong(KEY_LAST_AUTO_DIAG, 0L)
-        // now < last — часы устройства перевели назад: не блокируемся навсегда, разрешаем и перезаписываем.
-        if (last != 0L && now >= last && now - last < AUTO_DIAG_MIN_INTERVAL_MS) return false
-        p.edit().putLong(KEY_LAST_AUTO_DIAG, now).apply()
-        return true
+        return AutoDiagGate.dueForAttempt(
+            lastAttemptMs = p.getLong(KEY_LAST_AUTO_DIAG_ATTEMPT, 0L),
+            lastSuccessMs = p.getLong(KEY_LAST_AUTO_DIAG_OK, 0L),
+            nowMs = System.currentTimeMillis(),
+        )
+    }
+
+    /** Отметить, что попытка авто-заливки НАЧАЛАСЬ — звать ДО сетевого вызова, до того как известен
+     *  исход. Короткий анти-шквальный зазор (AutoDiagGate.MIN_ATTEMPT_INTERVAL_MS): не даёт серии
+     *  отказов подряд долбить сеть, но НЕ трогает основной 6-часовой лимит. */
+    fun noteAutoDiagAttempt(context: Context) {
+        prefs(context).edit().putLong(KEY_LAST_AUTO_DIAG_ATTEMPT, System.currentTimeMillis()).apply()
+    }
+
+    /** Отметить, что авто-заливка ДОШЛА до сервера — основной 6-часовой лимит. Звать ТОЛЬКО после
+     *  успешного session.sendDiagLog(), не на каждой попытке (находка 2026-08-07: раньше единая
+     *  метка ставилась ДО попытки, и провал запирал авто-заливку на все 6ч, даже когда сеть
+     *  оживала уже через пару минут — человек с постоянно ломающимся каналом не получал диагностики
+     *  вовсе). */
+    fun noteAutoDiagSuccess(context: Context) {
+        prefs(context).edit().putLong(KEY_LAST_AUTO_DIAG_OK, System.currentTimeMillis()).apply()
     }
 
     // Значения совпадают по смыслу с AppCompatDelegate.MODE_NIGHT_*

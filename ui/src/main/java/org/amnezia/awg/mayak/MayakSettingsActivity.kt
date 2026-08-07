@@ -76,6 +76,11 @@ class MayakSettingsActivity : AppCompatActivity() {
             MayakTransitions.applyAxis(this)
         }
         findViewById<MaterialButton>(R.id.mayak_settings_send_log).setOnClickListener { sendLog(it as MaterialButton) }
+        // «Поделиться логом» видна, только пока на диске лежит недоставленный лог с прошлой неудачной
+        // попытки (0.3.99) — состояние могло смениться, пока экран был закрыт (пришли на новую сессию
+        // после провала на прошлой), поэтому проверяем прямо тут, а не полагаемся на видимость из XML.
+        findViewById<MaterialButton>(R.id.mayak_settings_share_log).setOnClickListener { shareSavedLog() }
+        refreshShareLogButton()
         findViewById<MaterialButton>(R.id.mayak_settings_logout).setOnClickListener { confirmLogout() }
         // Удаление аккаунта показываем только вошедшим: удалять нечего, а кнопка пугает.
         val deleteAccount = findViewById<MaterialButton>(R.id.mayak_settings_delete_account)
@@ -444,6 +449,11 @@ class MayakSettingsActivity : AppCompatActivity() {
     /**
      * Сбор и отправка диагностического лога на сервер (главное действие диагностики). Собираем
      * контекст устройства/сети + дамп logcat движка → POST /v1/client/diag-log. Требует входа.
+     *
+     * Если отправка ВСЁ РАВНО не проходит (и внутри туннеля, и мимо него — OutsideTunnel уже
+     * подключён выше) — собранный запрос не пропадает: сохраняем его на диск (DiagLogPending) и
+     * говорим об этом человеку. Ровно та ситуация, из-за которой владелец не смог пожаловаться
+     * 2026-08-07: лог собрался, отправка упала, и раньше на этом всё заканчивалось молча.
      */
     private fun sendLog(button: MaterialButton) {
         val store = KeystoreSecureStore(this)
@@ -459,8 +469,12 @@ class MayakSettingsActivity : AppCompatActivity() {
         button.isEnabled = false
         button.setText(R.string.mayak_settings_send_log_sending)
         lifecycleScope.launch {
+            // Сначала досылаем то, что осталось с прошлой неудачной попытки — иначе оно так и лежало
+            // бы на диске, пока человек сам не нажмёт «Поделиться» (требование 2026-08-07).
+            DiagLogPending.flush(this@MayakSettingsActivity, session, backend)
+            var req: org.amnezia.awg.mayak.core.DiagLogRequest? = null
             val msg = try {
-                val req = DiagCollector.collect(
+                req = DiagCollector.collect(
                     this@MayakSettingsActivity, direction = "", deviceId = session.deviceId(), source = "manual",
                     // Счётчики трафика снимаются с экземпляра туннеля; backend процесс-скоупный, так что
                     // новый GoTunnel читает статистику ТОГО ЖЕ живого туннеля (как в SpeedNotifier).
@@ -468,15 +482,34 @@ class MayakSettingsActivity : AppCompatActivity() {
                 )
                 session.sendDiagLog(backend, req)
                 getString(R.string.mayak_settings_send_log_ok)
-            } catch (e: MayakApiException) {
-                getString(R.string.mayak_settings_send_log_err, "HTTP ${e.status}: ${e.message}")
-            } catch (e: Exception) {
-                getString(R.string.mayak_settings_send_log_err, e.message ?: "ошибка сети")
+            } catch (_: Exception) {
+                // Не ушло — не теряем то, что уже собрали. Технический текст ошибки (HTTP-код и т.п.)
+                // человеку тут не нужен: важно только, что лог цел и есть два способа его доставить.
+                req?.let { DiagLogPending.save(this@MayakSettingsActivity, it) }
+                getString(R.string.mayak_settings_send_log_saved)
             }
             button.isEnabled = true
             button.text = original
+            refreshShareLogButton()
             Toast.makeText(this@MayakSettingsActivity, msg, Toast.LENGTH_LONG).show()
         }
+    }
+
+    /** Показать/спрятать «Поделиться логом» по факту наличия несданного файла на диске. */
+    private fun refreshShareLogButton() {
+        findViewById<MaterialButton>(R.id.mayak_settings_share_log).visibility =
+            if (DiagLogPending.exists(this)) View.VISIBLE else View.GONE
+    }
+
+    /** Отдать сохранённый лог системному диалогу «Поделиться» — человек сам решает, в какой мессенджер. */
+    private fun shareSavedLog() {
+        val uri = DiagLogPending.shareUri(this)
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "application/json"
+            putExtra(Intent.EXTRA_STREAM, uri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        startActivity(Intent.createChooser(intent, getString(R.string.mayak_settings_share_log_title)))
     }
 
     /** Выход из аккаунта: гасим туннель, чистим сессию, возвращаемся на экран входа. */

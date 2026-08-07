@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Пути FileProvider для скачанного APK самообновления (cache/updates/). -->
+<!-- Пути FileProvider: скачанный APK самообновления (cache/updates/) и несданный диаг-лог
+     (cache/diag/, 0.3.99) — один и тот же провайдер годится для любых cache-файлов, заводить
+     второй ради одного JSON-файла незачем. -->
 <paths>
     <cache-path name="updates" path="updates/" />
+    <cache-path name="diag" path="diag/" />
 </paths>

@@ -518,8 +518,12 @@
     <string name="mayak_settings_send_log">Отправить лог</string>
     <string name="mayak_settings_send_log_sending">Отправляю лог…</string>
     <string name="mayak_settings_send_log_ok">Лог отправлен. Спасибо!</string>
-    <string name="mayak_settings_send_log_err">Не удалось отправить лог: %1$s</string>
+    <!-- Отправка не прошла (ни напрямую, ни в обход туннеля), но лог сохранён на телефоне — не потерян. -->
+    <string name="mayak_settings_send_log_saved">Сейчас отправить не получилось, но лог сохранён на телефоне. Мы попробуем ещё раз при следующей отправке — или перешлите файл сами кнопкой ниже.</string>
     <string name="mayak_settings_send_log_need_login">Сначала войдите, чтобы отправить лог.</string>
+    <!-- Кнопка появляется, только когда есть недоставленный лог с прошлой попытки. -->
+    <string name="mayak_settings_share_log">Поделиться сохранённым логом</string>
+    <string name="mayak_settings_share_log_title">Отправить диагностический лог</string>
     <string name="mayak_version">Версия %1$s (сборка %2$d)</string>
     <!-- Компактный штамп версии на главном экране (2026-08-03): его читают со скриншотов. -->
     <string name="mayak_version_stamp">v%1$s (%2$d)</string>

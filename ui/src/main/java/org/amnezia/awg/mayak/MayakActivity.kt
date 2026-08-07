@@ -2024,19 +2024,24 @@ class MayakActivity : AppCompatActivity() {
     /**
      * Авто-заливка диагностики при ОШИБКЕ подключения (0.3.48). Мотивация: регрессия коннекта раньше
      * всплывала только когда пользователь сам жал «Отправить лог» — теперь лог с source="auto" уходит
-     * сам. Строго: (1) rate-limited (не чаще раза в 6ч на установку, MayakPrefs) — чтобы шквал ошибок
-     * не породил шквал заливок; (2) требует входа и backend (как ручная кнопка) — иначе тихо пропускаем;
-     * (3) полностью тихо (без UI) и БЕЗ ретраев; любой сбой глотаем (диагностика не должна ронять UI).
+     * сам. Строго: (1) rate-limited (MayakPrefs/AutoDiagGate) — чтобы шквал ошибок не породил шквал
+     * заливок, а провальная попытка не сжигала 6-часовой лимит впустую (0.3.99); (2) требует входа и
+     * backend (как ручная кнопка) — иначе тихо пропускаем; (3) полностью тихо (без UI) и БЕЗ
+     * ретраев; любой сбой глотаем (диагностика не должна ронять UI). Несданный лог с прошлого раза
+     * при этом не теряем — DiagLogPending.flush пробует дослать его первым.
      */
     private fun maybeAutoSendDiag(reason: String = "connect-error") {
         if (!::session.isInitialized || !session.hasToken()) return
         val b = backend ?: return
-        if (!MayakPrefs.noteAutoDiagIfDue(this)) return // слишком часто — пропускаем
+        if (!MayakPrefs.autoDiagDue(this)) return // слишком часто — пропускаем
+        MayakPrefs.noteAutoDiagAttempt(this) // короткий анти-шквальный зазор — ставим ДО сети, независимо от исхода
         val dirName = selectedDir?.name ?: ""
         lifecycleScope.launch {
             try {
+                DiagLogPending.flush(this@MayakActivity, session, b) // сначала дошлём то, что осталось с прошлого раза
                 val req = DiagCollector.collect(this@MayakActivity, direction = dirName, deviceId = session.deviceId(), source = "auto", reason = reason, tunnel = tunnel)
                 session.sendDiagLog(b, req)
+                MayakPrefs.noteAutoDiagSuccess(this@MayakActivity) // 6-часовой лимит тратится ТОЛЬКО на успехе
             } catch (_: Exception) { /* тихо: авто-диагностика best-effort, без ретраев/краша */ }
         }
     }
