@@ -35,7 +35,10 @@ class MayakSettingsActivity : AppCompatActivity() {
     private var accountSettings: AccountSettings? = null
 
     private fun backend(): MayakBackend =
-        MayakBackend(HostProvider(MayakHostList.effective(this, store.get(MayakActivity.KEY_SERVER))))
+        MayakBackend(
+            HostProvider(MayakHostList.effective(this, store.get(MayakActivity.KEY_SERVER))),
+            bypassTunnel = OutsideTunnel.opener(this),
+        )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         MayakPrefs.applyTheme(this)
@@ -450,7 +453,7 @@ class MayakSettingsActivity : AppCompatActivity() {
             return
         }
         val hosts = MayakHostList.effective(this, store.get(MayakActivity.KEY_SERVER))
-        val backend = MayakBackend(HostProvider(hosts))
+        val backend = MayakBackend(HostProvider(hosts), bypassTunnel = OutsideTunnel.opener(this@MayakSettingsActivity))
 
         val original = button.text
         button.isEnabled = false

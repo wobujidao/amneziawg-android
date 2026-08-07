@@ -33,7 +33,7 @@ class MayakTelemetryWorker(
             val app = applicationContext
             val store = KeystoreSecureStore(app)
             val session = MayakSession(store, AwgKeyProvider(), AndroidHwidProvider(app, store))
-            val backend = MayakBackend(HostProvider(hostsFor(app, store)))
+            val backend = MayakBackend(HostProvider(hostsFor(app, store)), bypassTunnel = OutsideTunnel.opener(app))
             // Заодно обновляем список адресов ядра из реестра доменов: воркер и так ходит в сеть по
             // расписанию, отдельный будильник ради этого заводить незачем. Смысл — узнать резервный
             // домен ЗАРАНЕЕ, до того как основной где-то заблокируют.

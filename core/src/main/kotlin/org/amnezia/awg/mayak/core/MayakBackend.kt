@@ -71,6 +71,13 @@ class MayakBackend(
     // может быть медленнее хендшейка.
     private val connectTimeoutMs: Int = 5_000,
     private val readTimeoutMs: Int = 15_000,
+    // Как открывать соединение. Параметром, а не жёстко внутри, чтобы :core остался чистым Kotlin:
+    // увести сокет мимо туннеля умеет только :ui (там есть ConnectivityManager и сам VpnService).
+    private val direct: (URL) -> HttpURLConnection = { it.openConnection() as HttpURLConnection },
+    // Второй заход — мимо туннеля. null = возможности нет (тесты, не-Android).
+    // ⚠️ Контракт: фабрика ОБЯЗАНА падать МГНОВЕННО (IOException), когда идти мимо туннеля незачем
+    // или некуда — иначе на устройстве без интернета человек прождёт круг по доменам ДВАЖДЫ.
+    private val bypassTunnel: ((URL) -> HttpURLConnection)? = null,
 ) {
     /**
      * ВСЕ известные базовые адреса ядра (домены из реестра + зашитые + IP-фолбэк). Нужны
@@ -285,19 +292,31 @@ class MayakBackend(
      * Один HTTP-вызов с фейловером по доменам. На сетевой ошибке (домен недоступен/заблокирован)
      * крутим HostProvider и повторяем; на HTTP-ответе (в т.ч. 4xx/5xx) — НЕ переключаемся, а
      * возвращаем тело / кидаем MayakApiException (это ответ ядра, а не недоступность канала).
+     *
+     * Обойдя все домены, пробуем ТОТ ЖЕ круг МИМО ТУННЕЛЯ (`bypassTunnel`), если такая возможность
+     * передана. Зачем: запросы к ядру уходят обычными сокетами, а значит при поднятом туннеле идут
+     * ВНУТРИ него (доказано 07-08: диаг-логи приходили на ядро с выходных IP наших же нод). Туннель
+     * «поднят, но мёртв» — самый частый отказ у людей, и в этом состоянии умирал весь управляющий
+     * канал: вход, продление аренды, самообновление и — обиднее всего — отправка диагностики, то
+     * есть человек не мог пожаловаться именно потому, что у него сломалось. Владелец поймал это
+     * живьём на сотовой: «все домены недоступны» при сломанной немецкой линии.
      */
     private suspend fun call(method: String, path: String, token: String?, body: String?): String =
         withContext(Dispatchers.IO) {
             var lastError: IOException? = null
-            repeat(hosts.size) {
-                val base = hosts.current()
-                try {
-                    return@withContext doRequest("$base$path", method, token, body)
-                } catch (e: MayakApiException) {
-                    throw e // ответ ядра — фейловер не нужен
-                } catch (e: IOException) {
-                    lastError = e
-                    hosts.rotate()
+            // Сначала обычным путём (внутри туннеля, если он поднят), затем — мимо него.
+            val routes = listOfNotNull(direct, bypassTunnel)
+            for (open in routes) {
+                repeat(hosts.size) {
+                    val base = hosts.current()
+                    try {
+                        return@withContext doRequest("$base$path", method, token, body, open)
+                    } catch (e: MayakApiException) {
+                        throw e // ответ ядра — фейловер не нужен
+                    } catch (e: IOException) {
+                        lastError = e
+                        hosts.rotate()
+                    }
                 }
             }
             throw NoReachableHostException(
@@ -305,10 +324,16 @@ class MayakBackend(
             )
         }
 
-    private fun doRequest(url: String, method: String, token: String?, body: String?): String {
+    private fun doRequest(
+        url: String,
+        method: String,
+        token: String?,
+        body: String?,
+        open: (URL) -> HttpURLConnection = direct,
+    ): String {
         // только https: иначе Bearer-токен и данные ушли бы plaintext (напр. если резерв-домен задан http).
         require(url.startsWith("https://")) { "небезопасная схема (нужен https): $url" }
-        val conn = URL(url).openConnection() as HttpURLConnection
+        val conn = open(URL(url))
         try {
             conn.requestMethod = method
             conn.connectTimeout = connectTimeoutMs

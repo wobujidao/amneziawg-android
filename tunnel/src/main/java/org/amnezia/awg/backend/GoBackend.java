@@ -100,6 +100,15 @@ public final class GoBackend implements Backend {
     }
 
     /**
+     * Маяк: поднят ли НАШ VpnService, то есть заворачивает ли наш туннель трафик приложения.
+     * Нужно управляющему каналу (OutsideTunnel): обход туннеля включается ТОЛЬКО когда туннель наш —
+     * иначе мы обходили бы чужой VPN человека, чего делать нельзя.
+     */
+    public static boolean isTunnelServiceUp() {
+        return vpnService.isDone();
+    }
+
+    /**
      * Set a {@link AlwaysOnCallback} to be invoked when {@link VpnService} is started by the
      * system's Always-On VPN mode.
      *

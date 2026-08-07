@@ -42,7 +42,8 @@ object MayakDevices {
             return
         }
         val backend = MayakBackend(
-            HostProvider(MayakHostList.effective(activity, store.get(MayakActivity.KEY_SERVER)))
+            HostProvider(MayakHostList.effective(activity, store.get(MayakActivity.KEY_SERVER))),
+            bypassTunnel = OutsideTunnel.opener(activity),
         )
 
         // Список тянется по сети: без этого диалога между нажатием и появлением списка было бы

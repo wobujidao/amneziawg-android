@@ -188,7 +188,7 @@ class MayakActivity : AppCompatActivity() {
         val movedContour = MayakHostList.dropForeignContour(this, store, session)
 
         if (session.hasToken()) {
-            backend = MayakBackend(hostProvider())
+            backend = MayakBackend(hostProvider(), bypassTunnel = OutsideTunnel.opener(this@MayakActivity))
             showHome(); loadDirections()
             checkAppUpdate() // мягкий нудж, если вышла новая версия (Вариант А)
             refreshRuDirect() // OTA-подтяжка РФ-списка split-туннеля (в фоне, best-effort)
@@ -510,7 +510,7 @@ class MayakActivity : AppCompatActivity() {
             .setPositiveButton(getString(R.string.mayak_forgot_send)) { _, _ ->
                 val email = input.text?.toString()?.trim().orEmpty()
                 if (email.isBlank()) { setStatus(getString(R.string.mayak_err_fill_login)); return@setPositiveButton }
-                backend = MayakBackend(hostProvider())
+                backend = MayakBackend(hostProvider(), bypassTunnel = OutsideTunnel.opener(this@MayakActivity))
                 setStatus(getString(R.string.mayak_forgot_sending))
                 lifecycleScope.launch {
                     try {
@@ -548,7 +548,7 @@ class MayakActivity : AppCompatActivity() {
                 val code = codeInput.text?.toString()?.trim().orEmpty()
                 val pass = passInput.text?.toString().orEmpty()
                 if (code.isBlank() || pass.isBlank()) { setStatus(getString(R.string.mayak_err_fill_login)); return@setPositiveButton }
-                backend = MayakBackend(hostProvider())
+                backend = MayakBackend(hostProvider(), bypassTunnel = OutsideTunnel.opener(this@MayakActivity))
                 setStatus(getString(R.string.mayak_reset_doing))
                 lifecycleScope.launch {
                     try {
@@ -655,7 +655,7 @@ class MayakActivity : AppCompatActivity() {
         totpCode: String = "",
     ) {
         if (serverOverride != null) store.put(KEY_SERVER, serverOverride)
-        backend = MayakBackend(hostProvider())
+        backend = MayakBackend(hostProvider(), bypassTunnel = OutsideTunnel.opener(this@MayakActivity))
         setStatus(getString(R.string.mayak_status_signing_in))
         lifecycleScope.launch {
             try {

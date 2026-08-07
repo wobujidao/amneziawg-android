@@ -49,6 +49,6 @@ object LeaseKeepalive {
         val store = KeystoreSecureStore(app)
         val session = MayakSession(store, AwgKeyProvider(), AndroidHwidProvider(app, store))
         val hosts = MayakHostList.effective(app, store.get(MayakActivity.KEY_SERVER))
-        session.keepalive(MayakBackend(HostProvider(hosts)))
+        session.keepalive(MayakBackend(HostProvider(hosts), bypassTunnel = OutsideTunnel.opener(app)))
     }
 }
