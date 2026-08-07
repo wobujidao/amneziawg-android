@@ -22,11 +22,12 @@
 
     <!-- Прод-ядро по IP (серт выпущен НАШИМ Mayak Prod CA) — доверяем прод-CA только для адреса
          прод-ядра. IP-фолбэк на случай DNS-блокировки домена api.mayaknetworks.com в РФ.
-         Живое прод-ядро de1 — 213.226.71.181 (с 2026-08-06).
-         ⚠️ Серт client-api :8443 ядра ДОЛЖЕН иметь SAN=IP:213.226.71.181 (иначе hostname-проверка
-         не пройдёт) — проверено живьём (openssl s_client) 2026-08-06. -->
+         2026-08-07: ядро переехало с Melbicom (de1, 213.226.71.181 — недоступен с сотовых РФ)
+         на Senko, Амстердам — 2.26.77.243.
+         ⚠️ Серт client-api :8443 ядра ОБЯЗАН иметь SAN=IP:2.26.77.243 (иначе hostname-проверка
+         не пройдёт) — это условие переезда, проверить живьём (openssl s_client) после выката ядра. -->
     <domain-config cleartextTrafficPermitted="false">
-        <domain includeSubdomains="false">213.226.71.181</domain>
+        <domain includeSubdomains="false">2.26.77.243</domain>
         <trust-anchors>
             <certificates src="@raw/mayak_ca" />
             <certificates src="system" />
