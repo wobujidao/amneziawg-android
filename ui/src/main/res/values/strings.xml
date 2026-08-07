@@ -87,6 +87,8 @@
     <string name="mayak_err_direction_not_in_plan">This country is not included in your plan.</string>
     <string name="mayak_err_overloaded">The service is busy right now. Try again in a minute.</string>
     <string name="mayak_err_billing_unavailable">Payments are not available yet.</string>
+    <!-- Сеть есть, а наш сервер не ответил: это НЕ то же самое, что «интернета нет» (лечится по-разному). -->
+    <string name="mayak_err_server_unreachable">Our server is not responding. Your internet works — try again in a minute.</string>
     <string name="mayak_err_generic">Something went wrong. Try again a bit later.</string>
     <string name="mayak_open_cabinet">Open cabinet</string>
     <string name="mayak_password_hint">Password</string>

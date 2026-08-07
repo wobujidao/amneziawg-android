@@ -35,6 +35,7 @@ import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
+import java.io.IOException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -655,6 +656,12 @@ class MayakActivity : AppCompatActivity() {
         totpCode: String = "",
     ) {
         if (serverOverride != null) store.put(KEY_SERVER, serverOverride)
+        // Сети нет — не заставляем человека ждать круг таймаутов (5 с на домен × 2 домена × 2 захода),
+        // чтобы в конце сказать то, что видно сразу. Тот же приём, что в doConnect.
+        if (!MayakNet.hasNetwork(this)) {
+            showLoginError(getString(R.string.mayak_status_no_network), blamePassword = false)
+            return
+        }
         backend = MayakBackend(hostProvider(), bypassTunnel = OutsideTunnel.opener(this@MayakActivity))
         setStatus(getString(R.string.mayak_status_signing_in))
         lifecycleScope.launch {
@@ -684,7 +691,7 @@ class MayakActivity : AppCompatActivity() {
                     e.status == 401 -> showLoginError(getString(R.string.mayak_err_bad_creds))
                     else -> showLoginError(humanError(e))
                 }
-            } catch (e: Exception) { showLoginError(humanError(e)) }
+            } catch (e: Exception) { showLoginError(humanError(e), blamePassword = !isNetworkFailure(e)) }
         }
     }
 
@@ -721,8 +728,19 @@ class MayakActivity : AppCompatActivity() {
     /** Ошибка входа: красная подпись под полем пароля + короткая встряска. Раньше текст уходил в серую
      *  строку под карточкой — на телефоне её закрывает клавиатура, и человек не понимал, что произошло.
      *  Строку статуса тоже обновляем: она остаётся для тех, кто смотрит на большой экран без клавиатуры. */
-    private fun showLoginError(text: String) = runOnUiThread {
+    private fun showLoginError(text: String, blamePassword: Boolean = true) = runOnUiThread {
         val passwordLayout = findViewById<TextInputLayout>(R.id.mayak_password_layout)
+        // Не про пароль (нет сети, сервер не отвечает) — под полем НЕ пишем и красным его не красим:
+        // красная подпись у «Пароля» читается как «пароль неверный», и человек идёт его сбрасывать
+        // вместо того, чтобы включить интернет.
+        if (!blamePassword) {
+            passwordLayout?.error = null
+            setStatus(text)
+            // Встряхиваем саму строку: без движения серая подпись внизу экрана легко проходит мимо
+            // взгляда, а до этого отказ всегда «дёргался» (полем пароля) и его нельзя было не заметить.
+            if (::status.isInitialized) shake(status)
+            return@runOnUiThread
+        }
         if (passwordLayout != null) {
             passwordLayout.error = text
             shake(passwordLayout)
@@ -2503,9 +2521,30 @@ class MayakActivity : AppCompatActivity() {
             "billing_unavailable" -> getString(R.string.mayak_err_billing_unavailable)
             else -> e.message ?: getString(R.string.mayak_err_generic)
         }
-        is NoReachableHostException -> "Ядро недоступно: ${e.message}"
-        else -> "Ошибка: ${e.message ?: e.javaClass.simpleName}"
+        // Сетевой отказ — это ДВЕ разные беды с разными лечениями, и путать их нельзя:
+        // «у телефона нет интернета» человек чинит сам за секунду, «наш сервер не отвечает» —
+        // ждёт или пишет в поддержку. Спрашиваем систему, есть ли связь, и говорим ровно это.
+        //
+        // Было (проверено на эмуляторе 2026-08-07, Wi-Fi выключен, экран входа): красным под полем
+        // «Пароль» — «Ядро недоступно: ни один домен ядра недоступен (2): туннель не поднят —
+        // обходить нечего». Три беды в одной строке: слово «ядро» человеку ничего не значит,
+        // «обходить нечего» — реплика нашей внутренней механики, а красное поле «Пароль» вдобавок
+        // намекает, что человек ошибся паролем, хотя пароль тут ни при чём.
+        is IOException -> getString(
+            if (MayakNet.hasNetwork(this)) R.string.mayak_err_server_unreachable
+            else R.string.mayak_status_no_network
+        )
+        // Незнакомое исключение показываем ОБЩЕЙ фразой, а подробности отправляем в лог: имя
+        // Java-класса («SSLHandshakeException») на экране не помогает никому, кроме нас, а лог
+        // приезжает к нам сам (авто-заливка диагностики).
+        else -> {
+            android.util.Log.w(PROBE_TAG, "необработанная ошибка на экране: ${e.javaClass.name}: ${e.message}")
+            getString(R.string.mayak_err_generic)
+        }
     }
+
+    /** Отказ по сети (нет интернета / сервер не отвечает) — пароль тут ни при чём. */
+    private fun isNetworkFailure(e: Throwable): Boolean = e is IOException && e !is MayakApiException
 
     private fun copyToClipboard(label: String, text: String) {
         val cm = getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager ?: return

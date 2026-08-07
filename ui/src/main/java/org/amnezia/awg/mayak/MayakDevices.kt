@@ -59,7 +59,7 @@ object MayakDevices {
                 session.listDevices(backend)
             } catch (e: Exception) {
                 loading.dismiss()
-                Toast.makeText(activity, activity.getString(R.string.mayak_devices_err, human(e)), Toast.LENGTH_LONG).show()
+                Toast.makeText(activity, activity.getString(R.string.mayak_devices_err, human(activity, e)), Toast.LENGTH_LONG).show()
                 return@launch
             }
             loading.dismiss()
@@ -157,7 +157,7 @@ object MayakDevices {
                     } catch (e: Exception) {
                         Toast.makeText(
                             activity,
-                            activity.getString(R.string.mayak_devices_revoke_err, human(e)),
+                            activity.getString(R.string.mayak_devices_revoke_err, human(activity, e)),
                             Toast.LENGTH_LONG,
                         ).show()
                         return@launch
@@ -170,9 +170,15 @@ object MayakDevices {
             .show()
     }
 
-    /** Текст ошибки для человека: ядро прислало причину — показываем её, иначе хотя бы класс сбоя. */
-    private fun human(e: Exception): String = when (e) {
+    /** Текст ошибки для человека: ядро прислало причину — показываем её; сетевой отказ называем
+     *  словами (нет интернета / сервер молчит), а не именем Java-класса, как было до 2026-08-07:
+     *  «Не удалось получить список: ни один домен ядра недоступен (2): …» человеку не говорит ничего. */
+    private fun human(ctx: android.content.Context, e: Exception): String = when (e) {
         is MayakApiException -> e.message ?: "HTTP ${e.status}"
-        else -> e.message ?: e.javaClass.simpleName
+        is java.io.IOException -> ctx.getString(
+            if (MayakNet.hasNetwork(ctx)) R.string.mayak_err_server_unreachable
+            else R.string.mayak_status_no_network
+        )
+        else -> ctx.getString(R.string.mayak_err_generic)
     }
 }

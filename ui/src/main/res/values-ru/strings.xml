@@ -297,6 +297,8 @@
     <string name="mayak_err_direction_not_in_plan">Эта страна не входит в ваш тариф.</string>
     <string name="mayak_err_overloaded">Сервис сейчас перегружен. Попробуйте через минуту.</string>
     <string name="mayak_err_billing_unavailable">Оплата пока недоступна.</string>
+    <!-- Сеть есть, а наш сервер не ответил: это НЕ то же самое, что «интернета нет» (лечится по-разному). -->
+    <string name="mayak_err_server_unreachable">Наш сервер не отвечает. Интернет у вас есть — попробуйте через минуту.</string>
     <string name="mayak_err_generic">Что-то пошло не так. Попробуйте чуть позже.</string>
     <string name="mayak_open_cabinet">Открыть кабинет</string>
     <string name="mayak_password_hint">Пароль</string>
