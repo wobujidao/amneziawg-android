@@ -292,7 +292,7 @@
     <string name="mayak_status_no_network">На телефоне нет интернета — проверьте связь</string>
     <string name="mayak_status_checking">Проверяем соединение…</string>
     <string name="mayak_notif_no_traffic">Трафик не идёт — вы не защищены</string>
-    <string name="mayak_err_account_blocked">Аккаунт заблокирован. Напишите в поддержку: support@mayakvpn.ru</string>
+    <string name="mayak_err_account_blocked">Аккаунт заблокирован. Напишите в поддержку: %1$s</string>
     <string name="mayak_err_direction_busy">На этой стране сейчас нет свободных адресов. Выберите другую — мы добавляем ёмкость.</string>
     <string name="mayak_err_direction_not_in_plan">Эта страна не входит в ваш тариф.</string>
     <string name="mayak_err_overloaded">Сервис сейчас перегружен. Попробуйте через минуту.</string>

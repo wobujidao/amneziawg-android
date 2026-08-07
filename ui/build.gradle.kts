@@ -54,6 +54,9 @@ android {
         // true. Единственная точка ветвления — MayakHostList (адреса/CA берутся из buildType-варианта,
         // а не из константы рядом с константой: 2026-08-05 поймали 4 бага ровно на вшитых списках).
         buildConfigField("boolean", "MAYAK_PROD_TARGET", "false")
+        // Адрес поддержки СВОЕГО контура. Раньше он был вшит прямо в строку перевода, один на обе
+        // сборки, — и боевое приложение отправляло человека писать на дев-домен (найдено 07-08).
+        buildConfigField("String", "MAYAK_SUPPORT_EMAIL", "\"support@mayakvpn.ru\"")
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -117,6 +120,7 @@ android {
             initWith(getByName("release"))
             matchingFallbacks += "release"
             buildConfigField("boolean", "MAYAK_PROD_TARGET", "true")
+            buildConfigField("String", "MAYAK_SUPPORT_EMAIL", "\"support@mayaknetworks.com\"")
         }
     }
     androidResources {

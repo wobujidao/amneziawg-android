@@ -677,7 +677,7 @@ class MayakActivity : AppCompatActivity() {
                     // Сначала машинный признак: под 403 живут ДВА разных случая (email не подтверждён
                     // и аккаунт заблокирован), и предлагать заблокированному «подтвердить почту» —
                     // отправлять его чинить не то.
-                    e.code == "account_blocked" -> showLoginError(getString(R.string.mayak_err_account_blocked))
+                    e.code == "account_blocked" -> showLoginError(getString(R.string.mayak_err_account_blocked, BuildConfig.MAYAK_SUPPORT_EMAIL))
                     e.status == 403 -> showEmailNotVerified()
                     e.code == "totp_required" -> askTotpCode()
                     e.code == "totp_invalid" -> showTotpError()
