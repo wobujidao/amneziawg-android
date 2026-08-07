@@ -60,6 +60,35 @@ data class DeviceResponse(
     @SerialName("device_id") val deviceId: Long,
 )
 
+/**
+ * Устройство аккаунта (GET /v1/client/devices). Ровно то, что отдаёт cprepo.DeviceInfo: ключ
+ * приходит УЖЕ маскированным, полного публичного ключа ядро наружу не даёт.
+ *
+ * Даты — RFC3339 от ядра; `lastSeen` пустая, если устройство ни разу не подключалось.
+ */
+@Serializable
+data class DeviceItem(
+    val id: Long = 0,
+    val label: String = "",
+    val pubkey: String = "",
+    @SerialName("created_at") val createdAt: String = "",
+    // Nullable ОСОЗНАННО: ядро сейчас поле опускает (omitempty на nil-указателе), но если оно
+    // когда-нибудь начнёт приходить как явный null, разбор непустого типа упал бы и экран устройств
+    // перестал бы открываться. Читателю всё равно — обе формы дают «ни разу не подключалось».
+    @SerialName("last_seen") val lastSeen: String? = null,
+) {
+    /** Момент последнего подключения в мс эпохи; null — не подключалось или дата не разобралась. */
+    fun lastSeenMs(): Long? = parseTime(lastSeen)
+
+    /** Когда устройство добавлено, в мс эпохи; null — дата не разобралась. */
+    fun createdAtMs(): Long? = parseTime(createdAt)
+
+    private fun parseTime(s: String?): Long? {
+        if (s.isNullOrBlank()) return null
+        return runCatching { java.time.OffsetDateTime.parse(s).toInstant().toEpochMilli() }.getOrNull()
+    }
+}
+
 @Serializable
 data class Direction(
     val id: Long,

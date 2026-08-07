@@ -462,9 +462,28 @@
         <item quantity="many">%d дней</item>
         <item quantity="other">%d дня</item>
     </plurals>
+    <!-- «Мои устройства»: список и отключение лишнего прямо в приложении (раньше — только в кабинете). -->
+    <string name="mayak_settings_devices">Мои устройства</string>
+    <string name="mayak_devices_title">Мои устройства</string>
+    <string name="mayak_devices_loading">Загружаем список устройств…</string>
+    <string name="mayak_devices_empty">На аккаунте нет ни одного устройства.</string>
+    <string name="mayak_devices_unnamed">Устройство без имени</string>
+    <string name="mayak_devices_this">это устройство</string>
+    <string name="mayak_devices_last_seen">подключалось %1$s</string>
+    <string name="mayak_devices_never">ни разу не подключалось · добавлено %1$s</string>
+    <string name="mayak_devices_revoke_title">Отключить «%1$s»?</string>
+    <string name="mayak_devices_revoke">Отключить</string>
+    <string name="mayak_devices_revoke_msg">Устройство перестанет подключаться к «Маяку», его место на аккаунте освободится. Приложение на нём останется — чтобы вернуть, нужно будет войти и подключиться заново.</string>
+    <string name="mayak_devices_revoke_msg_self">Это тот телефон, с которого вы сейчас смотрите. Текущее подключение оборвётся, место на аккаунте освободится. Чтобы вернуть — просто подключитесь ещё раз.</string>
+    <!-- Коротко ОСОЗНАННО: тост на Android обрезается после двух строк, и хвост «…попробуйте
+         подключиться снова» человек не читал (проверено на эмуляторе 07-08). -->
+    <string name="mayak_devices_revoked">Устройство отключено, место освободилось.</string>
+    <string name="mayak_devices_err">Не удалось получить список устройств: %1$s</string>
+    <string name="mayak_devices_revoke_err">Не удалось отключить устройство: %1$s</string>
+    <string name="mayak_close">Закрыть</string>
     <string name="mayak_status_access_expired">Доступ закончился</string>
     <string name="mayak_status_device_limit">Занято максимум устройств</string>
-    <string name="mayak_device_limit_msg">На аккаунте уже подключено максимум устройств, поэтому это добавить не получается. Отключите ненужное устройство в кабинете и попробуйте снова.</string>
+    <string name="mayak_device_limit_msg">На аккаунте уже подключено максимум устройств, поэтому это добавить не получается. Откройте «Мои устройства», отключите то, которым больше не пользуетесь, и попробуйте снова.</string>
     <string name="mayak_access_expired_msg">Срок доступа к сервису закончился, поэтому подключение недоступно. Статус аккаунта виден в кабинете.</string>
     <string name="mayak_settings_reset">Сбросить все настройки</string>
     <string name="mayak_settings_reset_confirm">Сбросить все настройки приложения к значениям по умолчанию? Из аккаунта не выйдете.</string>

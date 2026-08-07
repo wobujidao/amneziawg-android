@@ -348,6 +348,21 @@ class MayakSession(
     suspend fun accountStatus(backend: MayakBackend): org.amnezia.awg.mayak.core.AccountStatus =
         backend.accountStatus(requireToken())
 
+    /** Устройства аккаунта — для экрана «Мои устройства» (MayakDevices). Требует входа. */
+    suspend fun listDevices(backend: MayakBackend): List<org.amnezia.awg.mayak.core.DeviceItem> =
+        backend.listDevices(requireToken())
+
+    /**
+     * Отключить устройство аккаунта. Если отключили ТЕКУЩЕЕ — забываем локальный device_id: иначе
+     * приложение продолжало бы слать удалённый id на /connect и получало бы отказ, который человеку
+     * нечем объяснить. Пустой id заставит следующий коннект зарегистрировать устройство заново
+     * (место как раз освободилось), то есть отключение своего устройства не запирает приложение.
+     */
+    suspend fun revokeDevice(backend: MayakBackend, id: Long) {
+        backend.revokeDevice(requireToken(), id)
+        if (id == deviceId()) store.remove(K_DEVICE)
+    }
+
     /** id устройства из хранилища (0 — ещё не зарегистрировано); для контекста диаг-лога. */
     fun deviceId(): Long = store.get(K_DEVICE)?.toLongOrNull() ?: 0L
 

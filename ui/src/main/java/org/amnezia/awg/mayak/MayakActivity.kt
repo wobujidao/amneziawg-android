@@ -761,10 +761,15 @@ class MayakActivity : AppCompatActivity() {
         connectedDir = null
         renderState(ConnState.DISCONNECTED)
         setStatus(getString(R.string.mayak_status_device_limit))
+        // Кнопка ведёт в СВОЙ список устройств, а не в кабинет: кабинет — это внешний браузер с
+        // отдельным входом, и открывать его пришлось бы ровно тогда, когда подключения нет (а у части
+        // людей и сайт не открывается). Кнопки «Открыть кабинет» тут больше нет намеренно: третья
+        // кнопка в диалоге встаёт столбиком и разводит «Отмену» между двумя действиями, а освободить
+        // место теперь можно здесь же. Ссылка на кабинет осталась в Настройках.
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.mayak_status_device_limit))
             .setMessage(getString(R.string.mayak_device_limit_msg))
-            .setPositiveButton(getString(R.string.mayak_open_cabinet)) { _, _ -> openUrl(MayakHostList.cabinetUrl(this)) }
+            .setPositiveButton(getString(R.string.mayak_settings_devices)) { _, _ -> MayakDevices.show(this) }
             .setNegativeButton(getString(R.string.mayak_cancel), null)
             .show()
     }

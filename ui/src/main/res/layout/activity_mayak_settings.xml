@@ -467,6 +467,17 @@
                 android:textColor="@color/mayak_on_surface"
                 android:textAppearance="@style/Mayak.Tagline" />
 
+            <!-- Мои устройства: список и отключение ЗДЕСЬ ЖЕ. До 07-08 освободить место можно было
+                 только в кабинете (внешний браузер + отдельный вход), и человек, сменивший телефон,
+                 упирался в тупик ровно тогда, когда подключение и не работает. -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/mayak_settings_devices"
+                style="@style/Mayak.Button.Outlined"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="@string/mayak_settings_devices" />
+
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/mayak_settings_cabinet"
                 style="@style/Mayak.Button.Outlined"

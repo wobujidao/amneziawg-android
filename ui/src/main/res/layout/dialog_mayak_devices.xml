@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Тело диалога «Мои устройства»: строки собираются в код (item_mayak_device), количество —
+     единицы (лимит устройств), поэтому список, а не RecyclerView. ScrollView на случай большого
+     лимита и мелкого экрана: диалог не должен уезжать за края. -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingStart="24dp"
+    android:paddingEnd="16dp"
+    android:paddingTop="4dp">
+
+    <LinearLayout
+        android:id="@+id/mayak_devices_list"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:divider="?android:attr/listDivider"
+        android:showDividers="middle" />
+
+</ScrollView>

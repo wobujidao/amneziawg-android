@@ -145,6 +145,22 @@ class MayakBackend(
         return json.decodeFromString(DeviceResponse.serializer(), resp)
     }
 
+    /**
+     * Устройства аккаунта (GET /v1/client/devices). Нужны САМОМУ приложению, а не только кабинету:
+     * при «занято максимум устройств» человек раньше упирался в тупик — освободить место предлагалось
+     * в кабинете, то есть во внешнем браузере, с отдельным входом и ровно в тот момент, когда VPN не
+     * поднялся (разбор приложения 07-08). Список читается тем же токеном, что и всё остальное.
+     */
+    suspend fun listDevices(token: String): List<DeviceItem> {
+        val resp = call("GET", "/v1/client/devices", token = token, body = null)
+        return json.decodeFromString(kotlinx.serialization.builtins.ListSerializer(DeviceItem.serializer()), resp)
+    }
+
+    /** Отключить устройство аккаунта (DELETE /v1/client/devices/{id}). 404 device_not_found — чужое/уже удалено. */
+    suspend fun revokeDevice(token: String, id: Long) {
+        call("DELETE", "/v1/client/devices/$id", token = token, body = null)
+    }
+
     suspend fun directions(token: String): List<Direction> {
         val resp = call("GET", "/v1/client/directions", token = token, body = null)
         return json.decodeFromString(kotlinx.serialization.builtins.ListSerializer(Direction.serializer()), resp)

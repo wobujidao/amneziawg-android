@@ -252,9 +252,27 @@
         <item quantity="one">%d day</item>
         <item quantity="other">%d days</item>
     </plurals>
+    <!-- "My devices": list and revoke inside the app (used to be dashboard-only). -->
+    <string name="mayak_settings_devices">My devices</string>
+    <string name="mayak_devices_title">My devices</string>
+    <string name="mayak_devices_loading">Loading your devices…</string>
+    <string name="mayak_devices_empty">This account has no devices yet.</string>
+    <string name="mayak_devices_unnamed">Unnamed device</string>
+    <string name="mayak_devices_this">this device</string>
+    <string name="mayak_devices_last_seen">last connected %1$s</string>
+    <string name="mayak_devices_never">never connected · added %1$s</string>
+    <string name="mayak_devices_revoke_title">Disconnect “%1$s”?</string>
+    <string name="mayak_devices_revoke">Disconnect</string>
+    <string name="mayak_devices_revoke_msg">The device will no longer connect to Mayak and its slot on the account will be freed. The app stays installed there — signing in and connecting again brings it back.</string>
+    <string name="mayak_devices_revoke_msg_self">This is the phone you are looking at right now. The current connection will drop and the slot will be freed. To bring it back, just connect again.</string>
+    <!-- Deliberately short: Android truncates toasts after two lines. -->
+    <string name="mayak_devices_revoked">Device disconnected, a slot is free now.</string>
+    <string name="mayak_devices_err">Could not load your devices: %1$s</string>
+    <string name="mayak_devices_revoke_err">Could not disconnect the device: %1$s</string>
+    <string name="mayak_close">Close</string>
     <string name="mayak_status_access_expired">Access ended</string>
     <string name="mayak_status_device_limit">Device limit reached</string>
-    <string name="mayak_device_limit_msg">Your account already has the maximum number of devices, so this one can\'t be added. Remove a device you no longer use in the dashboard and try again.</string>
+    <string name="mayak_device_limit_msg">Your account already has the maximum number of devices, so this one can\'t be added. Open “My devices”, disconnect one you no longer use, and try again.</string>
     <string name="mayak_access_expired_msg">Your access to the service has ended, so connecting is unavailable. You can see your account status in the dashboard.</string>
     <string name="mayak_settings_reset">Reset all settings</string>
     <string name="mayak_settings_reset_confirm">Reset all app settings to defaults? This does not sign you out.</string>

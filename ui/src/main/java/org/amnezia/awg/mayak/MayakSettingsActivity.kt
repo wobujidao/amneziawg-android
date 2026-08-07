@@ -87,6 +87,11 @@ class MayakSettingsActivity : AppCompatActivity() {
         findViewById<MaterialButton>(R.id.mayak_settings_cabinet).setOnClickListener {
             openUrl(MayakHostList.cabinetUrl(this))
         }
+        // Список устройств и отключение лишнего — прямо здесь. После отключения перечитываем строку
+        // «Устройства: N из M»: иначе она показывала бы прежнее число, и человек решил бы, что не сработало.
+        findViewById<MaterialButton>(R.id.mayak_settings_devices).setOnClickListener {
+            MayakDevices.show(this) { loadSubscription() }
+        }
 
         // Фильтрация DNS и срок доступа — оба живут на АККАУНТЕ (ядро), поэтому только после входа.
         findViewById<MaterialButton>(R.id.mayak_settings_dns).setOnClickListener {
