@@ -161,11 +161,25 @@ class MayakActivity : AppCompatActivity() {
             if (granted && tunnel.isUp()) MayakNotification.show(this, GoTunnel.connectedLabel, GoTunnel.connectedPingMs)
         }
 
+    /**
+     * Спросить разрешение на уведомления — НА ГЛАВНОМ ЭКРАНЕ, а не в момент подключения.
+     *
+     * Раньше вызывалось из connectTo(), то есть встык с системным согласием на VPN: на первом
+     * подключении человек получал ДВА системных диалога подряд, второй поверх первого. Оба нужны и
+     * оба системные, но перебивать ими один жест — это уже наша работа, а не Android'а. Теперь
+     * спрашиваем один раз при показе главного (после входа), когда ничего не ждёт и отказ ничего не
+     * ломает, — и на первом подключении остаётся ровно ОДИН перебив: согласие на VPN.
+     *
+     * Раз на процесс: пересоздание Activity (поворот экрана, смена темы) не должно переспрашивать.
+     * Дальше ограничивает сам Android — после двух отказов диалог больше не показывается.
+     */
     private fun maybeRequestNotifPermission() {
+        if (notifAskedThisProcess) return
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
             PackageManager.PERMISSION_GRANTED
         ) {
+            notifAskedThisProcess = true
             notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
     }
@@ -1095,6 +1109,8 @@ class MayakActivity : AppCompatActivity() {
         renderState(connState)
         loadAccessLine()
         fadeInContent() // тонкий fade-through при заходе на главный (login→home)
+        // Разрешение на уведомления просим ЗДЕСЬ, а не при подключении: см. maybeRequestNotifPermission.
+        maybeRequestNotifPermission()
     }
 
     /**
@@ -1510,7 +1526,9 @@ class MayakActivity : AppCompatActivity() {
     }
 
     private fun connectTo(d: Direction) {
-        maybeRequestNotifPermission()
+        // Разрешение на уведомления здесь БОЛЬШЕ НЕ спрашиваем — его просит главный экран
+        // (maybeRequestNotifPermission в showHome). Иначе первое подключение перебивалось двумя
+        // системными диалогами подряд вместо одного.
         val prepare = GoBackend.VpnService.prepare(this)
         if (prepare != null) {
             pendingConnect = d
@@ -2780,6 +2798,7 @@ class MayakActivity : AppCompatActivity() {
         @Volatile private var ruDirectRefreshedThisProcess = false // OTA-подтяжка РФ-списка split-туннеля — раз на процесс
         @Volatile private var hostsRefreshedThisProcess = false    // реестр доменов (ядро + кабинет) — раз на процесс
         @Volatile private var ruAutoCheckedThisProcess = false // авто-РФ-пресет (2026-08-03) — раз на процесс, не спамим egress-check
+        @Volatile private var notifAskedThisProcess = false // запрос POST_NOTIFICATIONS — раз на процесс (поворот не переспрашивает)
 
         // Тёплый /connect-кэш (DPI: не дёргать api.mayakvpn.ru рядом с хендшейком) греем один раз за процесс
         // при первом входе на главный. Пересоздание Activity (смена темы) уже НЕ греет (баг владельца 2026-07-06).

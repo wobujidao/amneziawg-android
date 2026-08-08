@@ -72,8 +72,8 @@
 
             <ImageView
                 android:id="@+id/mayak_logo"
-                android:layout_width="132dp"
-                android:layout_height="132dp"
+                android:layout_width="@dimen/mayak_login_logo"
+                android:layout_height="@dimen/mayak_login_logo"
                 android:layout_marginTop="@dimen/mayak_space_3"
                 android:importantForAccessibility="no"
                 android:src="@drawable/mayak_logo" />

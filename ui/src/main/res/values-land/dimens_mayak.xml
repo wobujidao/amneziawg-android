@@ -8,4 +8,8 @@
 <resources>
     <dimen name="mayak_connect_circle">130dp</dimen>
     <dimen name="mayak_connect_area">210dp</dimen>
+
+    <!-- Логотип экрана ВХОДА по той же причине: на 132dp он вместе с заголовком съедал альбомный
+         экран целиком, и формы не было видно вовсе (проверено на эмуляторе 08-08). -->
+    <dimen name="mayak_login_logo">72dp</dimen>
 </resources>
