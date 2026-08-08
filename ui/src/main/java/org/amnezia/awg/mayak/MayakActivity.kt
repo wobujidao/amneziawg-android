@@ -1199,7 +1199,13 @@ class MayakActivity : AppCompatActivity() {
                 // «Ошибка ядра (401)» и оставить человека на экране, где всё мертво, — тупик:
                 // уводим на вход так же, как в коннекте.
                 if (e is MayakApiException && e.code == "unauthorized") sessionExpired()
-                else if (directions.isEmpty()) setStatus(humanError(e))
+                else if (directions.isEmpty()) {
+                    // Показать нечего И загрузка провалилась — это НЕ «стран нет»: список у нас,
+                    // скорее всего, в порядке, не удалась именно загрузка. Говорим ровно это, а
+                    // рядом даём кнопку повтора (одной фразой на две причины отделаться нельзя).
+                    setStatus(humanError(e))
+                    showDirsLoadError(e)
+                }
             }
         }
     }
@@ -1272,8 +1278,18 @@ class MayakActivity : AppCompatActivity() {
         container.removeAllViews()
         rowViews.clear()
         if (dirs.isEmpty()) {
-            setStatus(getString(R.string.mayak_err_empty_dirs)); return
+            // Сервер ОТВЕТИЛ, но стран в ответе нет. Это отдельная беда со своим лечением (обновить
+            // через минуту, заглянуть в кабинет) — не путать с «список не загрузился», см.
+            // showDirsLoadError. Статус под кнопкой оставляем прежним: он короткий, карточка длинная.
+            setStatus(getString(R.string.mayak_err_empty_dirs))
+            showDirsState(
+                getString(R.string.mayak_dirs_empty_title),
+                getString(R.string.mayak_dirs_empty_text),
+                R.string.mayak_refresh,
+            )
+            return
         }
+        hideDirsState()
         for (d in dirs) {
             val row = countryRow(d)
             container.addView(row)
@@ -1293,6 +1309,51 @@ class MayakActivity : AppCompatActivity() {
         // Меряем RTT во ВСЕХ режимах (не только «пинг»), чтобы ЦИФРА пинга показывалась всегда (запрос
         // владельца 2026-07-11: цифры вместо полосок). Кэш (TTL) не даёт спамить серверы повторно.
         pingDirectionsOnce(dirs)
+    }
+
+    /**
+     * Карточка стран без единой строки — показать человеку, что произошло и что делать.
+     *
+     * До этого пустая карточка была буквально пустой: ни слова внутри, только мелкий статус под
+     * кнопкой подключения. Причин у пустоты две, лечения у них разные, и одной фразой их накрывать
+     * запрещено правилом проекта — поэтому заголовок/текст/подпись кнопки приходят аргументами, а
+     * не зашиты здесь. Кнопка всегда делает одно: перетягивает список с сервера заново.
+     */
+    private fun showDirsState(title: CharSequence, text: CharSequence, actionLabel: Int) {
+        val block = findViewById<View?>(R.id.mayak_dirs_state) ?: return
+        findViewById<TextView?>(R.id.mayak_dirs_state_title)?.text = title
+        findViewById<TextView?>(R.id.mayak_dirs_state_text)?.text = text
+        findViewById<MaterialButton?>(R.id.mayak_dirs_state_action)?.apply {
+            setText(actionLabel)
+            setOnClickListener {
+                it.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                MayakPingCache.clear()
+                loadDirections(forceRefresh = true)
+            }
+        }
+        block.visibility = View.VISIBLE
+        // Сортировать нечего — переключатель режима в пустой карточке только сбивает с толку.
+        findViewById<View?>(R.id.mayak_sort_mode)?.visibility = View.GONE
+    }
+
+    /** Строки появились — убрать объяснение и вернуть переключатель сортировки. */
+    private fun hideDirsState() {
+        findViewById<View?>(R.id.mayak_dirs_state)?.visibility = View.GONE
+        findViewById<View?>(R.id.mayak_sort_mode)?.visibility = View.VISIBLE
+    }
+
+    /**
+     * Список не загрузился (сервер молчит / нет сети / отказ ядра) — это НЕ «стран нет».
+     * Три разные причины — три разных текста: телефон без интернета человек чинит сам за секунду,
+     * молчащий сервер — ждёт, отказ ядра объясняем его же словами (humanError уже переводит коды).
+     */
+    private fun showDirsLoadError(e: Throwable) {
+        val text = when {
+            e is MayakApiException -> humanError(e)
+            e is IOException && !MayakNet.hasNetwork(this) -> getString(R.string.mayak_dirs_error_offline)
+            else -> getString(R.string.mayak_dirs_error_server)
+        }
+        showDirsState(getString(R.string.mayak_dirs_error_title), text, R.string.mayak_dirs_retry)
     }
 
     private var pingPassJob: Job? = null

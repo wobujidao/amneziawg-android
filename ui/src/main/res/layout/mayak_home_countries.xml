@@ -71,5 +71,44 @@
                 android:divider="@drawable/mayak_row_divider"
                 android:showDividers="middle" />
         </ScrollView>
+
+        <!-- Состояние «строк нет»: пустой список ИЛИ отказ загрузки. Раньше на этом месте не было
+             ничего — только фраза «Ядро не вернуло ни одной страны» мелким статусом под кнопкой,
+             одна на обе беды сразу. Тексты и заголовок ставит код (см. MayakActivity.showDirsState):
+             «сервер ответил, но стран нет» и «список не загрузился» — разные причины и разные
+             действия, одной формулировкой их накрывать нельзя. -->
+        <LinearLayout
+            android:id="@+id/mayak_dirs_state"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingTop="14dp"
+            android:paddingBottom="6dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/mayak_dirs_state_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="6dp"
+                android:textColor="@color/mayak_on_surface"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/mayak_dirs_state_text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="14dp"
+                android:lineSpacingMultiplier="1.15"
+                android:textColor="@color/mayak_on_bg_muted"
+                android:textSize="14sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/mayak_dirs_state_action"
+                style="@style/Mayak.Button.Outlined"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+        </LinearLayout>
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>
