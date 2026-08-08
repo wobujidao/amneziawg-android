@@ -8,6 +8,7 @@ package org.amnezia.awg.mayak.core
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 
 /**
  * Вход. `totpCode` — код двухфакторной аутентификации ЛИБО резервный код; пустая строка = не слали
@@ -250,15 +251,24 @@ data class DiagLogResponse(
 )
 
 /** Инфо о последней версии приложения (самообновление, Вариант А): статический version.json на хосте.
- *  Приложение сверяет свой versionCode; если ниже latest — мягкий нудж со ссылкой apkUrl. */
+ *  Приложение сверяет свой versionCode; если ниже latest — мягкий нудж со ссылкой apkUrl, а если ниже
+ *  [minVersionCode] — неотменяемый экран «сборка больше не работает» (см. MinVersionGate). */
 @Serializable
 data class AppVersionInfo(
     @SerialName("latest_version_code") val latestVersionCode: Int = 0,
     @SerialName("latest_version_name") val latestVersionName: String = "",
     @SerialName("apk_url") val apkUrl: String = "",
-    @SerialName("min_version_code") val minVersionCode: Int = 0, // ниже этого — жёсткий апдейт (на будущее)
+    /**
+     * Порог старых сборок СЫРЬЁМ. Тип [JsonElement], а не `Int`, намеренно: разбор строгий
+     * (`isLenient=false`), и строка или мусор в этом поле уронил бы разбор ВСЕГО файла — приложение
+     * осталось бы и без порога, И без самообновления. Читать через [minVersionCode].
+     */
+    @SerialName("min_version_code") val minVersionCodeRaw: JsonElement? = null,
     val changelog: String = "",
-)
+) {
+    /** Порог старых сборок: поля нет или мусор → 0, то есть «гейта нет» (fail-open). */
+    val minVersionCode: Int get() = minVersionCodeOf(minVersionCodeRaw)
+}
 
 /**
  * Тихий еженедельный телеметри-бикон (POST /v1/client/telemetry → 204 No Content). Не-ПДн: версия

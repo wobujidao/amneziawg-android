@@ -9,10 +9,15 @@ import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
+import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.core.content.FileProvider
+import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.amnezia.awg.R
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
@@ -160,6 +165,53 @@ object MayakUpdater {
     /** Экран системных настроек «Разрешить установку из этого источника». */
     fun installPermissionIntent(context: Context): Intent =
         Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:${context.packageName}"))
+
+    /**
+     * Весь путь обновления с сайта одной кнопкой: разрешение → скачивание с прогрессом → проверка
+     * подписи → системный установщик.
+     *
+     * Вынесено сюда из MayakActivity, когда появился второй вызывающий (неотменяемый экран
+     * «сборка больше не работает», MayakOutdatedActivity). Двух копий этого куска быть не должно:
+     * внутри него живёт [isTrusted] — гейт, который не даёт поставить чужой APK. Починив его однажды
+     * в одном месте из двух, мы получили бы экран, устанавливающий непроверенный файл, и заметить это
+     * было бы нечем.
+     */
+    fun runUpdate(activity: androidx.appcompat.app.AppCompatActivity, apkUrl: String, knownBases: List<String>) {
+        if (apkUrl.isBlank()) return
+        if (!canInstall(activity)) {
+            // Android 8+: нужно разрешение «установка из этого источника» — ведём в настройки, затем повтор.
+            Toast.makeText(activity, R.string.mayak_update_need_perm, Toast.LENGTH_LONG).show()
+            runCatching { activity.startActivity(installPermissionIntent(activity)) }
+            return
+        }
+        val bar = android.widget.ProgressBar(activity, null, android.R.attr.progressBarStyleHorizontal).apply {
+            max = 100; isIndeterminate = false
+            val p = (16 * activity.resources.displayMetrics.density).toInt()
+            setPadding(p * 3, p, p * 3, p)
+        }
+        val dlg = AlertDialog.Builder(activity)
+            .setTitle(R.string.mayak_update_downloading)
+            .setView(bar)
+            .setCancelable(false)
+            .create()
+        dlg.show()
+        activity.lifecycleScope.launch {
+            val apk = download(activity, apkUrl, knownBases) { pct ->
+                activity.runOnUiThread { bar.progress = pct }
+            }
+            runCatching { dlg.dismiss() }
+            if (apk == null) {
+                Toast.makeText(activity, R.string.mayak_update_download_failed, Toast.LENGTH_LONG).show()
+                return@launch
+            }
+            if (!isTrusted(activity, apk)) {
+                apk.delete() // чужая подпись/пакет — не ставим
+                Toast.makeText(activity, R.string.mayak_update_untrusted, Toast.LENGTH_LONG).show()
+                return@launch
+            }
+            runCatching { install(activity, apk) }
+        }
+    }
 
     /** Запустить системный установщик для скачанного APK (через FileProvider). */
     fun install(context: Context, apk: File) {

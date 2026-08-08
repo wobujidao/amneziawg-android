@@ -190,6 +190,13 @@
     <string name="mayak_update_download_failed">Couldn\'t download the update</string>
     <string name="mayak_update_untrusted">Signature check failed — install cancelled</string>
     <string name="mayak_update_need_perm">Allow installs from this source, then tap Update again</string>
+    <!-- Отрезанная сборка (порог min_version_code). Неотменяемый экран: «Позже» здесь нет. -->
+    <string name="mayak_outdated_title">This version no longer works</string>
+    <string name="mayak_outdated_why">Your build is no longer supported: the connection in it doesn\'t work the way it should. There is no way to continue on this version.</string>
+    <string name="mayak_outdated_data_safe">Your account, access and settings are intact — everything comes back right after the update. You won\'t have to sign in again.</string>
+    <string name="mayak_outdated_open_site">Open the website</string>
+    <string name="mayak_outdated_versions">Your version %1$s (%2$d) · current %3$s</string>
+    <string name="mayak_outdated_version_unknown">unknown</string>
     <string name="mayak_a11y_connect">Connect</string>
     <string name="mayak_a11y_connecting">Connecting</string>
     <string name="mayak_a11y_disconnect">Disconnect</string>
