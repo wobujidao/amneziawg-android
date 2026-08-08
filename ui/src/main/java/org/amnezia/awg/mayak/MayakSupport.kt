@@ -79,7 +79,13 @@ object MayakSupport {
             ?: context.getString(R.string.mayak_support_direction_none)
         val account = accountEmail?.takeIf { it.isNotBlank() }
             ?: context.getString(R.string.mayak_support_account_none)
-        return context.getString(R.string.mayak_support_body, version, device, android, direction, account)
+        val body = context.getString(R.string.mayak_support_body, version, device, android, direction, account)
+        // Номер аккаунта — то, чем поддержка ищет человека (почта в схеме необязательна: учётки из
+        // бота и подарочные заводятся без неё, и «Аккаунт: вход не выполнен» выше — обычное дело).
+        // Дописываем строкой, а не параметром в mayak_support_body: тот шаблон переводится на два
+        // десятка языков, и лишний %6$s в нём означал бы двадцать правок и падение на любом пропуске.
+        val number = MayakAccountNumber.display(context) ?: return body
+        return body + context.getString(R.string.mayak_support_body_account_number, number) + "\n"
     }
 
     private fun openExternal(context: Context, intent: Intent): Boolean = try {
