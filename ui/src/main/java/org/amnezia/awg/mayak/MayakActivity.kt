@@ -51,6 +51,7 @@ import org.amnezia.awg.BuildConfig
 import org.amnezia.awg.R
 import org.amnezia.awg.backend.GoBackend
 import org.amnezia.awg.mayak.core.AccessDenial
+import org.amnezia.awg.mayak.core.AlwaysOnNudge
 import org.amnezia.awg.mayak.core.AppVersionInfo
 import org.amnezia.awg.mayak.core.Direction
 import org.amnezia.awg.mayak.core.DohResolver
@@ -1237,7 +1238,13 @@ class MayakActivity : AppCompatActivity() {
                 // «Ошибка ядра (401)» и оставить человека на экране, где всё мертво, — тупик:
                 // уводим на вход так же, как в коннекте.
                 if (e is MayakApiException && e.code == "unauthorized") sessionExpired()
-                else if (directions.isEmpty()) setStatus(humanError(e))
+                else if (directions.isEmpty()) {
+                    // Показать нечего И загрузка провалилась — это НЕ «стран нет»: список у нас,
+                    // скорее всего, в порядке, не удалась именно загрузка. Говорим ровно это, а
+                    // рядом даём кнопку повтора (одной фразой на две причины отделаться нельзя).
+                    setStatus(humanError(e))
+                    showDirsLoadError(e)
+                }
             }
         }
     }
@@ -1310,8 +1317,18 @@ class MayakActivity : AppCompatActivity() {
         container.removeAllViews()
         rowViews.clear()
         if (dirs.isEmpty()) {
-            setStatus(getString(R.string.mayak_err_empty_dirs)); return
+            // Сервер ОТВЕТИЛ, но стран в ответе нет. Это отдельная беда со своим лечением (обновить
+            // через минуту, заглянуть в кабинет) — не путать с «список не загрузился», см.
+            // showDirsLoadError. Статус под кнопкой оставляем прежним: он короткий, карточка длинная.
+            setStatus(getString(R.string.mayak_err_empty_dirs))
+            showDirsState(
+                getString(R.string.mayak_dirs_empty_title),
+                getString(R.string.mayak_dirs_empty_text),
+                R.string.mayak_refresh,
+            )
+            return
         }
+        hideDirsState()
         for (d in dirs) {
             val row = countryRow(d)
             container.addView(row)
@@ -1331,6 +1348,51 @@ class MayakActivity : AppCompatActivity() {
         // Меряем RTT во ВСЕХ режимах (не только «пинг»), чтобы ЦИФРА пинга показывалась всегда (запрос
         // владельца 2026-07-11: цифры вместо полосок). Кэш (TTL) не даёт спамить серверы повторно.
         pingDirectionsOnce(dirs)
+    }
+
+    /**
+     * Карточка стран без единой строки — показать человеку, что произошло и что делать.
+     *
+     * До этого пустая карточка была буквально пустой: ни слова внутри, только мелкий статус под
+     * кнопкой подключения. Причин у пустоты две, лечения у них разные, и одной фразой их накрывать
+     * запрещено правилом проекта — поэтому заголовок/текст/подпись кнопки приходят аргументами, а
+     * не зашиты здесь. Кнопка всегда делает одно: перетягивает список с сервера заново.
+     */
+    private fun showDirsState(title: CharSequence, text: CharSequence, actionLabel: Int) {
+        val block = findViewById<View?>(R.id.mayak_dirs_state) ?: return
+        findViewById<TextView?>(R.id.mayak_dirs_state_title)?.text = title
+        findViewById<TextView?>(R.id.mayak_dirs_state_text)?.text = text
+        findViewById<MaterialButton?>(R.id.mayak_dirs_state_action)?.apply {
+            setText(actionLabel)
+            setOnClickListener {
+                it.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                MayakPingCache.clear()
+                loadDirections(forceRefresh = true)
+            }
+        }
+        block.visibility = View.VISIBLE
+        // Сортировать нечего — переключатель режима в пустой карточке только сбивает с толку.
+        findViewById<View?>(R.id.mayak_sort_mode)?.visibility = View.GONE
+    }
+
+    /** Строки появились — убрать объяснение и вернуть переключатель сортировки. */
+    private fun hideDirsState() {
+        findViewById<View?>(R.id.mayak_dirs_state)?.visibility = View.GONE
+        findViewById<View?>(R.id.mayak_sort_mode)?.visibility = View.VISIBLE
+    }
+
+    /**
+     * Список не загрузился (сервер молчит / нет сети / отказ ядра) — это НЕ «стран нет».
+     * Три разные причины — три разных текста: телефон без интернета человек чинит сам за секунду,
+     * молчащий сервер — ждёт, отказ ядра объясняем его же словами (humanError уже переводит коды).
+     */
+    private fun showDirsLoadError(e: Throwable) {
+        val text = when {
+            e is MayakApiException -> humanError(e)
+            e is IOException && !MayakNet.hasNetwork(this) -> getString(R.string.mayak_dirs_error_offline)
+            else -> getString(R.string.mayak_dirs_error_server)
+        }
+        showDirsState(getString(R.string.mayak_dirs_error_title), text, R.string.mayak_dirs_retry)
     }
 
     private var pingPassJob: Job? = null
@@ -2080,6 +2142,62 @@ class MayakActivity : AppCompatActivity() {
         MayakPrefs.setLastConnLabel(this, GoTunnel.connectedLabel) // запасной источник для шторки (см. MayakPrefs)
         MayakNotification.show(this, GoTunnel.connectedLabel, GoTunnel.connectedPingMs)
         Toast.makeText(this, getString(R.string.mayak_connected), Toast.LENGTH_SHORT).show()
+        maybeShowAlwaysOnNudge() // единственный момент, когда мы говорим про постоянное подключение
+    }
+
+    /**
+     * Разговор про постоянное подключение — ОДИН раз, сразу после первого успешного подключения.
+     *
+     * Зачем именно здесь: в глубоком Doze (экран погашен, телефон в кармане или в лифте) система
+     * выгружает наш процесс, туннель умирает и сам НЕ встаёт — человек сидит без интернета, пока не
+     * откроет приложение. Рабочее лечение сегодня одно: системное постоянное подключение, которое
+     * человек включает сам. Раньше мы про это писали только в «Настройках → Защита» — пятый экран,
+     * новичок туда не доходит. ⛔ Авто-переподъём при смене сети тут не при чём и не трогается:
+     * выкатывали дважды и дважды делали хуже (откат 0.3.78, запрет в Application.kt:169).
+     *
+     * Правило показа — core.AlwaysOnNudge (чистое, под юнит-тестом). Небольшая задержка нужна, чтобы
+     * лист не выпрыгнул поверх тоста «Подключено» и анимации круга; при системном «убрать анимацию»
+     * не ждём вовсе. Проверка isFinishing/isDestroyed — на случай, если за эту паузу экран закрыли.
+     */
+    private fun maybeShowAlwaysOnNudge() {
+        if (!AlwaysOnNudge.shouldShow(
+                decision = MayakPrefs.alwaysOnDecision(this),
+                connectCount = MayakPrefs.connectCount(this), // noteConnect выше уже учёл текущее
+                alwaysOnProven = MayakAlwaysOn.isProvenEnabled(this),
+            )
+        ) return
+        val delay = if (reducedMotion()) 0L else ALWAYS_ON_NUDGE_DELAY_MS
+        connectCircle?.postDelayed({
+            if (!isFinishing && !isDestroyed) showAlwaysOnSheet()
+        }, delay)
+    }
+
+    /** Сам лист. Любой из трёх выходов закрывает разговор навсегда — различаем их только смыслом. */
+    private fun showAlwaysOnSheet() {
+        val view = layoutInflater.inflate(R.layout.sheet_mayak_always_on, null)
+        val sheet = com.google.android.material.bottomsheet.BottomSheetDialog(this)
+        sheet.setContentView(view)
+        // Системное «убрать анимацию» относится и к выезду листа — он приезжает оконной анимацией темы.
+        if (reducedMotion()) sheet.window?.setWindowAnimations(0)
+
+        fun close(decision: Int) {
+            MayakPrefs.setAlwaysOnDecision(this, decision)
+            sheet.dismiss()
+        }
+        view.findViewById<View>(R.id.mayak_alwayson_open).setOnClickListener {
+            it.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+            // Включил он там настройку или передумал — нам не видно (см. MayakAlwaysOn), поэтому
+            // считаем разговор состоявшимся в любом случае и больше не возвращаемся к нему.
+            if (!MayakAlwaysOn.openSystemSettings(this)) {
+                Toast.makeText(this, R.string.mayak_settings_killswitch_unavailable, Toast.LENGTH_LONG).show()
+            }
+            close(AlwaysOnNudge.SENT_TO_SETTINGS)
+        }
+        view.findViewById<View>(R.id.mayak_alwayson_done).setOnClickListener { close(AlwaysOnNudge.CONFIRMED) }
+        view.findViewById<View>(R.id.mayak_alwayson_later).setOnClickListener { close(AlwaysOnNudge.POSTPONED) }
+        // Свайп вниз / кнопка «назад» — то же «Позже»: иначе окно вернулось бы на следующем коннекте.
+        sheet.setOnCancelListener { MayakPrefs.setAlwaysOnDecision(this, AlwaysOnNudge.POSTPONED) }
+        sheet.show()
     }
 
     /** Success-haptic при подтверждении подключения (CONFIRM с API30, иначе обычный тик). */
@@ -2804,6 +2922,10 @@ class MayakActivity : AppCompatActivity() {
 
         /** Через сколько текст ошибки под кнопкой считается протухшим (см. clearStaleError). */
         private const val ERROR_STALE_MS = 30_000L
+
+        /** Пауза перед листом про постоянное подключение (см. maybeShowAlwaysOnNudge): даём тосту
+         *  «Подключено» и анимации круга закончиться, чтобы лист не выпрыгнул поверх них. */
+        private const val ALWAYS_ON_NUDGE_DELAY_MS = 1_200L
 
         /** Сколько ждём молча, прежде чем ОБЪЯСНИТЬ задержку (см. bringUpUdp). 6 с — быстрый путь
          *  (обычный случай, ~5-9 с до «Защищено») успевает закончиться и лишней надписи не показывает. */
