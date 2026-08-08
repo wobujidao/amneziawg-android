@@ -363,6 +363,31 @@ class MayakSession(
         if (id == deviceId()) store.remove(K_DEVICE)
     }
 
+    // ===== Обращения в поддержку (форма вместо mailto, 08-08) =====
+    //
+    // Тонкие обёртки: вся логика «что это значит» живёт в :core (supportFailure) и на экране. Здесь
+    // только токен — но именно поэтому они здесь: экран не должен доставать его из хранилища сам.
+
+    /** Создать обращение. Тема — код из SupportTopics; контекст аккаунта соберёт ядро по сессии. */
+    suspend fun createSupportTicket(
+        backend: MayakBackend,
+        topic: String,
+        message: String,
+    ): org.amnezia.awg.mayak.core.SupportSent =
+        backend.createSupportTicket(requireToken(), topic, message)
+
+    /** Свои обращения (свежие сверху) + сколько из них с непрочитанным ответом. */
+    suspend fun supportTickets(backend: MayakBackend): org.amnezia.awg.mayak.core.SupportTicketList =
+        backend.supportTickets(requireToken())
+
+    /** Своё обращение с перепиской. Этот же запрос гасит на ядре пометку «есть новый ответ». */
+    suspend fun supportThread(backend: MayakBackend, id: Long): org.amnezia.awg.mayak.core.SupportThread =
+        backend.supportThread(requireToken(), id)
+
+    /** Дописать в своё обращение. */
+    suspend fun replySupport(backend: MayakBackend, id: Long, message: String) =
+        backend.replySupport(requireToken(), id, message)
+
     /** id устройства из хранилища (0 — ещё не зарегистрировано); для контекста диаг-лога. */
     fun deviceId(): Long = store.get(K_DEVICE)?.toLongOrNull() ?: 0L
 

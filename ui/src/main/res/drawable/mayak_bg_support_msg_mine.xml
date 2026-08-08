@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Пузырь СВОЕГО сообщения в переписке с поддержкой: спокойная заливка поля, без акцента.
+     Акцент оставлен ответам поддержки — именно их человек ищет глазами, открывая нитку. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <corners android:radius="12dp" />
+    <solid android:color="@color/mayak_field_bg" />
+</shape>

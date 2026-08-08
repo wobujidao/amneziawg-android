@@ -107,6 +107,38 @@ class SupportOutcomeTest {
     }
 
     @Test
+    fun `длину считаем в рунах, как ядро, а не в UTF-16`() {
+        // 10 эмодзи — это 20 UTF-16-единиц и 10 РУН. Ядро видит ровно порог, значит и мы обязаны:
+        // иначе клиент пропустил бы то, что сервер отвергнет (или наоборот запретил бы законное).
+        val tenEmoji = "🙂".repeat(10)
+        assertEquals(20, tenEmoji.length)
+        assertEquals(10, SupportLimits.runes(tenEmoji))
+        assertEquals(null, SupportLimits.firstMessageProblem(tenEmoji))
+
+        assertEquals(SupportFailure.TOO_SHORT, SupportLimits.firstMessageProblem("не работает"[0].toString()))
+        assertEquals(SupportFailure.TOO_SHORT, SupportLimits.firstMessageProblem(""))
+        // «не работает» — 11 знаков, ровно тот короткий случай, который ядро пропускает намеренно.
+        assertEquals(null, SupportLimits.firstMessageProblem("не работает"))
+        assertEquals(
+            SupportFailure.TOO_LONG,
+            SupportLimits.firstMessageProblem("я".repeat(SupportLimits.MAX_CHARS + 1)),
+        )
+    }
+
+    @Test
+    fun `в нитке короткий ответ — это ответ, а не ошибка`() {
+        // «да»/«помогло» внутри разговора отвергать нельзя: это ответ на наш же вопрос.
+        assertEquals(null, SupportLimits.replyProblem("да"))
+        assertEquals(null, SupportLimits.replyProblem("помогло"))
+        // Но пустое поле отправлять нечем.
+        assertEquals(SupportFailure.TOO_SHORT, SupportLimits.replyProblem(""))
+        assertEquals(
+            SupportFailure.TOO_LONG,
+            SupportLimits.replyProblem("я".repeat(SupportLimits.MAX_CHARS + 1)),
+        )
+    }
+
+    @Test
     fun `Retry-After читается из заголовка ответа, а не из тела`() {
         assertEquals(3600, parseRetryAfter("3600"))
         assertEquals(3600, parseRetryAfter(" 3600 "))

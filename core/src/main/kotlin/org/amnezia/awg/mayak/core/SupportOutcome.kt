@@ -31,6 +31,45 @@ object SupportTopics {
     val CODES: List<String> = listOf("connect", "speed", "payment", "account", "app", OTHER)
 }
 
+/**
+ * Потолки текста обращения — ТЕ ЖЕ, что у ядра (`minSupportMessage`/`maxSupportMessage`).
+ *
+ * Зачем копия на клиенте, если решает всё равно сервер. Чтобы «слишком коротко» человек узнал
+ * мгновенно, а не через круг по сети и отказ (в РФ-сотовой это несколько секунд), и чтобы счётчик
+ * под полем считал то же самое, что потом проверит ядро. Сервер остаётся ПОСЛЕДНЕЙ инстанцией:
+ * разъедутся числа — победит его отказ, и человек увидит его текст, а не наш.
+ */
+object SupportLimits {
+    const val MIN_CHARS = 10
+    const val MAX_CHARS = 4000
+
+    /**
+     * Длина в РУНАХ, как считает ядро (`len([]rune(msg))`), а не в UTF-16-единицах Kotlin: эмодзи и
+     * редкие иероглифы — это ДВА units и ОДНА руна, и на них наш счётчик разошёлся бы с серверным.
+     */
+    fun runes(s: String): Int = if (s.isEmpty()) 0 else s.codePointCount(0, s.length)
+
+    /**
+     * Что не так с ПЕРВЫМ сообщением обращения ещё до отправки; null — можно отправлять.
+     * Текст обязан быть уже обрезан по краям (как это делает ядро через strings.TrimSpace).
+     */
+    fun firstMessageProblem(trimmed: String): SupportFailure? = when {
+        runes(trimmed) < MIN_CHARS -> SupportFailure.TOO_SHORT
+        runes(trimmed) > MAX_CHARS -> SupportFailure.TOO_LONG
+        else -> null
+    }
+
+    /**
+     * То же для ДОПОЛНЕНИЯ к нитке. Нижнего порога здесь нет намеренно — «да», «нет», «помогло»
+     * внутри уже идущего разговора полноценные ответы на наш же вопрос (так решает и ядро).
+     */
+    fun replyProblem(trimmed: String): SupportFailure? = when {
+        trimmed.isEmpty() -> SupportFailure.TOO_SHORT
+        runes(trimmed) > MAX_CHARS -> SupportFailure.TOO_LONG
+        else -> null
+    }
+}
+
 /** Почему обращение (или его чтение) не удалось — в терминах ДЕЙСТВИЯ человека, а не HTTP. */
 enum class SupportFailure {
     /** Ядро не знает выбранной темы: списки разъехались. Лечится переотправкой темой «Другое». */

@@ -149,6 +149,24 @@
             android:label="@string/mayak_settings"
             android:theme="@style/MayakTheme" />
 
+        <!-- Экран «Поддержка» (08-08): форма обращения в ядро вместо mailto:, свои обращения,
+             запасные пути (адрес в буфер, письмо, справка). adjustResize — поле ввода длинное,
+             и клавиатура не должна накрывать кнопку «Отправить». -->
+        <activity
+            android:name="org.amnezia.awg.mayak.MayakSupportActivity"
+            android:exported="false"
+            android:label="@string/mayak_support_title"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/MayakTheme" />
+
+        <!-- Переписка по обращению: ответы поддержки и «дописать» -->
+        <activity
+            android:name="org.amnezia.awg.mayak.MayakSupportThreadActivity"
+            android:exported="false"
+            android:label="@string/mayak_support_title"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/MayakTheme" />
+
         <!-- Экран «О приложении»: версия, на чём основано, лицензии -->
         <activity
             android:name="org.amnezia.awg.mayak.MayakAboutActivity"

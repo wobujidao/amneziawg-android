@@ -84,8 +84,12 @@ class MayakSettingsActivity : AppCompatActivity() {
         } else {
             helpCenter.visibility = View.GONE
         }
+        // «Написать в поддержку» ведёт на ФОРМУ, а не в почтовое приложение (08-08): у человека без
+        // настроенного почтового клиента mailto: не делал ничего — то есть кнопка была пустой ровно
+        // в той ситуации, ради которой её нажимают. Письмо осталось запасным путём НА ТОМ экране.
         findViewById<MaterialButton>(R.id.mayak_settings_write_support).setOnClickListener {
-            MayakSupport.writeToSupport(this, session.email())
+            startActivity(Intent(this, MayakSupportActivity::class.java))
+            MayakTransitions.applyAxis(this)
         }
         findViewById<MaterialButton>(R.id.mayak_settings_send_log).setOnClickListener { sendLog(it as MaterialButton) }
         // «Поделиться логом» видна, только пока на диске лежит недоставленный лог с прошлой неудачной
