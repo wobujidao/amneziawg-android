@@ -60,6 +60,11 @@ class MayakSupportThreadActivity : AppCompatActivity() {
         findViewById<MaterialButton>(R.id.mayak_thread_back).setOnClickListener {
             finish(); MayakTransitions.applyAxisReverse(this)
         }
+        // Потолок счётчика — из ОДНОГО места с проверкой перед отправкой (в XML то же число стоит
+        // только ради превью): разъедутся — счётчик разрешит то, что мы потом отвергнем.
+        findViewById<com.google.android.material.textfield.TextInputLayout>(
+            R.id.mayak_thread_input_layout
+        ).counterMaxLength = SupportLimits.MAX_CHARS
         findViewById<MaterialButton>(R.id.mayak_thread_send).setOnClickListener { sendReply() }
         findViewById<MaterialButton>(R.id.mayak_thread_retry).setOnClickListener { sendReply() }
 
@@ -155,9 +160,6 @@ class MayakSupportThreadActivity : AppCompatActivity() {
      */
     private fun sendReply() {
         if (sending) return
-        findViewById<com.google.android.material.textfield.TextInputLayout>(
-            R.id.mayak_thread_input_layout
-        ).counterMaxLength = SupportLimits.MAX_CHARS
         val text = input().text?.toString()?.trim().orEmpty()
         SupportLimits.replyProblem(text)?.let { problem ->
             showReplyState(MayakSupport.localProblemText(this, problem), retry = false)
