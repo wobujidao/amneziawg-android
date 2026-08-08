@@ -23,6 +23,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.widget.TextView
+import androidx.activity.addCallback
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.button.MaterialButton
 import org.amnezia.awg.BuildConfig
@@ -41,6 +42,14 @@ class MayakOutdatedActivity : AppCompatActivity() {
         setContentView(R.layout.activity_mayak_outdated)
         MayakSystemBars.apply(this)
         showing = true
+
+        // «Назад» = свернуть приложение. Внутрь не пускаем: сборка отрезана, «Позже» тут не бывает.
+        // ⚠️ Почему через диспетчер, а не переопределением onBackPressed(): в манифесте включён
+        // android:enableOnBackInvokedCallback="true" (предиктивный «Назад»), и на Android 13+ система
+        // старый метод НЕ ЗОВЁТ — вместо него закрывает активность сама. Проверено на эмуляторе
+        // (Android 15) 09-08: с переопределением «Назад» гасил гейт и показывал главный экран, то есть
+        // неотменяемый экран обходился одной кнопкой. Диспетчер androidx работает на обоих путях.
+        onBackPressedDispatcher.addCallback(this) { moveTaskToBack(true) }
 
         verdict = runCatching { OutdatedBuild.valueOf(intent?.getStringExtra(EXTRA_VERDICT) ?: "") }
             .getOrDefault(OutdatedBuild.OPEN_SITE) // не разобрали приказ — оставляем самый безобидный путь
@@ -104,12 +113,8 @@ class MayakOutdatedActivity : AppCompatActivity() {
         super.onDestroy()
     }
 
-    // «Назад» = свернуть приложение. Внутрь не пускаем: сборка отрезана, и «Позже» тут не бывает.
-    @Deprecated("Deprecated in Java")
-    @Suppress("DEPRECATION")
-    override fun onBackPressed() {
-        moveTaskToBack(true)
-    }
+    // Обработчик «Назад» регистрируется в onCreate через onBackPressedDispatcher — см. комментарий там.
+    // ⚠️ Переопределять onBackPressed() здесь НЕЛЬЗЯ: на Android 13+ его не вызывают вовсе.
 
     companion object {
         private const val EXTRA_VERDICT = "mayak_verdict"
