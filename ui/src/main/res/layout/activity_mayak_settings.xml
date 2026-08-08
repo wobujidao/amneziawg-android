@@ -522,6 +522,50 @@
                 android:textColor="@color/mayak_on_surface"
                 android:textAppearance="@style/Mayak.Tagline" />
 
+            <!-- Номер аккаунта (миграция 0110): ГЛАВНОЕ, чем человек называет себя поддержке. До
+                 08-08 он не был показан нигде, и разговор начинался с «назовите почту».
+                 Крупно и МОНОШИРИННО намеренно: номер диктуют голосом, а в пропорциональном шрифте
+                 «1» и «l», «0» и «O» на экране телефона неотличимы — человек прочтёт не то.
+                 Разметка тремя блоками — задача показа (AccountNumber.format), в базе девять цифр.
+                 Скрыт (gone), пока номера нет: не входили / ядро его ещё не отдаёт. -->
+            <LinearLayout
+                android:id="@+id/mayak_settings_acctnum_row"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="?attr/selectableItemBackground"
+                android:visibility="gone">
+
+                <LinearLayout style="@style/Mayak.DetailRow.TextCol">
+                    <TextView
+                        style="@style/Mayak.DetailRow.Label"
+                        android:text="@string/mayak_account_number" />
+                    <TextView
+                        android:id="@+id/mayak_settings_acctnum"
+                        style="@style/Mayak.DetailRow.Value.Mono"
+                        android:textSize="26sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.04" />
+                </LinearLayout>
+
+                <ImageView
+                    android:id="@+id/mayak_settings_acctnum_copy"
+                    style="@style/Mayak.DetailRow.Copy"
+                    android:contentDescription="@string/mayak_account_number_copy" />
+            </LinearLayout>
+
+            <!-- Зачем номер нужен — РЯДОМ с номером, а не в справке: иначе человек видит цифры и не
+                 понимает, что с ними делать. -->
+            <TextView
+                android:id="@+id/mayak_settings_acctnum_hint"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:visibility="gone"
+                android:textAppearance="@style/Mayak.Tagline"
+                android:text="@string/mayak_account_number_hint" />
+
             <!-- Мои устройства: список и отключение ЗДЕСЬ ЖЕ. До 07-08 освободить место можно было
                  только в кабинете (внешний браузер + отдельный вход), и человек, сменивший телефон,
                  упирался в тупик ровно тогда, когда подключение и не работает. -->

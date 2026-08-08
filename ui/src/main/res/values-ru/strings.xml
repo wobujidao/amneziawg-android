@@ -538,6 +538,16 @@
     <string name="mayak_disguise_applied">Иконка и имя изменятся через несколько секунд. Если нет — перезапустите телефон. На подключение это не влияет.</string>
     <string name="mayak_settings_account">Аккаунт: %1$s</string>
     <string name="mayak_settings_account_none">вход не выполнен</string>
+    <!-- Публичный номер аккаунта (миграция 0110): им человек называет себя поддержке. Формат
+         «472-918-563» задаёт показ (AccountNumber.format), в базе — девять цифр без дефисов.
+         Строка-подпись КОРОТКАЯ намеренно: под ней стоит сам номер крупным моноширинным. -->
+    <string name="mayak_account_number">Номер аккаунта</string>
+    <string name="mayak_account_number_hint">Назовите его, когда пишете в поддержку — так мы найдём вас быстрее, чем по почте.</string>
+    <string name="mayak_account_number_copy">Скопировать номер аккаунта</string>
+    <string name="mayak_account_number_copied">Номер аккаунта скопирован</string>
+    <!-- Строка в письме поддержке. Отдельной строкой, а не внутри mayak_support_body: тот шаблон
+         правят параллельно, и лишний параметр в нём стоил бы конфликта на каждом слиянии. -->
+    <string name="mayak_support_body_account_number">Номер аккаунта: %1$s</string>
     <string name="mayak_ipv6_badge">IPv6</string>
     <string name="mayak_settings_diagnostics">Помощь и поддержка</string>
     <string name="mayak_settings_diag_hint">Не работает или непонятно, как настроить — начните отсюда. Ответы на частые вопросы в справке; не подошло — напишите нам, письмо соберётся само. Лог помогает найти причину быстрее; данные обрабатываются согласно политике конфиденциальности.</string>

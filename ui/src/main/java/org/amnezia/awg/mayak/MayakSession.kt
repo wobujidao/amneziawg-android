@@ -123,6 +123,9 @@ class MayakSession(
     fun logout() {
         store.remove(K_TOKEN)
         store.remove(K_EMAIL)
+        // Номер аккаунта — про КОНКРЕТНУЮ учётку: переживи он выход, следующий вошедший увидел бы
+        // чужой номер и продиктовал его поддержке как свой.
+        MayakAccountNumber.forget(store)
         store.remove(K_DEVICE)
         store.remove(K_LAST_GOOD) // сохранённый конфиг прошлого пользователя не должен пережить выход
         invalidateDirections() // чужой кэш не должен пережить выход
@@ -347,6 +350,16 @@ class MayakSession(
     /** Состояние доступа аккаунта (активен/истёк, до какой даты, сколько устройств). Требует входа. */
     suspend fun accountStatus(backend: MayakBackend): org.amnezia.awg.mayak.core.AccountStatus =
         backend.accountStatus(requireToken())
+
+    /**
+     * Публичный номер аккаунта: из хранилища, а если его там ещё нет — с ядра (один раз на установку).
+     *
+     * Почему это здесь, а не только на экране Настроек: номер нужен письму в поддержку и
+     * диагностическому логу, которые уходят и с главного экрана. Люди, вошедшие ДО появления номера,
+     * никогда больше не логинятся — поэтому подбираем его при первой же сверке доступа, а не при входе.
+     */
+    suspend fun accountNumber(backend: MayakBackend): String? =
+        MayakAccountNumber.refresh(store, requireToken(), backend)
 
     /** Устройства аккаунта — для экрана «Мои устройства» (MayakDevices). Требует входа. */
     suspend fun listDevices(backend: MayakBackend): List<org.amnezia.awg.mayak.core.DeviceItem> =
