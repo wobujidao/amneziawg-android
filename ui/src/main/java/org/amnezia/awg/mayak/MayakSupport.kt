@@ -48,7 +48,11 @@ object MayakSupport {
             putExtra(Intent.EXTRA_SUBJECT, context.getString(R.string.mayak_support_subject))
             putExtra(Intent.EXTRA_TEXT, letterBody(context, accountEmail))
         }
-        if (openExternal(context, Intent.createChooser(intent, context.getString(R.string.mayak_support_write)))) return
+        // БЕЗ createChooser намеренно: чузер — это отдельная системная activity, она находится
+        // ВСЕГДА, и при отсутствии почтового приложения человек получил бы пустое окно «нет
+        // приложений», а наш запасной путь ниже не сработал бы никогда. Прямой ACTION_SENDTO даёт
+        // честный ActivityNotFoundException (и системный выбор, если почтовых приложений несколько).
+        if (openExternal(context, intent)) return
         // Почтового приложения нет (бывает на «чистых» прошивках и в эмуляторе) — тупика человеку
         // не оставляем: кладём адрес в буфер и говорим об этом.
         copyEmail(context)
