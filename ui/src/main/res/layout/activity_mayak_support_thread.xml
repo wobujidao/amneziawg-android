@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Переписка по одному обращению: что мы ответили и чем человек может дописать.
+     До этой правки в приложении не оставалось НИЧЕГО: обращение уезжало письмом, и на вопрос «а что
+     там с моим вопросом» экран отвечал молчанием. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/mayak_bg_gradient">
+
+    <ScrollView
+        android:id="@+id/mayak_thread_scroll"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:id="@+id/mayak_thread_content"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp"
+            android:paddingTop="16dp"
+            android:paddingBottom="32dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="start|center_vertical"
+                android:orientation="horizontal">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/mayak_thread_back"
+                    style="@style/Mayak.Button.Text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:contentDescription="@string/mayak_back"
+                    android:minWidth="0dp"
+                    android:minHeight="0dp"
+                    android:paddingStart="6dp"
+                    android:paddingEnd="6dp"
+                    android:text=""
+                    app:icon="@drawable/ic_arrow_back"
+                    app:iconSize="24dp"
+                    app:iconTint="@color/mayak_on_bg" />
+
+                <TextView
+                    android:id="@+id/mayak_thread_title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:textAppearance="@style/Mayak.Title"
+                    android:textSize="24sp"
+                    tools:text="Обращение №128" />
+            </LinearLayout>
+
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Mayak.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/mayak_thread_subject"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textAppearance="@style/Mayak.CardTitle"
+                        tools:text="Не подключается" />
+
+                    <!-- Статус СЛОВАМИ приходит с ядра (status_text): вторая копия перевода в клиенте
+                         разъехалась бы с белым списком статусов ровно так же, как разъезжались темы. -->
+                    <TextView
+                        android:id="@+id/mayak_thread_status"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:textAppearance="@style/Mayak.Tagline"
+                        android:textColor="@color/mayak_on_surface_muted"
+                        tools:text="Мы ответили · 5 минут назад" />
+
+                    <LinearLayout
+                        android:id="@+id/mayak_thread_messages"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:orientation="vertical" />
+
+                    <TextView
+                        android:id="@+id/mayak_thread_state"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:textAppearance="@style/Mayak.Tagline"
+                        android:textColor="@color/mayak_on_surface_muted"
+                        tools:text="Загружаем…" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Дописать в ту же нитку. Отдельным обращением это было бы вторым тикетом об одном и том
+                 же — то, что поддержке приходится склеивать руками. -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/mayak_thread_reply_card"
+                style="@style/Mayak.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/mayak_thread_input_layout"
+                        style="@style/Mayak.TextInput"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="@string/mayak_support_reply_hint"
+                        app:counterEnabled="true"
+                        app:counterMaxLength="4000">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/mayak_thread_input"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:freezesText="true"
+                            android:gravity="top|start"
+                            android:inputType="textMultiLine|textCapSentences"
+                            android:minLines="3" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/mayak_thread_send"
+                        style="@style/Mayak.Button.Primary"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:text="@string/mayak_support_send" />
+
+                    <TextView
+                        android:id="@+id/mayak_thread_reply_state"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:textAppearance="@style/Mayak.Tagline"
+                        android:textColor="@color/mayak_on_surface"
+                        android:visibility="gone"
+                        tools:text="Не ушло. Текст сохранён — нажмите «Повторить»."
+                        tools:visibility="visible" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/mayak_thread_retry"
+                        style="@style/Mayak.Button.Outlined"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/mayak_support_retry"
+                        android:visibility="gone" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
+    </ScrollView>
+</FrameLayout>

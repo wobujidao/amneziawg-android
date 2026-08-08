@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Одно сообщение переписки: кто и когда (строкой сверху), затем текст. Имя автора («Вы» /
+     «Поддержка») собирает ЯДРО — логина ответившего админа в клиенте нет и быть не должно. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/support_msg_bubble"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="8dp"
+    android:background="@drawable/mayak_bg_support_msg_mine"
+    android:orientation="vertical"
+    android:padding="12dp">
+
+    <TextView
+        android:id="@+id/support_msg_author"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="@color/mayak_on_surface_muted"
+        android:textSize="12sp"
+        tools:text="Поддержка · 5 минут назад" />
+
+    <TextView
+        android:id="@+id/support_msg_body"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textAppearance="@style/Mayak.Tagline"
+        android:textColor="@color/mayak_on_surface"
+        android:textIsSelectable="true"
+        tools:text="Проверьте, пожалуйста, включён ли запасной канал в настройках." />
+
+</LinearLayout>

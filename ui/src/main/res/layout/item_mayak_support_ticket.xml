@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Строка списка «Мои обращения»: тема, статус словами + когда последнее сообщение, пометка
+     «есть ответ». Вся строка кликабельна и ведёт в переписку — действие тут одно и оно безопасное
+     (в отличие от списка устройств, где кнопка «Отключить» обязана называться словом). -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?attr/selectableItemBackground"
+    android:gravity="center_vertical"
+    android:minHeight="56dp"
+    android:orientation="horizontal"
+    android:paddingTop="10dp"
+    android:paddingBottom="10dp">
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/support_ticket_subject"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="2"
+            android:textAppearance="@style/Mayak.CardTitle"
+            android:textColor="@color/mayak_on_surface"
+            tools:text="Не подключается" />
+
+        <TextView
+            android:id="@+id/support_ticket_meta"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:ellipsize="end"
+            android:maxLines="2"
+            android:textAppearance="@style/Mayak.Tagline"
+            android:textColor="@color/mayak_on_surface_muted"
+            tools:text="Мы ответили · 5 минут назад" />
+
+        <!-- Пометка «есть новый ответ» приходит с ядра (new_answer) и гаснет, когда человек открыл
+             нитку. Это единственное, что отличает «мы вам ответили» от «ждём нас» — без неё человек
+             не знает, что ответ уже есть, и пишет второе обращение. -->
+        <TextView
+            android:id="@+id/support_ticket_badge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/mayak_bg_ipv6_badge"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:paddingTop="2dp"
+            android:paddingBottom="2dp"
+            android:text="@string/mayak_support_ticket_new_answer"
+            android:textColor="@color/mayak_accent"
+            android:textSize="12sp"
+            android:visibility="gone"
+            tools:visibility="visible" />
+    </LinearLayout>
+
+    <ImageView
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:importantForAccessibility="no"
+        android:src="@drawable/ic_chevron_right"
+        app:tint="@color/mayak_on_surface_muted" />
+
+</LinearLayout>

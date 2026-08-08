@@ -5,6 +5,12 @@
 // То есть сценарий «у меня не работает, куда писать» в приложении был пустым, и это тот самый
 // сценарий, ради которого приложение открывают, когда всё плохо.
 //
+// 🔴 08-08: `mailto:` перестал быть ЕДИНСТВЕННЫМ путём. У человека без настроенного почтового клиента
+// (телефон с одним веб-Gmail — типовая ситуация) нажатие на такую ссылку не делает РОВНО НИЧЕГО:
+// система не знает, какому приложению её отдать. То есть путь был пуст ровно в той ситуации, ради
+// которой поддержка и существует. Главный путь теперь — ФОРМА (MayakSupportActivity → ядро,
+// POST /v1/client/support), а письмо осталось запасной кнопкой: у кого клиент есть, тому так привычнее.
+//
 // 🔴 Адрес поддержки берём ТОЛЬКО из BuildConfig.MAYAK_SUPPORT_EMAIL: он разный у прод-сборки и у
 // дефолтной (у дефолтной — снятый дев-домен). Захардкоженный адрес уже уводил людей на мёртвый
 // домен (найдено 07-08), поэтому строкой в переводе он больше не живёт.
@@ -21,6 +27,11 @@ import android.os.Build
 import android.widget.Toast
 import org.amnezia.awg.BuildConfig
 import org.amnezia.awg.R
+import org.amnezia.awg.mayak.core.MayakApiException
+import org.amnezia.awg.mayak.core.SupportFailure
+import org.amnezia.awg.mayak.core.SupportLimits
+import org.amnezia.awg.mayak.core.retryAfterMinutes
+import org.amnezia.awg.mayak.core.supportFailure
 
 object MayakSupport {
 
@@ -59,12 +70,59 @@ object MayakSupport {
     }
 
     /** Адрес поддержки в буфер обмена + сообщение об этом. Запасной путь, когда почты на аппарате нет. */
-    fun copyEmail(context: Context) {
+    fun copyEmail(context: Context) = copyEmail(context, R.string.mayak_support_no_mail_app)
+
+    /**
+     * То же, но своим сообщением. Отдельно от [copyEmail] потому, что текст «почтового приложения на
+     * телефоне нет» — это ОБЪЯСНЕНИЕ неудачи, и на экране поддержки, где человек сам нажал
+     * «Скопировать адрес», он читался бы как поломка там, где всё сработало.
+     */
+    fun copyEmail(context: Context, toast: Int) {
         runCatching {
             val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
             cm.setPrimaryClip(ClipData.newPlainText("email", email))
         }
-        Toast.makeText(context, context.getString(R.string.mayak_support_no_mail_app, email), Toast.LENGTH_LONG).show()
+        Toast.makeText(context, context.getString(toast, email), Toast.LENGTH_LONG).show()
+    }
+
+    /**
+     * Отказ ядра — СЛОВАМИ и с подсказкой, что делать. Одна функция на оба экрана поддержки: два
+     * набора формулировок для одних и тех же причин разъехались бы, и человек читал бы про лимит
+     * по-разному в форме и в переписке.
+     *
+     * Само РЕШЕНИЕ (какая это причина) принимается в :core под тестами — здесь только слова.
+     */
+    fun failureText(context: Context, e: Throwable): String {
+        val f = supportFailure(e)
+        val retryMin = (e as? MayakApiException)?.let { retryAfterMinutes(it.retryAfterSec) } ?: 0
+        return when (f) {
+            SupportFailure.TOPIC_REJECTED -> context.getString(R.string.mayak_support_err_topic)
+            SupportFailure.TOO_SHORT -> context.getString(R.string.mayak_support_err_short)
+            SupportFailure.TOO_LONG ->
+                context.getString(R.string.mayak_support_err_long, SupportLimits.MAX_CHARS)
+            // «Можно снова через N мин» берём из Retry-After ядра. Не прислало (0) — не выдумываем
+            // число: «попробуйте позже» честнее, чем обещание, которое мы не держим.
+            SupportFailure.RATE_LIMITED ->
+                if (retryMin > 0) context.getString(R.string.mayak_support_err_rate, retryMin)
+                else context.getString(R.string.mayak_support_err_rate_soon)
+
+            SupportFailure.CHANNEL_OFF -> context.getString(R.string.mayak_support_err_channel_off)
+            SupportFailure.RETRY_LATER -> context.getString(R.string.mayak_support_err_retry)
+            SupportFailure.NO_CONNECTION -> context.getString(R.string.mayak_support_err_offline)
+            SupportFailure.NEED_LOGIN -> context.getString(R.string.mayak_support_err_login)
+            SupportFailure.NOT_FOUND -> context.getString(R.string.mayak_support_err_not_found)
+            // Причина нам неизвестна — печатаем то, что сказало ядро, и НЕ подсказываем действие.
+            SupportFailure.UNKNOWN -> context.getString(
+                R.string.mayak_support_err_unknown,
+                e.message ?: context.getString(R.string.mayak_err_generic),
+            )
+        }
+    }
+
+    /** Текст локальной проверки (до сети) — теми же словами, что и отказ ядра. */
+    fun localProblemText(context: Context, f: SupportFailure): String = when (f) {
+        SupportFailure.TOO_LONG -> context.getString(R.string.mayak_support_err_long, SupportLimits.MAX_CHARS)
+        else -> context.getString(R.string.mayak_support_err_short)
     }
 
     /**

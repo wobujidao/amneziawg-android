@@ -356,6 +356,61 @@
     <string name="mayak_support_direction_none">not selected</string>
     <string name="mayak_support_account_none">not signed in</string>
     <string name="mayak_support_no_mail_app">No mail app on this phone. The support address is copied: %1$s</string>
+
+    <!-- ===== Обращение в поддержку ФОРМОЙ, а не письмом (08-08) =====
+         mailto: у человека без настроенного почтового клиента не делает ничего — то есть путь был
+         пуст ровно в той ситуации, ради которой поддержка существует. Форма ходит в ядро
+         (POST /v1/client/support), письмо осталось ЗАПАСНОЙ кнопкой. -->
+    <string name="mayak_support_title">Support</string>
+    <string name="mayak_support_form_title">Write to support</string>
+    <string name="mayak_support_form_hint">Describe what is not working. Your plan, access dates, devices and app version we see ourselves — no need to type them.</string>
+    <string name="mayak_support_topic_label">Topic: %1$s</string>
+    <string name="mayak_support_topic_choose">Choose a topic</string>
+    <string name="mayak_support_topic_connect">Cannot connect</string>
+    <string name="mayak_support_topic_speed">Works slowly</string>
+    <string name="mayak_support_topic_payment">Payment and access</string>
+    <string name="mayak_support_topic_account">Account and sign-in</string>
+    <string name="mayak_support_topic_app">App and updates</string>
+    <string name="mayak_support_topic_other">Other</string>
+    <string name="mayak_support_message_hint">What happened</string>
+    <string name="mayak_support_send">Send</string>
+    <string name="mayak_support_sending">Sending…</string>
+    <string name="mayak_support_retry">Try again</string>
+    <string name="mayak_support_sent_title">Ticket no. %1$d received</string>
+    <string name="mayak_support_sent_title_nonum">Your message is received</string>
+    <string name="mayak_support_sent_reply_to">The reply will come to %1$s and to “My tickets” right here.</string>
+    <string name="mayak_support_sent_reply_here">The reply will appear in “My tickets” right here.</string>
+    <string name="mayak_support_open_ticket">Open the ticket</string>
+    <string name="mayak_support_write_more">Write again</string>
+    <string name="mayak_support_err_topic">The list of topics is out of date — update the app. We sent your text as “Other”.</string>
+    <string name="mayak_support_err_short">Too short: describe the problem in at least one sentence.</string>
+    <string name="mayak_support_err_long">Too long: leave up to %1$d characters, the rest we will discuss in the thread.</string>
+    <string name="mayak_support_err_rate">Too many messages in a row. You can send again in about %1$d min — what has arrived is already with us.</string>
+    <string name="mayak_support_err_rate_soon">Too many messages in a row. Try a bit later — what has arrived is already with us.</string>
+    <string name="mayak_support_err_channel_off">The form does not work on our side right now. Your text is not lost — send it by mail, the address is below.</string>
+    <string name="mayak_support_err_retry">It did not go through. The text is kept — press “Try again”.</string>
+    <string name="mayak_support_err_offline">No connection to the server. The text is kept — try again when the network is back.</string>
+    <string name="mayak_support_err_login">Sign in to your account: then we see your plan and devices and answer to the point.</string>
+    <string name="mayak_support_err_not_found">The ticket is not found.</string>
+    <string name="mayak_support_err_unknown">Did not work out: %1$s</string>
+    <string name="mayak_support_tickets_title">My tickets</string>
+    <string name="mayak_support_tickets_loading">Loading…</string>
+    <string name="mayak_support_tickets_empty">No tickets yet. Write to us above — the reply comes here and to your mail.</string>
+    <string name="mayak_support_tickets_err">Could not load the list: %1$s</string>
+    <string name="mayak_support_tickets_reload">Refresh</string>
+    <string name="mayak_support_ticket_new_answer">New reply</string>
+    <string name="mayak_support_ticket_meta">%1$s · %2$s</string>
+    <string name="mayak_support_thread_title">Ticket no. %1$d</string>
+    <string name="mayak_support_thread_err">Could not open: %1$s</string>
+    <string name="mayak_support_reply_hint">Add to the ticket</string>
+    <string name="mayak_support_reply_sent">Sent</string>
+    <string name="mayak_support_other_title">Other ways</string>
+    <string name="mayak_support_email_line">Support mail: %1$s</string>
+    <string name="mayak_support_copy_email">Copy the address</string>
+    <string name="mayak_support_email_copied">Address copied: %1$s</string>
+    <string name="mayak_support_mail_fallback">Write by mail</string>
+    <string name="mayak_support_need_login">The form works after you sign in — then we see your plan and devices and answer to the point. Without signing in, write to us by mail: the address is below.</string>
+    <string name="mayak_support_login">Sign in</string>
     <string name="mayak_settings_send_log">Send log</string>
     <string name="mayak_settings_send_log_sending">Sending log…</string>
     <string name="mayak_settings_send_log_ok">Log sent. Thank you!</string>
