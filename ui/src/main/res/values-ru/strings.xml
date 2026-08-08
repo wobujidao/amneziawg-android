@@ -398,6 +398,15 @@
     <string name="mayak_update_download_failed">Не удалось скачать обновление</string>
     <string name="mayak_update_untrusted">Проверка подписи не пройдена — установка отменена</string>
     <string name="mayak_update_need_perm">Разрешите установку из этого источника и нажмите «Обновить» снова</string>
+    <!-- Отрезанная сборка (порог min_version_code). Неотменяемый экран: «Позже» здесь нет.
+         Человеку нужны три вещи и в этом порядке: почему он это видит, что делать, и что у него
+         ничего не пропало. Без последней строки экран читается как «меня отключили». -->
+    <string name="mayak_outdated_title">Эта версия больше не работает</string>
+    <string name="mayak_outdated_why">Ваша сборка приложения больше не поддерживается: в ней соединение работает не так, как должно. Продолжить на этой версии нельзя.</string>
+    <string name="mayak_outdated_data_safe">Аккаунт, доступ и настройки на месте — всё вернётся сразу после обновления. Заново входить не придётся.</string>
+    <string name="mayak_outdated_open_site">Открыть сайт</string>
+    <string name="mayak_outdated_versions">Ваша версия %1$s (%2$d) · актуальная %3$s</string>
+    <string name="mayak_outdated_version_unknown">неизвестна</string>
     <string name="mayak_a11y_connect">Подключиться</string>
     <string name="mayak_a11y_connecting">Подключение</string>
     <string name="mayak_a11y_disconnect">Отключиться</string>

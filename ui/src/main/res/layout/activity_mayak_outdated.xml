@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Экран отрезанной сборки: брендовый градиент, логотип, честное объяснение, ОДНО действие.
+     Кнопки «Позже» здесь нет намеренно — гейт неотменяемый (MayakOutdatedActivity). Но выход в
+     поддержку и справку есть: без них человек, у которого обновление не встаёт, остаётся в тупике.
+     ScrollView — на коротких экранах и в ландшафте текста больше, чем влезает; обрезать объяснение,
+     из-за которого человек сюда попал, нельзя. -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/mayak_outdated_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/mayak_bg_gradient"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="match_parent"
+        android:orientation="vertical"
+        android:gravity="center_horizontal|center_vertical"
+        android:paddingStart="32dp"
+        android:paddingEnd="32dp"
+        android:paddingTop="32dp"
+        android:paddingBottom="32dp">
+
+        <ImageView
+            android:layout_width="88dp"
+            android:layout_height="88dp"
+            android:src="@drawable/mayak_logo"
+            android:contentDescription="@string/app_name" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:gravity="center"
+            android:text="@string/mayak_outdated_title"
+            android:textColor="@color/mayak_on_bg"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <!-- Почему человек это видит. Первое, что он ищет на неожиданном экране. -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:gravity="center"
+            android:lineSpacingMultiplier="1.2"
+            android:text="@string/mayak_outdated_why"
+            android:textColor="@color/mayak_on_bg"
+            android:textSize="15sp" />
+
+        <!-- Что аккаунт и настройки целы. Без этой строки экран читается как «меня отключили». -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:gravity="center"
+            android:lineSpacingMultiplier="1.2"
+            android:text="@string/mayak_outdated_data_safe"
+            android:textColor="@color/mayak_on_bg_muted"
+            android:textSize="14sp" />
+
+        <!-- Единственное действие. Текст ставится в коде: канал решает, куда вести (сайт / Play). -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/mayak_outdated_action"
+            style="@style/Mayak.Button.Primary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="28dp"
+            android:text="@string/mayak_update_now" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/mayak_outdated_support"
+            style="@style/Mayak.Button.Outlined"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/mayak_support_write" />
+
+        <!-- Справка: скрывается, если адреса сайта нет (MayakHostList.helpUrl == null) — неработающую
+             кнопку не показываем. -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/mayak_outdated_help"
+            style="@style/Mayak.Button.Text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/mayak_support_help_center" />
+
+        <!-- Версии: то, что мы всё равно спросим первым, если человек напишет в поддержку. -->
+        <TextView
+            android:id="@+id/mayak_outdated_versions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:gravity="center"
+            android:textColor="@color/mayak_on_bg_muted"
+            android:textSize="12sp" />
+    </LinearLayout>
+</ScrollView>

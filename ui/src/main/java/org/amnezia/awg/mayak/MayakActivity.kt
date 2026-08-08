@@ -62,7 +62,9 @@ import org.amnezia.awg.mayak.core.MayakApiException
 import org.amnezia.awg.mayak.core.MayakBackend
 import org.amnezia.awg.mayak.core.MayakHosts
 import org.amnezia.awg.mayak.core.NoReachableHostException
+import org.amnezia.awg.mayak.core.OutdatedBuild
 import org.amnezia.awg.mayak.core.accessDenial
+import org.amnezia.awg.mayak.core.outdatedBuild
 
 class MayakActivity : AppCompatActivity() {
 
@@ -214,6 +216,10 @@ class MayakActivity : AppCompatActivity() {
             maybeAutoEnableRuPreset() // авто-РФ-пресет при первом запуске (в фоне, best-effort)
         } else {
             showLogin()
+            // Порог старых сборок проверяем и ЗДЕСЬ: сборку, которую мы отключили, человек чаще всего
+            // и открывает на экране входа (вход в ней уже не работает). Мягкий нудж поверх формы не
+            // показываем — сюда мы пришли только за порогом.
+            checkAppUpdate(nudge = false)
             // Пришли сюда из-за отозванного входа (см. sessionExpired) — объясняем, а не молчим.
             if (intent?.getBooleanExtra(EXTRA_SESSION_EXPIRED, false) == true) {
                 setStatus(getString(R.string.mayak_session_expired))
@@ -295,20 +301,46 @@ class MayakActivity : AppCompatActivity() {
 
     /** Самообновление (Вариант А): сверяем свою версию с /version.json на хосте; если вышла новее —
      *  мягкое окно со ссылкой на скачивание. Раз на запуск процесса (пересоздание Activity не дёргает);
-     *  «Позже» для версии запоминаем (не долбим). Любая ошибка сети/файла — молча ничего. */
-    private fun checkAppUpdate(force: Boolean = false) {
+     *  «Позже» для версии запоминаем (не долбим). Любая ошибка сети/файла — молча ничего.
+     *
+     *  Этим же запросом проверяется ПОРОГ старых сборок (`min_version_code`, см. :core/MinVersionGate).
+     *  Один запрос на два решения намеренно: version.json — тот самый файл, где живёт порог, и второй
+     *  поход за ним означал бы второй след для DPI и две расходящиеся картины «какая версия боевая».
+     *
+     *  @param nudge показывать ли МЯГКОЕ окно «вышла новая версия». На экране входа — нет: там мы
+     *   пришли только за порогом, а предложение обновиться поверх формы входа человека не звало.
+     */
+    private fun checkAppUpdate(force: Boolean = false, nudge: Boolean = true) {
         // Авто-проверка (force=false) — раз на процесс, молча. По кнопке «Обновить» (force=true) проверяем
         // ВСЕГДА (минуя once-per-process и запомненное «Позже») и даём фидбек «последняя версия».
         if (!force) {
             if (updateCheckedThisProcess) return
             updateCheckedThisProcess = true
         }
-        val b = backend ?: return
+        // Свой экземпляр, если поля ещё нет: порог обязан срабатывать и на экране входа — то есть БЕЗ
+        // сессии и БЕЗ туннеля, раньше первого /connect. version.json отдаётся без токена.
+        val b = backend ?: MayakBackend(hostProvider(), bypassTunnel = OutsideTunnel.opener(this))
         lifecycleScope.launch {
             val info = b.appVersion() ?: run {
+                // Нет сети или файла — порога тоже нет: человек работает как раньше. Запереть его
+                // из-за нашей недоступности было бы худшим из возможных исходов.
                 if (force) Toast.makeText(this@MayakActivity, R.string.mayak_update_check_failed, Toast.LENGTH_SHORT).show()
                 return@launch
             }
+            // ПОРОГ СТАРЫХ СБОРОК — раньше мягкого нуджа и раньше запомненного «Позже»: эту сборку мы
+            // отключили, и отложить такое человек не может (решение — в чистой функции :core).
+            val verdict = outdatedBuild(
+                versionCode = BuildConfig.VERSION_CODE,
+                minVersionCode = info.minVersionCode,
+                latestVersionCode = info.latestVersionCode,
+                fromPlay = MayakUpdater.installedFromPlay(this@MayakActivity),
+                apkUrl = info.apkUrl,
+            )
+            if (verdict != OutdatedBuild.NONE) {
+                MayakOutdatedActivity.show(this@MayakActivity, verdict, info)
+                return@launch
+            }
+            if (!nudge) return@launch
             if (info.latestVersionCode <= BuildConfig.VERSION_CODE || info.apkUrl.isBlank()) {
                 if (force) Toast.makeText(this@MayakActivity, R.string.mayak_update_uptodate, Toast.LENGTH_SHORT).show()
                 return@launch
@@ -353,45 +385,11 @@ class MayakActivity : AppCompatActivity() {
             .show()
     }
 
-    /** Вариант Б: качаем APK ВНУТРИ приложения с прогрессом, проверяем подпись, запускаем установку. */
-    private fun startInAppUpdate(info: AppVersionInfo) {
-        if (info.apkUrl.isBlank()) return
-        if (!MayakUpdater.canInstall(this)) {
-            // Android 8+: нужно разрешение «установка из этого источника» — ведём в настройки, затем повтор.
-            Toast.makeText(this, R.string.mayak_update_need_perm, Toast.LENGTH_LONG).show()
-            runCatching { startActivity(MayakUpdater.installPermissionIntent(this)) }
-            return
-        }
-        val bar = android.widget.ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
-            max = 100; isIndeterminate = false
-            val p = (16 * resources.displayMetrics.density).toInt()
-            setPadding(p * 3, p, p * 3, p)
-        }
-        val dlg = AlertDialog.Builder(this)
-            .setTitle(R.string.mayak_update_downloading)
-            .setView(bar)
-            .setCancelable(false)
-            .create()
-        dlg.show()
-        lifecycleScope.launch {
-            val apk = MayakUpdater.download(
-                this@MayakActivity, info.apkUrl, backend?.knownBases ?: emptyList(),
-            ) { pct ->
-                runOnUiThread { bar.progress = pct }
-            }
-            runCatching { dlg.dismiss() }
-            if (apk == null) {
-                Toast.makeText(this@MayakActivity, R.string.mayak_update_download_failed, Toast.LENGTH_LONG).show()
-                return@launch
-            }
-            if (!MayakUpdater.isTrusted(this@MayakActivity, apk)) {
-                apk.delete() // чужая подпись/пакет — не ставим
-                Toast.makeText(this@MayakActivity, R.string.mayak_update_untrusted, Toast.LENGTH_LONG).show()
-                return@launch
-            }
-            runCatching { MayakUpdater.install(this@MayakActivity, apk) }
-        }
-    }
+    /** Вариант Б: качаем APK ВНУТРИ приложения с прогрессом, проверяем подпись, запускаем установку.
+     *  Сам путь живёт в MayakUpdater.runUpdate — его же зовёт экран отрезанной сборки, и второй копии
+     *  проверки подписи у нас быть не должно. */
+    private fun startInAppUpdate(info: AppVersionInfo) =
+        MayakUpdater.runUpdate(this, info.apkUrl, backend?.knownBases ?: emptyList())
 
     override fun onStart() {
         super.onStart()
