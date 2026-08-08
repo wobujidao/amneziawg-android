@@ -18,18 +18,38 @@ import java.net.URL
  * пустая строка, если ядро его не прислало. Ветвиться нужно ПО НЕМУ: по одному лишь HTTP-коду
  * «нужен код 2FA» неотличим от «неверный пароль», и экран входа показывал человеку ложь про пароль.
  */
-class MayakApiException(val status: Int, message: String, val code: String = "") : IOException(message)
+class MayakApiException(
+    val status: Int,
+    message: String,
+    val code: String = "",
+    /**
+     * Сколько СЕКУНД ядро просит подождать (заголовок Retry-After); 0 — не прислало.
+     *
+     * Нужен там, где отказ значит «подождите»: у обращений в поддержку лимит 5/ч на аккаунт, и
+     * сказать человеку «слишком много обращений» без «можно снова через час» — значит оставить его
+     * гадать, что делать дальше (и жать кнопку по кругу).
+     */
+    val retryAfterSec: Int = 0,
+) : IOException(message)
 
 /**
  * Разбор тела ошибки ядра в исключение. Вынесено из doRequest отдельной функцией, чтобы решение
  * «что клиент понял из ответа» можно было проверить тестом без сети и TLS (doRequest ходит только
  * по https, поднять его в юнит-тесте нечем).
  */
-internal fun apiError(status: Int, body: String, json: Json): MayakApiException {
+internal fun apiError(status: Int, body: String, json: Json, retryAfterSec: Int = 0): MayakApiException {
     val parsed = runCatching { json.decodeFromString(ApiError.serializer(), body) }.getOrNull()
     val msg = parsed?.error?.takeIf { it.isNotBlank() } ?: "HTTP $status"
-    return MayakApiException(status, msg, parsed?.code.orEmpty())
+    return MayakApiException(status, msg, parsed?.code.orEmpty(), retryAfterSec)
 }
+
+/**
+ * Retry-After в секундах. RFC 7231 разрешает и HTTP-дату — её мы НЕ разбираем осознанно: наше ядро
+ * всегда пишет секунды (`strconv.Itoa`), а угадывать по чужому формату дату, часовой пояс и расхождение
+ * часов телефона с сервером — три способа наврать человеку про время. Не число → 0 («не сказали»).
+ */
+internal fun parseRetryAfter(raw: String?): Int =
+    raw?.trim()?.toIntOrNull()?.takeIf { it > 0 } ?: 0
 
 /** Все резервные домены недоступны (фейловер исчерпан). */
 class NoReachableHostException(message: String) : IOException(message)
@@ -289,6 +309,45 @@ class MayakBackend(
     }
 
     /**
+     * Обращение в поддержку: POST /v1/client/support {topic,message}.
+     *
+     * Тема — КОД из [SupportTopics] (ядро держит белый список и произвольную строку не примет);
+     * контекст аккаунта (тариф, срок, устройства, версия приложения) собирает сервер сам.
+     *
+     * Отказы приходят MayakApiException с полем `code` — разбирать их надо через [supportFailure],
+     * а не по HTTP-коду: под 400 у ядра три разные беды, под 503 — две.
+     */
+    suspend fun createSupportTicket(token: String, topic: String, message: String): SupportSent {
+        val body = json.encodeToString(SupportRequest.serializer(), SupportRequest(topic, message))
+        val resp = call("POST", "/v1/client/support", token = token, body = body)
+        return json.decodeFromString(SupportSent.serializer(), resp)
+    }
+
+    /** Свои обращения: GET /v1/client/support. Пустой список — норма, а не ошибка (ядро отдаёт 200). */
+    suspend fun supportTickets(token: String): SupportTicketList {
+        val resp = call("GET", "/v1/client/support", token = token, body = null)
+        return json.decodeFromString(SupportTicketList.serializer(), resp)
+    }
+
+    /**
+     * Своё обращение с перепиской: GET /v1/client/support/{id}. Этот же запрос гасит на ядре пометку
+     * «есть новый ответ» (открыл = прочитал), поэтому звать его «на всякий случай» в фоне не надо.
+     *
+     * 404 `not_found` значит и «нет такого», и «оно чужое» — ядро НАРОЧНО не различает их в ответе.
+     */
+    suspend fun supportThread(token: String, id: Long): SupportThread {
+        val resp = call("GET", "/v1/client/support/$id", token = token, body = null)
+        return json.decodeFromString(SupportThread.serializer(), resp)
+    }
+
+    /** Дописать в своё обращение: POST /v1/client/support/{id}/messages {message}. Нижнего порога
+     *  длины у ядра здесь нет — «да»/«помогло» внутри разговора полноценный ответ. */
+    suspend fun replySupport(token: String, id: Long, message: String) {
+        val body = json.encodeToString(SupportReplyRequest.serializer(), SupportReplyRequest(message))
+        call("POST", "/v1/client/support/$id/messages", token = token, body = body)
+    }
+
+    /**
      * Один HTTP-вызов с фейловером по доменам. На сетевой ошибке (домен недоступен/заблокирован)
      * крутим HostProvider и повторяем; на HTTP-ответе (в т.ч. 4xx/5xx) — НЕ переключаемся, а
      * возвращаем тело / кидаем MayakApiException (это ответ ядра, а не недоступность канала).
@@ -350,7 +409,10 @@ class MayakBackend(
             val stream = if (code in 200..299) conn.inputStream else (conn.errorStream ?: conn.inputStream)
             val text = stream.use { it.readBytes().toString(Charsets.UTF_8) }
             if (code !in 200..299) {
-                throw apiError(code, text, json)
+                // Retry-After снимаем ИМЕННО здесь: тело отказа его не содержит, а после disconnect()
+                // заголовков уже нет. Без него «слишком много обращений» превращается в отказ без
+                // подсказки, когда пробовать снова.
+                throw apiError(code, text, json, parseRetryAfter(conn.getHeaderField("Retry-After")))
             }
             return text
         } finally {

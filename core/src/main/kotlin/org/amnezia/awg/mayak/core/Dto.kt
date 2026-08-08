@@ -409,3 +409,95 @@ data class AccountStatus(
         private const val DAY_MS = 24L * 60 * 60 * 1000
     }
 }
+
+// ===== Обращения в поддержку (internal/clientapi/support.go, support_tickets.go) =====
+//
+// POST /v1/client/support            {topic,message}  -> {status,reply_to}
+// GET  /v1/client/support                             -> {tickets:[…],new_answers:N}
+// GET  /v1/client/support/{id}                        -> {ticket:{…},messages:[…]}
+// POST /v1/client/support/{id}/messages {message}     -> {status,id}
+//
+// ⚠️ Ядро читает тело с DisallowUnknownFields: ЛИШНЕЕ поле в запросе = 400 на весь запрос. Поэтому в
+// запросах ровно те поля, что объявлены в Go-структурах, и ни одного «на будущее».
+//
+// Контекст обращения (тариф, срок, устройства, версия приложения) собирает СЕРВЕР из базы по сессии —
+// клиент его не присылает и подделать не может. Дублировать его в тексте письма из приложения тоже не
+// надо: получилось бы два контекста в одном обращении, из которых один врёт.
+
+@Serializable
+data class SupportRequest(
+    val topic: String,
+    val message: String,
+)
+
+/** Ответ на создание обращения. `reply_to` — адрес, на который придёт ответ (пусто = у аккаунта нет
+ *  почты, тогда экран говорит «ответим в приложении», а не «ответим на почту (какую?)»). */
+@Serializable
+data class SupportSent(
+    val status: String = "",
+    @SerialName("reply_to") val replyTo: String = "",
+)
+
+/** Обращение в списке/нитке. `statusText` и `authorName` собирает ядро — вторая копия перевода в
+ *  клиенте разъехалась бы с белым списком статусов ровно так же, как разъезжались темы. */
+@Serializable
+data class SupportTicket(
+    val id: Long = 0,
+    val topic: String = "",
+    val subject: String = "",
+    val status: String = "",
+    @SerialName("status_text") val statusText: String = "",
+    @SerialName("created_at") val createdAt: String = "",
+    @SerialName("last_message_at") val lastMessageAt: String = "",
+    val messages: Int = 0,
+    @SerialName("new_answer") val newAnswer: Boolean = false,
+) {
+    /** Момент последнего сообщения в мс эпохи; null — дата не разобралась (тогда время не показываем). */
+    fun lastMessageMs(): Long? = parseSupportTime(lastMessageAt)
+
+    /** Когда обращение создано, в мс эпохи; null — дата не разобралась. */
+    fun createdMs(): Long? = parseSupportTime(createdAt)
+}
+
+@Serializable
+data class SupportTicketList(
+    val tickets: List<SupportTicket> = emptyList(),
+    @SerialName("new_answers") val newAnswers: Int = 0,
+)
+
+/** Сообщение нитки. author: `user` | `support`. Логина ответившего админа тут нет и быть не должно. */
+@Serializable
+data class SupportMessage(
+    val id: Long = 0,
+    val author: String = "",
+    @SerialName("author_name") val authorName: String = "",
+    val body: String = "",
+    @SerialName("created_at") val createdAt: String = "",
+) {
+    fun createdMs(): Long? = parseSupportTime(createdAt)
+
+    /** Написано ЧЕЛОВЕКОМ (а не поддержкой) — нитка красит эти сообщения иначе. */
+    fun mine(): Boolean = author == AUTHOR_USER
+
+    companion object {
+        const val AUTHOR_USER = "user"
+        const val AUTHOR_SUPPORT = "support"
+    }
+}
+
+@Serializable
+data class SupportThread(
+    val ticket: SupportTicket = SupportTicket(),
+    val messages: List<SupportMessage> = emptyList(),
+)
+
+@Serializable
+data class SupportReplyRequest(
+    val message: String,
+)
+
+/** RFC3339 от ядра → мс эпохи. Не разобралось → null: показать «неизвестно» честнее, чем 1970 год. */
+private fun parseSupportTime(s: String?): Long? {
+    if (s.isNullOrBlank()) return null
+    return runCatching { java.time.OffsetDateTime.parse(s).toInstant().toEpochMilli() }.getOrNull()
+}
