@@ -31,6 +31,11 @@ object MayakPrefs {
     // РФ иначе банки и Госуслуги идут через туннель и не пускают его, а тумблер он сам не найдёт.
     private const val KEY_RU_AUTO_TRIED = "ru_auto_tried" // проверка страны РЕАЛЬНО состоялась — не повторяем
     private const val KEY_PRESET_USER_DECIDED = "preset_user_decided" // человек сам тронул тумблер пресета руками
+    // Разговор про постоянное подключение (Always-On) — один раз после первого успешного коннекта.
+    // Хранится ОТВЕТ человека, а не «показывали/не показывали»: «Позже» и «уже включено» — разные
+    // вещи, и если мы когда-нибудь решим напомнить, напоминать надо только первым. Значения — из
+    // core.AlwaysOnNudge (там же правило показа и его юнит-тест).
+    private const val KEY_ALWAYS_ON_DECISION = "always_on_decision"
     private const val KEY_LEARNED_HOSTS = "learned_hosts" // адреса ядра, полученные от сервера (реестр доменов), CSV
     private const val KEY_LEARNED_CABINET = "learned_cabinet" // адрес кабинета из того же реестра (роль cabinet)
     private const val KEY_AUTOCONNECT = "autoconnect" // F3: автоподнятие последнего рабочего туннеля (по умолч. ВЫКЛ)
@@ -85,6 +90,14 @@ object MayakPrefs {
 
     fun setLearnedCabinet(context: Context, host: String) {
         prefs(context).edit().putString(KEY_LEARNED_CABINET, host).apply()
+    }
+
+    /** Ответ человека на разговор о постоянном подключении (AlwaysOnNudge.NOT_ASKED и далее). */
+    fun alwaysOnDecision(context: Context): Int =
+        prefs(context).getInt(KEY_ALWAYS_ON_DECISION, org.amnezia.awg.mayak.core.AlwaysOnNudge.NOT_ASKED)
+
+    fun setAlwaysOnDecision(context: Context, decision: Int) {
+        prefs(context).edit().putInt(KEY_ALWAYS_ON_DECISION, decision).apply()
     }
 
     fun autoConnect(context: Context): Boolean =

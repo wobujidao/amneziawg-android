@@ -197,6 +197,22 @@
     <string name="mayak_err_bad_link">Link not recognized</string>
     <string name="mayak_err_no_vpn_perm">VPN permission denied</string>
     <string name="mayak_err_empty_dirs">Core returned no countries</string>
+    <!-- Пустой список стран и отказ загрузки — ДВА РАЗНЫХ состояния (правило проекта: одна
+         формулировка на две причины запрещена). Первое: сервер ответил, но стран в ответе нет.
+         Второе: сервер не ответил вовсе — тогда список может быть в полном порядке. -->
+    <string name="mayak_dirs_empty_title">No countries available</string>
+    <string name="mayak_dirs_empty_text">The server answered but offered no country to connect to. Usually this is temporary: refresh in a minute. If nothing changes, check your account — the plan may have no countries in it.</string>
+    <string name="mayak_dirs_error_title">Couldn\'t load the country list</string>
+    <string name="mayak_dirs_error_offline">The phone has no internet right now, so there was nowhere to fetch the list from. Check Wi-Fi or mobile data and try again.</string>
+    <string name="mayak_dirs_error_server">Our server didn\'t answer. Countries are most likely fine — it\'s the fetch that failed. Try again in a minute.</string>
+    <string name="mayak_dirs_retry">Try again</string>
+    <!-- Разговор про постоянное подключение — один раз, после первого успешного подключения. -->
+    <string name="mayak_alwayson_title">So the connection doesn\'t drop in your pocket</string>
+    <string name="mayak_alwayson_body">When the screen goes off, Android puts apps to sleep to save battery and can evict Mayak from memory — in a lift, in the metro or simply in your pocket. Protection drops at that moment, and the phone is left with no internet until you open the app again.</string>
+    <string name="mayak_alwayson_how">One system setting fixes it — the always-on connection: the phone keeps protection up by itself, after sleep and after a reboot. We can\'t switch it on for you, it lives in the phone\'s own settings. The button below opens the right screen: pick Mayak there and turn the always-on connection on.</string>
+    <string name="mayak_alwayson_open">Open phone settings</string>
+    <string name="mayak_alwayson_done">Already on</string>
+    <string name="mayak_alwayson_later">Later</string>
     <string name="mayak_cancel">Cancel</string>
     <string name="mayak_ok">OK</string>
     <string name="mayak_language">Language</string>
