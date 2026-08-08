@@ -103,12 +103,15 @@ object MayakHostList {
         val foreignLearned = learned.any { !ownContour(it) }
         val cabinet = MayakPrefs.learnedCabinet(context)
         val foreignCabinet = cabinet.isNotBlank() && !ownContour(cabinet)
-        if (!foreignSaved && !foreignLearned && !foreignCabinet) return false
+        val site = MayakPrefs.learnedSite(context)
+        val foreignSite = site.isNotBlank() && !ownContour(site)
+        if (!foreignSaved && !foreignLearned && !foreignCabinet && !foreignSite) return false
 
         Log.w(TAG, "адреса чужого контура в памяти — стираю вместе с сессией (переезд сборки)")
         if (foreignSaved) store.remove(MayakActivity.KEY_SERVER)
         if (foreignLearned) MayakPrefs.setLearnedHosts(context, learned.filter { ownContour(it) })
         if (foreignCabinet) MayakPrefs.setLearnedCabinet(context, "")
+        if (foreignSite) MayakPrefs.setLearnedSite(context, "")
         MayakPresets.clear(context) // пресеты — настройки аккаунта ЧУЖОГО ядра
         session.logout()
         return true
@@ -124,6 +127,30 @@ object MayakHostList {
         val host = learned.ifEmpty { bakedCabinet }
         return if (host.startsWith("http")) host else "https://$host"
     }
+
+    /**
+     * Адрес САЙТА (там живёт справочный центр). Источники в том же порядке, что и у кабинета:
+     * присланный ядром (роль `site` реестра доменов) → выведенный из зашитого адреса кабинета.
+     *
+     * Зашитой константы с доменом сайта здесь НЕТ намеренно: она была бы ВТОРЫМ местом, где домен
+     * записан руками, и отстала бы от реестра ровно так же, как отставали адреса ядра. Вместо этого
+     * берём зону зашитого кабинета (`cabinet.<зона>` → `<зона>`) — сайт и кабинет живут в одной.
+     * У адреса-IP зоны нет, и тогда справки у нас нет — это честнее, чем увести человека в никуда.
+     */
+    fun siteUrl(context: Context): String? {
+        val learned = MayakPrefs.learnedSite(context).trim().removeSuffix("/")
+        if (learned.isNotEmpty() && ownContour(learned)) {
+            return if (learned.startsWith("http")) learned else "https://$learned"
+        }
+        val zone = hostOf(bakedCabinet)?.let { registrable(it) } ?: return null
+        return "https://$zone"
+    }
+
+    /**
+     * Справочный центр (`/help.html` на сайте) — то, куда ведёт «Помощь и поддержка». null, если
+     * адреса сайта нет: кнопку в этом случае не показываем, а не показываем неработающую.
+     */
+    fun helpUrl(context: Context): String? = siteUrl(context)?.let { "$it/help.html" }
 
     /** Политика конфиденциальности и Условия — страницы того же кабинета. */
     fun privacyUrl(context: Context): String = cabinetUrl(context) + "/#/privacy"
@@ -149,6 +176,11 @@ object MayakHostList {
         // Кабинет приходит тем же ответом; пустое поле (старое ядро) не затираем — останется зашитый.
         list.cabinet.trim().removeSuffix("/").takeIf { it.isNotEmpty() }?.let {
             if (it != MayakPrefs.learnedCabinet(context)) MayakPrefs.setLearnedCabinet(context, it)
+        }
+        // Сайт (роль `site` того же реестра) — адрес справочного центра. Ядро отдаёт его с самого
+        // заведения реестра, а приложение поле игнорировало: справки в приложении не было вовсе.
+        list.site.trim().removeSuffix("/").takeIf { it.isNotEmpty() }?.let {
+            if (it != MayakPrefs.learnedSite(context)) MayakPrefs.setLearnedSite(context, it)
         }
         val urls = list.api.mapNotNull { h ->
             val host = h.trim().removeSuffix("/")

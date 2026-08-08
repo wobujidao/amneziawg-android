@@ -33,6 +33,7 @@ object MayakPrefs {
     private const val KEY_PRESET_USER_DECIDED = "preset_user_decided" // человек сам тронул тумблер пресета руками
     private const val KEY_LEARNED_HOSTS = "learned_hosts" // адреса ядра, полученные от сервера (реестр доменов), CSV
     private const val KEY_LEARNED_CABINET = "learned_cabinet" // адрес кабинета из того же реестра (роль cabinet)
+    private const val KEY_LEARNED_SITE = "learned_site" // адрес сайта из того же реестра (роль site) — справка
     private const val KEY_AUTOCONNECT = "autoconnect" // F3: автоподнятие последнего рабочего туннеля (по умолч. ВЫКЛ)
     private const val KEY_APP_LOCK = "app_lock" // блокировка приложения по биометрии/PIN устройства (по умолч. ВЫКЛ)
     private const val KEY_SORT_MODE = "dir_sort_mode" // SPEC-0031: 0=авто(сервер), 1=пинг, 2=свои (по умолч. 0)
@@ -85,6 +86,14 @@ object MayakPrefs {
 
     fun setLearnedCabinet(context: Context, host: String) {
         prefs(context).edit().putString(KEY_LEARNED_CABINET, host).apply()
+    }
+
+    /** Адрес САЙТА из того же реестра (роль site): там живёт справочный центр. Пусто = не спрашивали. */
+    fun learnedSite(context: Context): String =
+        prefs(context).getString(KEY_LEARNED_SITE, "").orEmpty()
+
+    fun setLearnedSite(context: Context, host: String) {
+        prefs(context).edit().putString(KEY_LEARNED_SITE, host).apply()
     }
 
     fun autoConnect(context: Context): Boolean =
