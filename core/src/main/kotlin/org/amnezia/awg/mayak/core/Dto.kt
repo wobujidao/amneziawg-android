@@ -374,6 +374,23 @@ data class SettingsUpdate(
     @SerialName("dns_custom") val dnsCustom: String? = null,
 )
 
+/**
+ * Аккаунт человека (GET /v1/client/account, хендлер `handleAccount` в internal/clientapi). Ядро
+ * отдаёт там всю карточку (почта, тариф, трафик), а приложению из неё нужен ровно ПУБЛИЧНЫЙ НОМЕР —
+ * то, чем человек называет себя поддержке. Остальное приложение уже знает из /v1/client/sync, и
+ * дублировать его тут значило бы держать две расходящиеся копии одного контракта.
+ *
+ * `account_number` — строка из девяти цифр БЕЗ дефисов; разметку добавляет [AccountNumber.format].
+ * Nullable намеренно, и это ДВА разных штатных случая, а не ошибка:
+ *   • поля нет вовсе — ядро старее правки, добавившей номер в этот ответ;
+ *   • пришёл явный null — колонка `users.account_number` пустая (учётка старее миграции 0110).
+ * В обоих случаях приложение просто ничего не показывает. Строкой, а НЕ числом: ведущие нули значимы.
+ */
+@Serializable
+data class AccountInfo(
+    @SerialName("account_number") val accountNumber: String? = null,
+)
+
 /** Состояние доступа аккаунта (GET /v1/client/sync). access: active | expired | none («ничего не
  *  выдано»). validUntil — RFC3339 от ядра; пусто = срок не задан (бессрочный доступ админом). */
 @Serializable
