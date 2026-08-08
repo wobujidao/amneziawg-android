@@ -65,6 +65,52 @@ class AccountNumberTest {
         assertFalse("буквы", AccountNumber.isShowable("tg:12345678"))
     }
 
+    /** Хранилище-заглушка: обычная карта, чтобы правила запоминания проверялись без Android. */
+    private class FakeStore(private val map: MutableMap<String, String> = mutableMapOf()) : SecureStore {
+        override fun get(key: String): String? = map[key]
+        override fun put(key: String, value: String) { map[key] = value }
+        override fun remove(key: String) { map.remove(key) }
+    }
+
+    @Test
+    fun запомненныйНомер_показываетсяРазмеченным() {
+        val store = FakeStore()
+        assertNull("на пустом хранилище показывать нечего", AccountNumber.display(store))
+        assertEquals("472-918-563", AccountNumber.remember(store, "472918563"))
+        assertEquals("472918563", AccountNumber.cached(store))
+        assertEquals("472-918-563", AccountNumber.display(store))
+    }
+
+    @Test
+    fun пустойОтветЯдра_неСтираетСохранённыйНомер() {
+        // Самое дорогое правило этого файла. Ядро без правды про номер (старое, 404, сети нет) не
+        // должно ОТНИМАТЬ номер: иначе он пропадает из письма поддержке ровно тогда, когда письмо
+        // и пишут — то есть когда всё сломалось.
+        val store = FakeStore()
+        AccountNumber.remember(store, "472918563")
+        assertEquals("472-918-563", AccountNumber.remember(store, null))
+        assertEquals("472-918-563", AccountNumber.remember(store, ""))
+        assertEquals("472-918-563", AccountNumber.remember(store, "   "))
+        assertEquals("472918563", AccountNumber.cached(store))
+    }
+
+    @Test
+    fun мусорОтЯдра_неЗапоминается() {
+        val store = FakeStore()
+        assertNull(AccountNumber.remember(store, "tg:12345678"))
+        assertNull(AccountNumber.cached(store))
+    }
+
+    @Test
+    fun выходИзАккаунта_забываетНомер() {
+        // Переживи номер logout — следующий вошедший на этом телефоне продиктовал бы поддержке чужой.
+        val store = FakeStore()
+        AccountNumber.remember(store, "472918563")
+        AccountNumber.forget(store)
+        assertNull(AccountNumber.cached(store))
+        assertNull(AccountNumber.display(store))
+    }
+
     @Test
     fun ответЯдра_имяПоляAccountNumber() {
         val a = json.decodeFromString(

@@ -105,7 +105,7 @@ class MayakSettingsActivity : AppCompatActivity() {
             session.email() ?: getString(R.string.mayak_settings_account_none),
         )
         // Номер аккаунта: сначала из хранилища (мгновенно, работает и без сети), потом — освежить.
-        showAccountNumber(MayakAccountNumber.display(store))
+        showAccountNumber(org.amnezia.awg.mayak.core.AccountNumber.display(store))
         findViewById<MaterialButton>(R.id.mayak_settings_cabinet).setOnClickListener {
             openUrl(MayakHostList.cabinetUrl(this))
         }

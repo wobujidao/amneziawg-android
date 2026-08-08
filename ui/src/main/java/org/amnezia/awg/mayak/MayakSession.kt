@@ -125,7 +125,7 @@ class MayakSession(
         store.remove(K_EMAIL)
         // Номер аккаунта — про КОНКРЕТНУЮ учётку: переживи он выход, следующий вошедший увидел бы
         // чужой номер и продиктовал его поддержке как свой.
-        MayakAccountNumber.forget(store)
+        org.amnezia.awg.mayak.core.AccountNumber.forget(store)
         store.remove(K_DEVICE)
         store.remove(K_LAST_GOOD) // сохранённый конфиг прошлого пользователя не должен пережить выход
         invalidateDirections() // чужой кэш не должен пережить выход
@@ -348,15 +348,23 @@ class MayakSession(
     }
 
     /** Состояние доступа аккаунта (активен/истёк, до какой даты, сколько устройств). Требует входа. */
-    suspend fun accountStatus(backend: MayakBackend): org.amnezia.awg.mayak.core.AccountStatus =
-        backend.accountStatus(requireToken())
+    suspend fun accountStatus(backend: MayakBackend): org.amnezia.awg.mayak.core.AccountStatus {
+        val token = requireToken()
+        val st = backend.accountStatus(token)
+        // Попутно добираем номер аккаунта, если его ещё нет. Почему здесь: люди, вошедшие ДО того,
+        // как номер появился, больше никогда не логинятся, а номер нужен АВТО-диагностике при
+        // отказе подключения — то есть на пути, который не проходит через экран Настроек. Сверка
+        // доступа — единственный запрос с токеном, который случается у всех и сам собой.
+        // Стоимость: одна проверка хранилища на сверку и РОВНО ОДИН лишний запрос на установку.
+        runCatching { MayakAccountNumber.refresh(store, token, backend) }
+        return st
+    }
 
     /**
      * Публичный номер аккаунта: из хранилища, а если его там ещё нет — с ядра (один раз на установку).
      *
-     * Почему это здесь, а не только на экране Настроек: номер нужен письму в поддержку и
-     * диагностическому логу, которые уходят и с главного экрана. Люди, вошедшие ДО появления номера,
-     * никогда больше не логинятся — поэтому подбираем его при первой же сверке доступа, а не при входе.
+     * Экран Настроек зовёт это явно, чтобы показать номер сразу при открытии; всем остальным номер
+     * достаётся сам — попутно с первой же сверкой доступа (см. [accountStatus]).
      */
     suspend fun accountNumber(backend: MayakBackend): String? =
         MayakAccountNumber.refresh(store, requireToken(), backend)
