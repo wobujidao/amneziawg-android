@@ -282,6 +282,18 @@ class MayakBackend(
         return json.decodeFromString(AccountSettings.serializer(), resp)
     }
 
+    /**
+     * Карточка аккаунта (GET /v1/client/account). Нужна ровно за одним полем — публичным НОМЕРОМ
+     * аккаунта, которым человек называет себя поддержке; см. [AccountInfo].
+     *
+     * Отдельным запросом, а не полем в /v1/client/sync: sync ходит по расписанию (раз в час и на
+     * resume), а номер у учётки не меняется никогда — тянуть его в каждой сверке незачем.
+     */
+    suspend fun account(token: String): AccountInfo {
+        val resp = call("GET", "/v1/client/account", token = token, body = null)
+        return json.decodeFromString(AccountInfo.serializer(), resp)
+    }
+
     /** Состояние доступа аккаунта (GET /v1/client/sync): активен ли, до какой даты, сколько устройств. */
     suspend fun accountStatus(token: String): AccountStatus {
         val resp = call("GET", "/v1/client/sync", token = token, body = null)

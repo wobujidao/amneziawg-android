@@ -104,6 +104,8 @@ class MayakSettingsActivity : AppCompatActivity() {
             R.string.mayak_settings_account,
             session.email() ?: getString(R.string.mayak_settings_account_none),
         )
+        // Номер аккаунта: сначала из хранилища (мгновенно, работает и без сети), потом — освежить.
+        showAccountNumber(org.amnezia.awg.mayak.core.AccountNumber.display(store))
         findViewById<MaterialButton>(R.id.mayak_settings_cabinet).setOnClickListener {
             openUrl(MayakHostList.cabinetUrl(this))
         }
@@ -120,6 +122,7 @@ class MayakSettingsActivity : AppCompatActivity() {
         if (session.hasToken()) {
             loadFiltering()
             loadSubscription()
+            loadAccountNumber()
         } else {
             // Не вошли — карточка фильтрации бесполезна (менять нечего) и только путала бы.
             findViewById<View>(R.id.mayak_settings_filtering_card).visibility = View.GONE
@@ -452,6 +455,37 @@ class MayakSettingsActivity : AppCompatActivity() {
             line.text = access.text
             line.visibility = View.VISIBLE
         }
+    }
+
+    /**
+     * Подтягивает номер аккаунта с ядра, если его ещё нет в хранилище (у учётки номер не меняется,
+     * поэтому это один запрос на установку). Не удалось — строка просто останется скрытой: ни
+     * ошибки, ни пустого поля «Номер аккаунта: —», которое человек попробовал бы диктовать.
+     */
+    private fun loadAccountNumber() {
+        lifecycleScope.launch {
+            val shown = runCatching { session.accountNumber(backend()) }.getOrNull() ?: return@launch
+            showAccountNumber(shown)
+        }
+    }
+
+    /** Показ номера + копирование по нажатию. null/пусто — строку и подсказку прячем. */
+    private fun showAccountNumber(shown: String?) {
+        val row = findViewById<View>(R.id.mayak_settings_acctnum_row)
+        val hint = findViewById<View>(R.id.mayak_settings_acctnum_hint)
+        if (shown.isNullOrBlank()) {
+            row.visibility = View.GONE
+            hint.visibility = View.GONE
+            return
+        }
+        findViewById<TextView>(R.id.mayak_settings_acctnum).text = shown
+        // Копирование и по нажатию на всю строку, и по значку: значок 40dp — мелкая цель на телефоне,
+        // а номер человек обычно жмёт по самим цифрам.
+        val copy = { MayakAccountNumber.copy(this, shown) }
+        row.setOnClickListener { copy() }
+        findViewById<View>(R.id.mayak_settings_acctnum_copy).setOnClickListener { copy() }
+        row.visibility = View.VISIBLE
+        hint.visibility = View.VISIBLE
     }
 
     private fun openUrl(url: String) {

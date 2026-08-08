@@ -333,6 +333,13 @@
     <string name="mayak_disguise_applied">The icon and name change in a few seconds. If not, restart the phone. Your VPN connection is not affected.</string>
     <string name="mayak_settings_account">Account: %1$s</string>
     <string name="mayak_settings_account_none">not signed in</string>
+    <!-- Public account number (migration 0110): what a person calls themselves when writing to us.
+         The «472-918-563» grouping is added by the display layer; storage is nine bare digits. -->
+    <string name="mayak_account_number">Account number</string>
+    <string name="mayak_account_number_hint">Quote it when you write to support — we will find you faster than by email.</string>
+    <string name="mayak_account_number_copy">Copy account number</string>
+    <string name="mayak_account_number_copied">Account number copied</string>
+    <string name="mayak_support_body_account_number">Account number: %1$s</string>
     <string name="mayak_ipv6_badge">IPv6</string>
     <string name="mayak_settings_diagnostics">Help &amp; support</string>
     <string name="mayak_settings_diag_hint">Something not working, or not sure how to set it up? Start here. The help centre answers the common questions; if that is not enough, write to us — the letter is prefilled. A log helps us find the cause faster; data is processed per the privacy policy.</string>
