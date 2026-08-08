@@ -523,8 +523,20 @@
     <string name="mayak_settings_account">Аккаунт: %1$s</string>
     <string name="mayak_settings_account_none">вход не выполнен</string>
     <string name="mayak_ipv6_badge">IPv6</string>
-    <string name="mayak_settings_diagnostics">Диагностика и помощь</string>
-    <string name="mayak_settings_diag_hint">Если что-то не работает — отправьте нам лог, по нему мы быстро найдём причину. Данные обрабатываются согласно политике конфиденциальности.</string>
+    <string name="mayak_settings_diagnostics">Помощь и поддержка</string>
+    <string name="mayak_settings_diag_hint">Не работает или непонятно, как настроить — начните отсюда. Ответы на частые вопросы в справке; не подошло — напишите нам, письмо соберётся само. Лог помогает найти причину быстрее; данные обрабатываются согласно политике конфиденциальности.</string>
+    <!-- Точка входа в помощь. Адрес справки — из реестра доменов (MayakHostList.helpUrl), адрес
+         поддержки — из BuildConfig.MAYAK_SUPPORT_EMAIL: ни то, ни другое в переводах не хардкодим. -->
+    <string name="mayak_support_help_center">Справочный центр</string>
+    <string name="mayak_support_write">Написать в поддержку</string>
+    <string name="mayak_support_subject">Маяк: нужна помощь</string>
+    <!-- %1$s версия приложения, %2$s аппарат, %3$s версия Android, %4$s направление, %5$s аккаунт.
+         Секретов (токен, ключи, адреса серверов) в письме нет намеренно: оно уходит через почтовое
+         приложение, то есть через третьи руки. -->
+    <string name="mayak_support_body">Опишите, что случилось:\n\n\n\n—————\nЭто нужно нам, чтобы разобраться — не удаляйте:\nПриложение: %1$s\nУстройство: %2$s\nСистема: %3$s\nНаправление: %4$s\nАккаунт: %5$s\n</string>
+    <string name="mayak_support_direction_none">не выбрано</string>
+    <string name="mayak_support_account_none">вход не выполнен</string>
+    <string name="mayak_support_no_mail_app">Почтового приложения на телефоне нет. Адрес поддержки скопирован: %1$s</string>
     <string name="mayak_settings_send_log">Отправить лог</string>
     <string name="mayak_settings_send_log_sending">Отправляю лог…</string>
     <string name="mayak_settings_send_log_ok">Лог отправлен. Спасибо!</string>

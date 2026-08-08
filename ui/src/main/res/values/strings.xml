@@ -311,8 +311,21 @@
     <string name="mayak_settings_account">Account: %1$s</string>
     <string name="mayak_settings_account_none">not signed in</string>
     <string name="mayak_ipv6_badge">IPv6</string>
-    <string name="mayak_settings_diagnostics">Diagnostics &amp; help</string>
-    <string name="mayak_settings_diag_hint">If something isn\'t working, send us the log — it lets us find the cause fast. Data is processed per the privacy policy.</string>
+    <string name="mayak_settings_diagnostics">Help &amp; support</string>
+    <string name="mayak_settings_diag_hint">Something not working, or not sure how to set it up? Start here. The help centre answers the common questions; if that is not enough, write to us — the letter is prefilled. A log helps us find the cause faster; data is processed per the privacy policy.</string>
+    <!-- Entry point into help. The help address comes from the domain registry
+         (MayakHostList.helpUrl), the support address from BuildConfig.MAYAK_SUPPORT_EMAIL —
+         neither is hardcoded in translations. -->
+    <string name="mayak_support_help_center">Help centre</string>
+    <string name="mayak_support_write">Write to support</string>
+    <string name="mayak_support_subject">Mayak: I need help</string>
+    <!-- %1$s app version, %2$s device, %3$s Android version, %4$s direction, %5$s account.
+         No secrets (token, keys, server addresses) on purpose: the letter goes out through a mail
+         app, i.e. through third-party hands. -->
+    <string name="mayak_support_body">Describe what happened:\n\n\n\n—————\nWe need this to look into it — please keep it:\nApp: %1$s\nDevice: %2$s\nSystem: %3$s\nDirection: %4$s\nAccount: %5$s\n</string>
+    <string name="mayak_support_direction_none">not selected</string>
+    <string name="mayak_support_account_none">not signed in</string>
+    <string name="mayak_support_no_mail_app">No mail app on this phone. The support address is copied: %1$s</string>
     <string name="mayak_settings_send_log">Send log</string>
     <string name="mayak_settings_send_log_sending">Sending log…</string>
     <string name="mayak_settings_send_log_ok">Log sent. Thank you!</string>

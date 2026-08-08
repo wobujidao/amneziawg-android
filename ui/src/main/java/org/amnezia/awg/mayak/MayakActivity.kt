@@ -700,7 +700,7 @@ class MayakActivity : AppCompatActivity() {
                     // Сначала машинный признак: под 403 живут ДВА разных случая (email не подтверждён
                     // и аккаунт заблокирован), и предлагать заблокированному «подтвердить почту» —
                     // отправлять его чинить не то.
-                    e.code == "account_blocked" -> showLoginError(getString(R.string.mayak_err_account_blocked, BuildConfig.MAYAK_SUPPORT_EMAIL))
+                    e.code == "account_blocked" -> showAccountBlocked(email)
                     e.status == 403 -> showEmailNotVerified()
                     e.code == "totp_required" -> askTotpCode()
                     e.code == "totp_invalid" -> showTotpError()
@@ -830,6 +830,25 @@ class MayakActivity : AppCompatActivity() {
             .setTitle(getString(R.string.mayak_status_device_limit))
             .setMessage(getString(R.string.mayak_device_limit_msg))
             .setPositiveButton(getString(R.string.mayak_settings_devices)) { _, _ -> MayakDevices.show(this) }
+            .setNegativeButton(getString(R.string.mayak_cancel), null)
+            .show()
+    }
+
+    /**
+     * Аккаунт заблокирован (403 `account_blocked`). Единственное осмысленное действие человека —
+     * написать нам, и до 08-08 адрес поддержки жил ТОЛЬКО внутри текста этой ошибки: его надо было
+     * разглядеть в серой строке под формой, запомнить и вручную набрать в почте. Даём кнопку.
+     */
+    private fun showAccountBlocked(email: String) = runOnUiThread {
+        val text = getString(R.string.mayak_err_account_blocked, MayakSupport.email)
+        // blamePassword=false: пароль тут ни при чём, а красная подпись под полем «Пароль» читается
+        // как «пароль неверный» и отправляет человека его сбрасывать (та же ошибка, что была с 2FA).
+        showLoginError(text, blamePassword = false)
+        AlertDialog.Builder(this)
+            .setMessage(text)
+            .setPositiveButton(getString(R.string.mayak_support_write)) { _, _ ->
+                MayakSupport.writeToSupport(this, email)
+            }
             .setNegativeButton(getString(R.string.mayak_cancel), null)
             .show()
     }

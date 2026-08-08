@@ -408,13 +408,39 @@
                         android:alpha="0.8"
                         android:textAppearance="@style/Mayak.Tagline" />
 
+                    <!-- Помощь и поддержка (блокер №3 бэклога, 08-08): до этой правки в приложении
+                         не было ни справки, ни кнопки «написать» — адрес поддержки встречался
+                         ровно один раз, внутри текста ошибки «аккаунт заблокирован». Порядок
+                         кнопок = порядок усилий человека: прочитать → написать → прислать лог. -->
                     <com.google.android.material.button.MaterialButton
-                        android:id="@+id/mayak_settings_send_log"
+                        android:id="@+id/mayak_settings_help_center"
                         style="@style/Mayak.Button.Primary"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        app:icon="@drawable/ic_info"
+                        app:iconGravity="textStart"
+                        android:text="@string/mayak_support_help_center" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/mayak_settings_write_support"
+                        style="@style/Mayak.Button.Outlined"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        app:icon="@drawable/ic_action_open"
+                        app:iconGravity="textStart"
+                        app:iconTint="@color/mayak_outline"
+                        android:text="@string/mayak_support_write" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/mayak_settings_send_log"
+                        style="@style/Mayak.Button.Outlined"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
                         app:icon="@drawable/ic_upload"
                         app:iconGravity="textStart"
+                        app:iconTint="@color/mayak_outline"
                         android:text="@string/mayak_settings_send_log" />
 
                     <!-- «Поделиться сохранённым логом» (0.3.99): появляется, только если с прошлой

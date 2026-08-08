@@ -76,6 +76,17 @@ class MayakSettingsActivity : AppCompatActivity() {
             startActivity(Intent(this, MayakAboutActivity::class.java))
             MayakTransitions.applyAxis(this)
         }
+        // Справочный центр: адрес — из реестра доменов. Его может не быть (кабинет задан как IP) —
+        // тогда кнопку прячем, а не показываем неработающую.
+        val helpCenter = findViewById<MaterialButton>(R.id.mayak_settings_help_center)
+        if (MayakHostList.helpUrl(this) != null) {
+            helpCenter.setOnClickListener { MayakSupport.openHelp(this) }
+        } else {
+            helpCenter.visibility = View.GONE
+        }
+        findViewById<MaterialButton>(R.id.mayak_settings_write_support).setOnClickListener {
+            MayakSupport.writeToSupport(this, session.email())
+        }
         findViewById<MaterialButton>(R.id.mayak_settings_send_log).setOnClickListener { sendLog(it as MaterialButton) }
         // «Поделиться логом» видна, только пока на диске лежит недоставленный лог с прошлой неудачной
         // попытки (0.3.99) — состояние могло смениться, пока экран был закрыт (пришли на новую сессию
