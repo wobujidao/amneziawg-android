@@ -50,6 +50,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import org.amnezia.awg.BuildConfig
 import org.amnezia.awg.R
 import org.amnezia.awg.backend.GoBackend
+import org.amnezia.awg.mayak.core.AccessDenial
 import org.amnezia.awg.mayak.core.AppVersionInfo
 import org.amnezia.awg.mayak.core.Direction
 import org.amnezia.awg.mayak.core.DohResolver
@@ -60,6 +61,7 @@ import org.amnezia.awg.mayak.core.MayakApiException
 import org.amnezia.awg.mayak.core.MayakBackend
 import org.amnezia.awg.mayak.core.MayakHosts
 import org.amnezia.awg.mayak.core.NoReachableHostException
+import org.amnezia.awg.mayak.core.accessDenial
 
 class MayakActivity : AppCompatActivity() {
 
@@ -774,9 +776,27 @@ class MayakActivity : AppCompatActivity() {
 
     /** 403 email_not_verified: понятное сообщение + предложение открыть кабинет для подтверждения. */
     /**
-     * Конец срока доступа (402 на /connect). Отдельно от общей ошибки: это не сбой, чинить его в
-     * приложении нечем, и диаг-лог на него заливать незачем — человеку нужен понятный текст и вход
-     * в кабинет, где виден статус аккаунта.
+     * Тарифа у аккаунта нет (402 `no_plan`). ОТДЕЛЬНО от «доступ закончился»: продлевать нечего, и
+     * совет продлить отправляет человека искать кнопку, которой для него не существует. Слова и
+     * кнопка — как в кабинете: «доступ ещё не открыт» → выбрать тариф.
+     */
+    private fun showNoPlan() = runOnUiThread {
+        connState = ConnState.DISCONNECTED
+        connectedDir = null
+        renderState(ConnState.DISCONNECTED)
+        setStatus(getString(R.string.mayak_status_no_plan))
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.mayak_status_no_plan))
+            .setMessage(getString(R.string.mayak_no_plan_msg))
+            .setPositiveButton(getString(R.string.mayak_choose_plan)) { _, _ -> openUrl(MayakHostList.cabinetUrl(this)) }
+            .setNegativeButton(getString(R.string.mayak_cancel), null)
+            .show()
+    }
+
+    /**
+     * Конец срока доступа (402 `no_subscription` либо 402 без признака). Отдельно от общей ошибки:
+     * это не сбой, чинить его в приложении нечем, и диаг-лог на него заливать незачем — человеку
+     * нужен понятный текст и вход в кабинет, где виден статус аккаунта.
      */
     private fun showAccessExpired() = runOnUiThread {
         connState = ConnState.DISCONNECTED
@@ -1636,7 +1656,15 @@ class MayakActivity : AppCompatActivity() {
                     // теперь отдаёт code=unauthorized только на реально отозванный вход, а на свои
                     // беды — 5xx (разбор 2026-07-27). Без признака ведём себя как при обычной ошибке.
                     e is MayakApiException && e.code == "unauthorized" -> sessionExpired()
-                    e is MayakApiException && e.status == 402 -> showAccessExpired()
+                    // 402 значит ДВЕ разные вещи, и до 08-08 приложение их путало: «тарифа не
+                    // выдавали» (no_plan) и «срок прошёл» (no_subscription) приходят под одним
+                    // статусом, а показывали обоим «Доступ закончился — продлите». Тому, кто ни разу
+                    // не платил, это советует продлить то, чего у него не было. Разбор кода — в
+                    // :core.accessDenial (юнит-тест на JVM), незнакомый код → прежняя ветка.
+                    e is MayakApiException && accessDenial(e.status, e.code) == AccessDenial.NO_PLAN ->
+                        showNoPlan()
+                    e is MayakApiException && accessDenial(e.status, e.code) == AccessDenial.EXPIRED ->
+                        showAccessExpired()
                     // Конфликт ключа устройства сессия чинит сама (перевыпуск пары + повтор). Если он
                     // долетел СЮДА — повтор тоже не прошёл, и это точно не про лимит устройств:
                     // молча показать «лимит» значило бы отправить человека чистить чужие слоты.

@@ -279,7 +279,12 @@
     <string name="mayak_status_access_expired">Access ended</string>
     <string name="mayak_status_device_limit">Device limit reached</string>
     <string name="mayak_device_limit_msg">Your account already has the maximum number of devices, so this one can\'t be added. Open “My devices”, disconnect one you no longer use, and try again.</string>
-    <string name="mayak_access_expired_msg">Your access to the service has ended, so connecting is unavailable. You can see your account status in the dashboard.</string>
+    <string name="mayak_access_expired_msg">Your access to the service has ended, so connecting is unavailable. Renew it in the dashboard and everything will work again.</string>
+    <!-- 402 no_plan: the account never had a plan. Telling this person to “renew” sends them looking
+         for a button that does not exist for them — the fix is to pick a plan. -->
+    <string name="mayak_status_no_plan">Access is not open yet</string>
+    <string name="mayak_no_plan_msg">No plan has been chosen for this account yet, so there is nothing to connect to. Pick a plan in the dashboard and connecting will start working.</string>
+    <string name="mayak_choose_plan">Choose a plan</string>
     <string name="mayak_settings_reset">Reset all settings</string>
     <string name="mayak_settings_reset_confirm">Reset all app settings to defaults? This does not sign you out.</string>
     <string name="mayak_settings_reset_done">Settings reset</string>
