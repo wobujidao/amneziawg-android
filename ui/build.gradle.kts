@@ -105,10 +105,11 @@ android {
             versionNameSuffix = "-debug"
             signingConfig = signingConfigs.getByName("mayakdebug")
         }
-        create("googleplay") {
-            initWith(getByName("release"))
-            matchingFallbacks += "release"
-        }
+        // 🔴 buildType `googleplay` СНЯТ 08-08. Он наследовал `release` и НЕ ставил
+        // MAYAK_PROD_TARGET=true — то есть под именем «для Google Play» собирал сборку под ДЕВ-контур,
+        // снятый 07-08 (мёртвый домен, чужой CA). Никто его не звал: и APK для сайта, и AAB для Play
+        // идут через prodRelease (docs/RELEASE-PUBLISHING.md), ссылок на него не было ни в скриптах,
+        // ни в CI, ни в доке. Заряженный фугас без единого потребителя — убран, а не починен.
         // Сборка под ПРОД-ядро de1/mayaknetworks.com (поднято 2026-08-06), отдельное от дева
         // mayakvpn.ru. Тот же release (unsigned → подписываем релиз-ключом руками/CI), но
         // MAYAK_PROD_TARGET=true переключает MayakHostList на MayakProdHosts, а ui/src/prodRelease/res
