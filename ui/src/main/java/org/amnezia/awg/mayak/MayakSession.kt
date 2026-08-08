@@ -125,7 +125,7 @@ class MayakSession(
         store.remove(K_EMAIL)
         // Номер аккаунта — про КОНКРЕТНУЮ учётку: переживи он выход, следующий вошедший увидел бы
         // чужой номер и продиктовал его поддержке как свой.
-        org.amnezia.awg.mayak.core.AccountNumber.forget(store)
+        MayakAccountNumber.forget(store)
         store.remove(K_DEVICE)
         store.remove(K_LAST_GOOD) // сохранённый конфиг прошлого пользователя не должен пережить выход
         invalidateDirections() // чужой кэш не должен пережить выход

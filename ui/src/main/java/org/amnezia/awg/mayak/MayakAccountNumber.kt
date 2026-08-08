@@ -25,6 +25,17 @@ import org.amnezia.awg.mayak.core.SecureStore
 object MayakAccountNumber {
 
     /**
+     * Уже спрашивали в ЭТОМ процессе. Нужен ровно для случая «ядро номер не отдаёт»: без флага
+     * попытка повторялась бы на КАЖДОЙ сверке доступа (раз в час и на каждом resume) и стоила бы
+     * лишнего запроса всем, у кого учётка без номера. Успешный ответ и так закрывается кэшем.
+     *
+     * Сбрасывается в [forget], то есть при выходе: иначе следующий вошедший на этом телефоне
+     * остался бы без номера до перезапуска приложения.
+     */
+    @Volatile
+    private var askedThisProcess = false
+
+    /**
      * Готовая к показу строка из хранилища, для места, у которого на руках только Context (письмо
      * поддержке, сбор диагностики). null — показывать нечего, и это ШТАТНО: человек не входил; ядро
      * старее правки, добавившей номер в ответ; учётка старее миграции 0110.
@@ -48,9 +59,18 @@ object MayakAccountNumber {
         backend: MayakBackend,
         force: Boolean = false,
     ): String? {
-        if (!force && AccountNumber.cached(store) != null) return AccountNumber.display(store)
+        if (!force && (AccountNumber.cached(store) != null || askedThisProcess)) {
+            return AccountNumber.display(store)
+        }
+        askedThisProcess = true
         val fresh = runCatching { backend.account(token).accountNumber }.getOrNull()
         return AccountNumber.remember(store, fresh)
+    }
+
+    /** Забыть номер (выход из аккаунта) и разрешить спросить его заново для следующей учётки. */
+    fun forget(store: SecureStore) {
+        askedThisProcess = false
+        AccountNumber.forget(store)
     }
 
     /**

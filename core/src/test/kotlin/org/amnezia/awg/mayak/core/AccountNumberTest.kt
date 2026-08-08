@@ -131,6 +131,15 @@ class AccountNumberTest {
     }
 
     @Test
+    fun ответЯдраСПустойСтрокой_ничегоНеПоказывает() {
+        // Именно так выглядит ответ ядра для учётки БЕЗ номера: поле в структуре Account — обычная
+        // строка без omitempty, значит приезжает всегда и пустая. Это штатный случай, не ошибка.
+        val a = json.decodeFromString(AccountInfo.serializer(), """{"login":"a@b.ru","account_number":""}""")
+        assertEquals("", a.accountNumber)
+        assertFalse(AccountNumber.isShowable(a.accountNumber))
+    }
+
+    @Test
     fun ответЯдраСNull_разбираетсяИНичегоНеПоказывает() {
         // Колонка nullable: у учёток, заведённых до миграции и не добравших номер, придёт null.
         // Не-nullable поле с дефолтом здесь БЫ УПАЛО (coerceInputValues в defaultJson не включён).
