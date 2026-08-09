@@ -244,19 +244,55 @@ object Delivery {
         return u
     }
 
-    /** Строгий IP-литерал (v4/v6). Гейт по символам ГАРАНТИРУЕТ, что InetAddress не пойдёт в DNS. */
+    /**
+     * Строгий IP-литерал БЕЗ InetAddress: getByName для строки, не распознанной как литерал
+     * (например «999.1.1.1» — символы IP, значение нет), уходит в СИСТЕМНЫЙ DNS — то есть
+     * валидация утекала бы запросом наружу и висела на таймауте резолвера. Сервер подписывает
+     * только то, что прошло Go net.ParseIP, — здесь то же правило своими руками.
+     */
     private fun isIpLiteral(s: String): Boolean {
         if (s.isEmpty() || s.length > 45) return false
-        val v4 = s.count { it == '.' } == 3 && s.all { it.isDigit() || it == '.' }
-        val v6 = s.contains(':') &&
-            s.all { it.isDigit() || it in 'a'..'f' || it in 'A'..'F' || it == ':' || it == '.' }
-        if (!v4 && !v6) return false
-        return try {
-            java.net.InetAddress.getByName(s) // для литерала DNS не дёргается (гейт выше)
-            true
-        } catch (e: Exception) {
-            false
+        return if (s.contains(':')) isIpv6(s) else isIpv4(s)
+    }
+
+    private fun isIpv4(s: String): Boolean {
+        val parts = s.split('.')
+        if (parts.size != 4) return false
+        for (p in parts) {
+            if (p.isEmpty() || p.length > 3 || !p.all { it.isDigit() }) return false
+            if (p.length > 1 && p[0] == '0') return false // ведущие нули отвергает и Go ParseIP
+            if (p.toInt() > 255) return false
         }
+        return true
+    }
+
+    private fun isIpv6(s: String): Boolean {
+        if (s.any { !(it.isDigit() || it in 'a'..'f' || it in 'A'..'F' || it == ':' || it == '.') }) return false
+        val dbl = s.indexOf("::")
+        if (dbl >= 0 && s.indexOf("::", dbl + 1) >= 0) return false // «::» максимум одно
+        val compress = dbl >= 0
+        val left = if (compress) s.substring(0, dbl) else s
+        val right = if (compress) s.substring(dbl + 2) else ""
+        fun groups(part: String): List<String>? {
+            if (part.isEmpty()) return emptyList()
+            val g = part.split(':')
+            return if (g.any { it.isEmpty() }) null else g
+        }
+        val l = groups(left) ?: return false
+        val r = groups(right) ?: return false
+        val all = l + r
+        if (!compress && all.isEmpty()) return false
+        var count = 0
+        for ((i, g) in all.withIndex()) {
+            if (i == all.size - 1 && g.contains('.')) {
+                if (!isIpv4(g)) return false // IPv4-хвост (::ffff:1.2.3.4)
+                count += 2
+            } else {
+                if (g.length > 4 || !g.all { it.isDigit() || it in 'a'..'f' || it in 'A'..'F' }) return false
+                count += 1
+            }
+        }
+        return if (compress) count < 8 else count == 8
     }
 
     private fun b64(s: String): ByteArray? = try {
