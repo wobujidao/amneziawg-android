@@ -99,9 +99,11 @@ class GoTunnel(context: Context, tunnelName: String = "mayak") : MayakCoreTunnel
         // неотличим от прямого пути. Владелец 2026-07-28 поймал это на себе: приложение молча увело
         // его на транзит, и узнал он об этом только из разбора диаг-лога. Путь надо показывать —
         // у транзита свои задержки и свои помехи, человек вправе понимать, чем он идёт.
-        const val ROUTE_DIRECT = "direct"
-        const val ROUTE_RELAY = "relay"
-        const val ROUTE_FALLBACK = "fallback"
+        // Значения — из :core (LadderTelemetry): те же строки уходят в недельный бикон исходом
+        // лестницы, и алиас не даёт им разъехаться со строками состояния туннеля молча.
+        const val ROUTE_DIRECT = org.amnezia.awg.mayak.core.LadderTelemetry.ROUTE_DIRECT
+        const val ROUTE_RELAY = org.amnezia.awg.mayak.core.LadderTelemetry.ROUTE_RELAY
+        const val ROUTE_FALLBACK = org.amnezia.awg.mayak.core.LadderTelemetry.ROUTE_FALLBACK
 
         @Volatile var connectedRoute: String = ROUTE_DIRECT
 

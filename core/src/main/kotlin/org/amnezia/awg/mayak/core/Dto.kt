@@ -6,6 +6,7 @@
 //   connect POST /v1/client/connect   {device_id,direction_id}    -> {direction,direct?,relay?}
 package org.amnezia.awg.mayak.core
 
+import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
@@ -275,9 +276,15 @@ data class AppVersionInfo(
  * приложения/сборки, модель устройства, версия ОС, локаль, источник установки + агрегированные счётчики
  * использования. user_id и ip ядро проставляет САМО по Bearer-токену — их НЕ шлём.
  * ⚠️ Ядро парсит тело с DisallowUnknownFields → набор ключей должен совпадать ТОЧНО (ни лишних, ни
- * пропущенных). Все поля обязательны (без дефолтов) → сериализуются всегда, ровно 9 ключей.
+ * пропущенных). Обязательные поля (без EncodeDefault) сериализуются всегда — это старый контракт.
+ *
+ * Поля ladder_* / ladder_ms_avg — НОВЫЙ слой (исход лестницы подключения, 2026-08-09): помечены
+ * `@EncodeDefault(NEVER)` и nullable, то есть null → ключ НЕ сериализуется вовсе. Так один класс
+ * умеет оба контракта: полный бикон для нового ядра и, через [withoutLadder], урезанный для старого
+ * (которое на незнакомый ключ отвечает 400). Ретрай на 400 делает MayakTelemetryWorker.
  */
 @Serializable
+@OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
 data class TelemetryRequest(
     @SerialName("app_version") val appVersion: String,
     @SerialName("version_code") val versionCode: Int,
@@ -294,6 +301,28 @@ data class TelemetryRequest(
     // банки и Госуслуги, идёт через туннель, и вход с загран-IP может не пройти. Шлём всегда явно
     // (true/false, не пропускаем ключ) — приложение своё состояние знает точно.
     @SerialName("ru_direct_enabled") val ruDirectEnabled: Boolean = false,
+    // ── Исход лестницы подключения (кумулятивно с установки, как connect_count; только техника,
+    // без адресов и содержимого — Политика обещает не собирать содержимое). Значения считает
+    // LadderTelemetry + MayakPrefs, сюда кладёт TelemetryRequest.withLadder(). Смысл: до этого мы
+    // узнавали «у скольких людей ломается прямой путь и спасает ли транзит» из жалоб, а не из данных.
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    @SerialName("ladder_direct_ok") val ladderDirectOk: Int? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    @SerialName("ladder_relay_ok") val ladderRelayOk: Int? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    @SerialName("ladder_fallback_ok") val ladderFallbackOk: Int? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    @SerialName("ladder_direct_fail") val ladderDirectFail: Int? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    @SerialName("ladder_relay_fail") val ladderRelayFail: Int? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    @SerialName("ladder_fallback_fail") val ladderFallbackFail: Int? = null,
+    // Попытки, где НЕ вышла ни одна ступень («нет выхода в интернет» при живой сети).
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    @SerialName("ladder_none") val ladderNone: Int? = null,
+    // Среднее время до ПОДТВЕРЖДЁННОГО выхода (мс) по успешным попыткам.
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    @SerialName("ladder_ms_avg") val ladderMsAvg: Int? = null,
 )
 
 /** OTA-список РФ-приложений для split-туннеля «Открывать российские сервисы напрямую» (BlancVPN-parity

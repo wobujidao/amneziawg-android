@@ -1,6 +1,8 @@
 // Тихий еженедельный телеметри-бикон «Маяк». Раз в 7 дней (WorkManager) шлём на ядро набор НЕ-ПДн:
 // версия приложения/сборки, модель устройства, версия ОС, локаль, источник установки + агрегированные
-// счётчики использования (число подключений / активных дней). БЕЗ UI, уведомлений и любого видимого
+// счётчики использования (число подключений / активных дней) + исход лестницы подключения (какая
+// ступень дала выход, какие провалились — core.LadderTelemetry; только техника, без адресов и
+// содержимого — Политика обещает не собирать содержимое). БЕЗ UI, уведомлений и любого видимого
 // эффекта. Если пользователь не вошёл (нет токена) — тихо ничего не шлём. Любой сбой глотаем (Result
 // .success), чтобы бикон не устраивал retry-шторм: не доехал — доедет через штатный 7-дневный интервал.
 // Аутентификация и фейловер доменов — те же, что у /connect (MayakBackend + HostProvider, как в
@@ -20,8 +22,11 @@ import java.util.Locale
 import java.util.concurrent.TimeUnit
 import org.amnezia.awg.BuildConfig
 import org.amnezia.awg.mayak.core.HostProvider
+import org.amnezia.awg.mayak.core.MayakApiException
 import org.amnezia.awg.mayak.core.MayakBackend
 import org.amnezia.awg.mayak.core.TelemetryRequest
+import org.amnezia.awg.mayak.core.withLadder
+import org.amnezia.awg.mayak.core.withoutLadder
 
 class MayakTelemetryWorker(
     context: Context,
@@ -40,7 +45,16 @@ class MayakTelemetryWorker(
             MayakHostList.refresh(app, backend)
             // Не вошёл → тихо ничего не шлём (не крашимся, не ретраим).
             if (session.hasToken()) {
-                session.sendTelemetry(backend, buildBeacon(app))
+                val beacon = buildBeacon(app)
+                try {
+                    session.sendTelemetry(backend, beacon)
+                } catch (e: MayakApiException) {
+                    // Ядро парсит бикон СТРОГО (DisallowUnknownFields) — ядро, ещё не знающее полей
+                    // лестницы (ladder_*), отвечает на них 400. Тогда повторяем БЕЗ новых полей:
+                    // старые данные обязаны доехать, а исход лестницы догонит после выката ядра.
+                    // Прочие отказы глотает внешний runCatching, как и раньше.
+                    if (e.status == 400) session.sendTelemetry(backend, beacon.withoutLadder()) else throw e
+                }
             }
         }
         // Любой сбой (нет сети / ядро недоступно / 4xx-5xx) глотаем: бикон не критичен и не должен
@@ -72,7 +86,10 @@ class MayakTelemetryWorker(
         // MayakPrefs.ruDirect — тот тумблер мёртв (нигде не выставляется, на туннель не влияет), поле
         // всегда уходило бы false. Ядро принимает ru_direct_enabled с этой же даты — сервер едет ПЕРВЫМ.
         ruDirectEnabled = MayakPresets.ruSplitActive(context),
-    )
+        // Исход лестницы подключения (какая ступень дала выход / какие провалились / среднее время до
+        // выхода). В отличие от полей выше, эти НЕ требуют выката ядра первым: ядро без них отвечает
+        // 400, и doWork шлёт вдогонку бикон старого контракта (withoutLadder) — данные не теряются.
+    ).withLadder(MayakPrefs.ladderCounters(context))
 
     // BCP-47 тег текущей локали, напр. "ru-RU". "und"/пусто → "" (не шлём мусор).
     private fun localeTag(): String =

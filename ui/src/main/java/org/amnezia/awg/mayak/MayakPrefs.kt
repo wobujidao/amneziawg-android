@@ -9,6 +9,7 @@ import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatDelegate
 import org.amnezia.awg.R
 import org.amnezia.awg.mayak.core.AutoDiagGate
+import org.amnezia.awg.mayak.core.LadderCounters
 
 object MayakPrefs {
     private const val PREFS = "mayak_ui_prefs"
@@ -49,6 +50,16 @@ object MayakPrefs {
     private const val KEY_ACTIVE_DAYS = "telemetry_active_days"     // число РАЗНЫХ дней с подключением
     private const val KEY_LAST_ACTIVE_DAY = "telemetry_last_active_day" // последняя учтённая дата (yyyy-MM-dd)
     private const val KEY_FALLBACK_COUNT = "telemetry_fallback_count" // подключений через запасной канал (SPEC-0039)
+    // Исход лестницы подключения (2026-08-09): какая ступень дала выход, какие до неё провалились,
+    // сколько занял успех. Та же кумулятивная модель, что у счётчиков выше. Логика — core.LadderTelemetry.
+    private const val KEY_LADDER_DIRECT_OK = "telemetry_ladder_direct_ok"
+    private const val KEY_LADDER_RELAY_OK = "telemetry_ladder_relay_ok"
+    private const val KEY_LADDER_FALLBACK_OK = "telemetry_ladder_fallback_ok"
+    private const val KEY_LADDER_DIRECT_FAIL = "telemetry_ladder_direct_fail"
+    private const val KEY_LADDER_RELAY_FAIL = "telemetry_ladder_relay_fail"
+    private const val KEY_LADDER_FALLBACK_FAIL = "telemetry_ladder_fallback_fail"
+    private const val KEY_LADDER_NONE = "telemetry_ladder_none"
+    private const val KEY_LADDER_MS_SUM = "telemetry_ladder_ms_sum" // Long: сумма мс успешных попыток
     // Rate-limit авто-заливки диаг-лога (0.3.48, переработан 0.3.99): два зазора, арифметика — в
     // :core.AutoDiagGate (юнит-тест на JVM). lastAttempt — короткий анти-шквал (ставим ДО сети,
     // независимо от исхода); lastSuccess — основной 6-часовой лимит (ставим ТОЛЬКО после того, как
@@ -301,6 +312,38 @@ object MayakPrefs {
     fun noteFallbackConnect(context: Context) {
         val p = prefs(context)
         p.edit().putInt(KEY_FALLBACK_COUNT, p.getInt(KEY_FALLBACK_COUNT, 0) + 1).apply()
+    }
+
+    /** Накопленный исход лестницы подключения — для телеметри-бикона (кумулятивно, не сбрасываем). */
+    fun ladderCounters(context: Context): LadderCounters {
+        val p = prefs(context)
+        return LadderCounters(
+            directOk = p.getInt(KEY_LADDER_DIRECT_OK, 0),
+            relayOk = p.getInt(KEY_LADDER_RELAY_OK, 0),
+            fallbackOk = p.getInt(KEY_LADDER_FALLBACK_OK, 0),
+            directFail = p.getInt(KEY_LADDER_DIRECT_FAIL, 0),
+            relayFail = p.getInt(KEY_LADDER_RELAY_FAIL, 0),
+            fallbackFail = p.getInt(KEY_LADDER_FALLBACK_FAIL, 0),
+            none = p.getInt(KEY_LADDER_NONE, 0),
+            successMsSum = p.getLong(KEY_LADDER_MS_SUM, 0L),
+        )
+    }
+
+    /** Прибавить исход ОДНОЙ попытки подключения (дельту даёт LadderTelemetry.attemptOutcome).
+     *  Зовётся из doConnect() ТОЛЬКО при явном исходе: успех какой-то ступени или «все ступени мимо».
+     *  Отмена человеком и ошибки ядра исходом лестницы не являются и сюда не попадают. */
+    fun noteLadder(context: Context, delta: LadderCounters) {
+        val sum = ladderCounters(context) + delta
+        prefs(context).edit()
+            .putInt(KEY_LADDER_DIRECT_OK, sum.directOk)
+            .putInt(KEY_LADDER_RELAY_OK, sum.relayOk)
+            .putInt(KEY_LADDER_FALLBACK_OK, sum.fallbackOk)
+            .putInt(KEY_LADDER_DIRECT_FAIL, sum.directFail)
+            .putInt(KEY_LADDER_RELAY_FAIL, sum.relayFail)
+            .putInt(KEY_LADDER_FALLBACK_FAIL, sum.fallbackFail)
+            .putInt(KEY_LADDER_NONE, sum.none)
+            .putLong(KEY_LADDER_MS_SUM, sum.successMsSum)
+            .apply()
     }
 
     /** Можно ли сейчас пробовать авто-заливку (правило — AutoDiagGate в :core). ТОЛЬКО читает,

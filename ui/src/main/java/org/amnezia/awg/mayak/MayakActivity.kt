@@ -58,6 +58,7 @@ import org.amnezia.awg.mayak.core.DohResolver
 import org.amnezia.awg.mayak.core.Fallback
 import org.amnezia.awg.mayak.core.FallbackDecision
 import org.amnezia.awg.mayak.core.HostProvider
+import org.amnezia.awg.mayak.core.LadderTelemetry
 import org.amnezia.awg.mayak.core.MayakApiException
 import org.amnezia.awg.mayak.core.MayakBackend
 import org.amnezia.awg.mayak.core.MayakHosts
@@ -1654,6 +1655,18 @@ class MayakActivity : AppCompatActivity() {
         connGeneration++ // новое подключение → результаты фоновых проб от прошлого больше не наши
         ipv6ProbeJob?.cancel()
         connectJob = lifecycleScope.launch {
+            // Исход лестницы для недельного бикона (LadderTelemetry): какие ступени ПРОБОВАЛИ и они
+            // не вышли, какая дала подтверждённый выход, сколько заняло. Записываем ТОЛЬКО явный
+            // исход (успех ступени / все ступени мимо): отмена человеком и ошибки ядра (нет конфига,
+            // кончился доступ) — не исход лестницы, по ним ступени судить нельзя.
+            val ladderStartedAt = SystemClock.elapsedRealtime()
+            val failedRungs = mutableListOf<String>()
+            fun noteLadderOutcome(successRung: String?) = MayakPrefs.noteLadder(
+                this@MayakActivity,
+                LadderTelemetry.attemptOutcome(
+                    failedRungs, successRung, SystemClock.elapsedRealtime() - ladderStartedAt,
+                ),
+            )
             try {
                 // Конфиг берём из ПРЕДЗАГРУЖЕННОГО кэша (наполняется при выборе страны), чтобы в момент
                 // подключения НЕ дёргать api.mayakvpn.ru: РФ-DPI (сотовая) палит наш VPN-домен в TLS/DNS
@@ -1693,22 +1706,28 @@ class MayakActivity : AppCompatActivity() {
                         val ip = bringUpUdp(direct, hasNextRung = relay != null || fb != null,
                             route = GoTunnel.ROUTE_DIRECT, serverHost = MayakPing.hostOf(paths.directEndpoint),
                             peerSyncSlackMs = peerSyncSlack(paths))
-                        if (ip != null) { session.rememberWorking(d.id, paths); holdStatus(); onConnected(ip, d); return@launch }
+                        if (ip != null) { session.rememberWorking(d.id, paths); noteLadderOutcome(GoTunnel.ROUTE_DIRECT); holdStatus(); onConnected(ip, d); return@launch }
+                        failedRungs += GoTunnel.ROUTE_DIRECT
                     }
                     if (relay != null) {
                         if (direct != null) announce(getString(R.string.mayak_status_relay_switch))
                         val ip = bringUpUdp(relay, hasNextRung = fb != null,
                             route = GoTunnel.ROUTE_RELAY, serverHost = MayakPing.hostOf(paths.relayEndpoint),
                             peerSyncSlackMs = peerSyncSlack(paths))
-                        if (ip != null) { session.rememberWorking(d.id, paths); holdStatus(); onConnected(ip, d); return@launch }
+                        if (ip != null) { session.rememberWorking(d.id, paths); noteLadderOutcome(GoTunnel.ROUTE_RELAY); holdStatus(); onConnected(ip, d); return@launch }
+                        failedRungs += GoTunnel.ROUTE_RELAY
                     }
                 }
                 if (fb != null && fbConf != null) {
                     val ip = switchToFallback(fbConf, fb)
-                    if (ip != null) { session.rememberWorking(d.id, paths); holdStatus(); onConnected(ip, d); return@launch }
+                    if (ip != null) { session.rememberWorking(d.id, paths); noteLadderOutcome(GoTunnel.ROUTE_FALLBACK); holdStatus(); onConnected(ip, d); return@launch }
+                    failedRungs += GoTunnel.ROUTE_FALLBACK
                 }
                 // Не вышла ни одна ступень: ГАСИМ туннель (иначе VpnService остаётся активным и
                 // чёрной-холит весь трафик, а UI показывает «отключено» — тихий no-internet).
+                // В бикон — только если сеть у телефона БЫЛА: «нет сети» — не провал лестницы,
+                // и записать его провалом значило бы завысить цифры блокировок на ровном месте.
+                if (MayakNet.hasNetwork(this@MayakActivity)) noteLadderOutcome(null)
                 runCatching { tunnel.down() }
                 // Сеть могла пропасть уже ПОСЛЕ старта (человек вышел из зоны, выключил Wi-Fi). Тогда
                 // «ни один путь не вышел в интернет» — правда формально и ложь по сути: пути ни при чём.
