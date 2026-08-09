@@ -94,7 +94,8 @@ public class BadConfigException extends Exception {
         SPECIAL_JUNK_I2("SpecialJunkI2"),
         SPECIAL_JUNK_I3("SpecialJunkI3"),
         SPECIAL_JUNK_I4("SpecialJunkI4"),
-        SPECIAL_JUNK_I5("SpecialJunkI5");
+        SPECIAL_JUNK_I5("SpecialJunkI5"),
+        HEADER_PROTECTION_KEY("HeaderProtectionKey");
 
         private final String name;
 

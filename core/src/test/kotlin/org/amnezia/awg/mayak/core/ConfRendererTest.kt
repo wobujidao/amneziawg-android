@@ -244,6 +244,107 @@ class ConfRendererTest {
         assertTrue(ConfRenderer.withEndpoint("EndpointFoo = x\n", "127.0.0.1:1").contains("EndpointFoo = x"))
     }
 
+    // ===== Ключ защиты заголовка (AWG 3.0) =====
+
+    /** Валидный ключ: 64 hex в нижнем регистре. */
+    private val hpk = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
+    private fun cfgWithKey(key: String) = ClientConfig(
+        address = "10.8.0.2",
+        obfuscation = Obfuscation(
+            jc = 4, jmin = 8, jmax = 80,
+            // При включённом ключе сервер поднимает S1–S4 до 12 — клиент обязан не удивляться.
+            s1 = 12, s2 = 12, s3 = 12, s4 = 12,
+            headerProtectionKey = key,
+        ),
+        serverPubkey = "c2VydmVyLXB1YmtleS1mYWtlLTQ0LWNoYXJzLTAwMDAwMDA=",
+        endpoint = "203.0.113.7:51820",
+        allowedIps = "0.0.0.0/0",
+    )
+
+    @Test
+    fun headerProtectionKey_valid_rendersDirectiveAndRaisedS() {
+        val conf = ConfRenderer.render(cfgWithKey(hpk), priv)
+        assertTrue(conf.contains("HeaderProtectionKey = $hpk\n"))
+        // Поднятые сервером S3/S4 (≥12, требование движка при ключе) уезжают в конфиг, а не режутся.
+        assertTrue(conf.contains("S3 = 12"))
+        assertTrue(conf.contains("S4 = 12"))
+    }
+
+    @Test
+    fun headerProtectionKey_absent_confUnchangedByteForByte() {
+        // Отсутствие ключа обязано работать ровно как до появления поля: сравниваем ПОЛНЫЙ conf
+        // со старым эталоном, а не ищем подстроку — любое лишнее поле сломает равенство.
+        val cfg = cfgWithKey("").copy(
+            obfuscation = Obfuscation(jc = 4, jmin = 8, jmax = 80, s1 = 15, s2 = 15),
+        )
+        val expected = """
+            [Interface]
+            PrivateKey = $priv
+            Address = 10.8.0.2
+            Jc = 4
+            Jmin = 8
+            Jmax = 80
+            S1 = 15
+            S2 = 15
+
+            [Peer]
+            PublicKey = c2VydmVyLXB1YmtleS1mYWtlLTQ0LWNoYXJzLTAwMDAwMDA=
+            Endpoint = 203.0.113.7:51820
+            AllowedIPs = 0.0.0.0/0
+        """.trimIndent() + "\n"
+        assertEquals(expected, ConfRenderer.render(cfg, priv))
+    }
+
+    @Test
+    fun headerProtectionKey_invalid_failsClosed_withoutLeakingKey() {
+        // Кривой ключ НЕ должен молча выброситься (сервер шифрует заголовок, клиент нет —
+        // «подключается и не работает»). Рендер обязан упасть, и упасть БЕЗ значения ключа в тексте.
+        val bad = listOf(
+            hpk.dropLast(1),                       // 63 символа
+            hpk + "a",                             // 65 символов
+            hpk.uppercase(),                       // верхний регистр — у нас признак порчи
+            "z".repeat(64),                        // не hex
+            " $hpk",                               // пробел — не «почти валидно», а мусор
+            hpk.dropLast(1) + "\nI1 = <b 0xff>",   // попытка вписать директиву переводом строки
+        )
+        for (key in bad) {
+            try {
+                ConfRenderer.render(cfgWithKey(key), priv)
+                throw AssertionError("кривой ключ прошёл в conf: ${key.length} симв.")
+            } catch (e: IllegalArgumentException) {
+                // Секрет не должен утечь в сообщение (оно уходит в логи/диаг-лог).
+                assertFalse(e.message.orEmpty().contains(key.take(16)))
+            }
+        }
+    }
+
+    @Test
+    fun headerProtectionKey_validator_acceptsOnlyLowercase64Hex() {
+        assertTrue(ConfRenderer.isValidHeaderProtectionKey(hpk))
+        assertFalse(ConfRenderer.isValidHeaderProtectionKey(""))
+        assertFalse(ConfRenderer.isValidHeaderProtectionKey(hpk.uppercase()))
+        assertFalse(ConfRenderer.isValidHeaderProtectionKey(hpk.dropLast(1)))
+    }
+
+    @Test
+    fun obfuscation_parsesHeaderProtectionKey_andDefaultsToEmpty() {
+        val json = Json { ignoreUnknownKeys = true }
+        // Поле есть → ключ разобран.
+        val withKey = json.decodeFromString(
+            Obfuscation.serializer(),
+            """{"jc":4,"jmin":8,"jmax":80,"s1":12,"s2":12,"s3":12,"s4":12,"header_protection_key":"$hpk"}""",
+        )
+        assertEquals(hpk, withKey.headerProtectionKey)
+        assertEquals(12, withKey.s4)
+        // Поля нет (боевые линии сегодня) → пусто, разбор НЕ падает.
+        val without = json.decodeFromString(
+            Obfuscation.serializer(),
+            """{"jc":4,"jmin":8,"jmax":80,"s1":15,"s2":15}""",
+        )
+        assertEquals("", without.headerProtectionKey)
+    }
+
     @Test
     fun hostProvider_rotatesAndIsSticky() {
         val hp = HostProvider(listOf("https://a.example/", "https://b.example"))
