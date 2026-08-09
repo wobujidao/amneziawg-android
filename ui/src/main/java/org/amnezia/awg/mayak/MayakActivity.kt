@@ -1228,7 +1228,14 @@ class MayakActivity : AppCompatActivity() {
                 if (forceRefresh || !directionsFetchedThisProcess) {
                     val fresh = session.directions(b, true)
                     directionsFetchedThisProcess = true // только на успех: ошибка сети оставит флаг false → повтор
-                    val changed = fresh.map { it.id } != directions.map { it.id }
+                    // «Изменился» — это ВСЁ содержимое, а не только набор id (равенство data-класса
+                    // против СЫРОГО серверного порядка). Сравнение по id молча съедало смену полей на
+                    // тех же направлениях: кэш на диске пишется сериализатором ТЕКУЩЕЙ схемы, у
+                    // обновившегося приложения в нём нет новых полей (ipv6, recommended…) — свежий
+                    // ответ ядра их принёс, а перерисовка не случалась, и бейджи не зажигались до
+                    // перезапуска процесса (поймано на эмуляторе 09-08). То же с живой сменой
+                    // health/recommended на сервере при тёплом кэше.
+                    val changed = fresh != serverDirections
                     if (directions.isEmpty() || (changed && connState == ConnState.DISCONNECTED)) {
                         renderDirections(fresh)
                     }
