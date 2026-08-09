@@ -62,6 +62,7 @@ public final class Interface {
     private final Optional<String> specialJunkI3;
     private final Optional<String> specialJunkI4;
     private final Optional<String> specialJunkI5;
+    private final Optional<String> headerProtectionKey;
 
     private Interface(final Builder builder) {
         // Defensively copy to ensure immutability even if the Builder is reused.
@@ -89,6 +90,7 @@ public final class Interface {
         specialJunkI3 = builder.specialJunkI3;
         specialJunkI4 = builder.specialJunkI4;
         specialJunkI5 = builder.specialJunkI5;
+        headerProtectionKey = builder.headerProtectionKey;
     }
 
     /**
@@ -175,6 +177,9 @@ public final class Interface {
                 case "i5":
                     builder.parseSpecialJunkI5(attribute.getValue());
                     break;
+                case "headerprotectionkey":
+                    builder.parseHeaderProtectionKey(attribute.getValue());
+                    break;
                 default:
                     throw new BadConfigException(Section.INTERFACE, Location.TOP_LEVEL,
                             Reason.UNKNOWN_ATTRIBUTE, attribute.getKey());
@@ -211,7 +216,8 @@ public final class Interface {
                 && specialJunkI2.equals(other.specialJunkI2)
                 && specialJunkI3.equals(other.specialJunkI3)
                 && specialJunkI4.equals(other.specialJunkI4)
-                && specialJunkI5.equals(other.specialJunkI5);
+                && specialJunkI5.equals(other.specialJunkI5)
+                && headerProtectionKey.equals(other.headerProtectionKey);
     }
 
     /**
@@ -435,6 +441,15 @@ public final class Interface {
         return specialJunkI5;
     }
 
+    /**
+     * Returns the headerProtectionKey used for the AmneziaWG interface (AWG 3.0).
+     *
+     * @return the headerProtectionKey, or {@code Optional.empty()} if none is configured
+     */
+    public Optional<String> getHeaderProtectionKey() {
+        return headerProtectionKey;
+    }
+
 
     @Override
     public int hashCode() {
@@ -462,6 +477,7 @@ public final class Interface {
         hash = 31 * hash + specialJunkI3.hashCode();
         hash = 31 * hash + specialJunkI4.hashCode();
         hash = 31 * hash + specialJunkI5.hashCode();
+        hash = 31 * hash + headerProtectionKey.hashCode();
         return hash;
     }
 
@@ -517,6 +533,7 @@ public final class Interface {
         specialJunkI3.ifPresent(i3 -> sb.append("I3 = ").append(i3).append('\n'));
         specialJunkI4.ifPresent(i4 -> sb.append("I4 = ").append(i4).append('\n'));
         specialJunkI5.ifPresent(i5 -> sb.append("I5 = ").append(i5).append('\n'));
+        headerProtectionKey.ifPresent(hpk -> sb.append("HeaderProtectionKey = ").append(hpk).append('\n'));
         sb.append("PrivateKey = ").append(keyPair.getPrivateKey().toBase64()).append('\n');
         return sb.toString();
     }
@@ -547,6 +564,7 @@ public final class Interface {
         specialJunkI3.ifPresent(i3 -> sb.append("i3=").append(i3).append('\n'));
         specialJunkI4.ifPresent(i4 -> sb.append("i4=").append(i4).append('\n'));
         specialJunkI5.ifPresent(i5 -> sb.append("i5=").append(i5).append('\n'));
+        headerProtectionKey.ifPresent(hpk -> sb.append("header_protection_key=").append(hpk).append('\n'));
         return sb.toString();
     }
 
@@ -600,6 +618,8 @@ public final class Interface {
         private Optional<String> specialJunkI4 = Optional.empty();
         // Defaults to not present.
         private Optional<String> specialJunkI5 = Optional.empty();
+        // Defaults to not present.
+        private Optional<String> headerProtectionKey = Optional.empty();
 
 
         public Builder addAddress(final InetNetwork address) {
@@ -850,6 +870,10 @@ public final class Interface {
             return this;
         }
 
+        public Builder parseHeaderProtectionKey(final String headerProtectionKey) throws BadConfigException {
+            return setHeaderProtectionKey(headerProtectionKey == null ? "" : headerProtectionKey.trim());
+        }
+
         public Builder parsePrivateKey(final String privateKey) throws BadConfigException {
             try {
                 return setKeyPair(new KeyPair(Key.fromBase64(privateKey)));
@@ -1013,6 +1037,25 @@ public final class Interface {
             } else {
                 this.specialJunkI5 = Optional.of(specialJunkI5.trim());
             }
+            return this;
+        }
+
+        /**
+         * Ключ защиты заголовка AWG 3.0: ровно 64 hex-символа в нижнем регистре (32 байта).
+         * Кривое значение — BadConfigException (fail-closed), а не тихий пропуск: сервер с ключом
+         * шифрует заголовки, и туннель без ключа поднялся бы мёртвым. Значение ключа в исключение
+         * НЕ кладём — это секрет, текст исключения уходит в логи.
+         */
+        public Builder setHeaderProtectionKey(final String headerProtectionKey) throws BadConfigException {
+            if (headerProtectionKey == null || headerProtectionKey.isEmpty()) {
+                this.headerProtectionKey = Optional.empty();
+                return this;
+            }
+            if (!headerProtectionKey.matches("[0-9a-f]{64}")) {
+                throw new BadConfigException(Section.INTERFACE, Location.HEADER_PROTECTION_KEY,
+                        Reason.INVALID_VALUE, null);
+            }
+            this.headerProtectionKey = Optional.of(headerProtectionKey);
             return this;
         }
     }
