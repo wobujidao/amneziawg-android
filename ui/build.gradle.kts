@@ -101,6 +101,14 @@ android {
                     excludes += "DebugProbesKt.bin"
                     excludes += "kotlin-tooling-metadata.json"
                     excludes += "META-INF/*.version"
+                    // BouncyCastle (ветка доставки, F-T8): R8 ужимает его КОД до ~60 КБ, но
+                    // classpath-ресурсы minify не трогает — и в APK въезжали таблицы пост-квантового
+                    // Picnic (org/bouncycastle/pqc/.../lowmc*.bin.properties, 1,2 МБ) и сообщения
+                    // PKIX-ревьюера (~90 КБ), чей код R8 уже выкинул (замер 09-08). Мы используем
+                    // только Ed25519 (classic crypto, lightweight API) — PQC-данные мёртвый груз.
+                    // Пока BouncyCastle в зависимостях нет, маски просто ничему не матчатся.
+                    excludes += "org/bouncycastle/pqc/**"
+                    excludes += "org/bouncycastle/x509/CertPathReviewerMessages*"
                 }
             }
         }
