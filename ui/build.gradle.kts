@@ -1,3 +1,4 @@
+// Modified 2026 by Mayak Networks. SPDX-License-Identifier: Apache-2.0
 @file:Suppress("UnstableApiUsage")
 
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget

@@ -1,3 +1,4 @@
+// Modified 2026 by Mayak Networks. SPDX-License-Identifier: Apache-2.0
 module github.com/amnezia-vpn/amneziawg-android
 
 go 1.26.5

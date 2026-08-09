@@ -1,5 +1,6 @@
 /*
  * Copyright © 2017-2023 WireGuard LLC. All Rights Reserved.
+ * Modified 2026 by Mayak Networks.
  * SPDX-License-Identifier: Apache-2.0
  */
 

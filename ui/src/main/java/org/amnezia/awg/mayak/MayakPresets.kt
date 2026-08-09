@@ -1,5 +1,6 @@
 // Пресеты split-туннеля на клиенте (SPEC-0028). Тянет пресеты с ядра (системные «РФ напрямую» + свои),
-// кэширует в filesDir, резолвит АКТИВНЫЙ пресет в (приложения, excluded) для коннекта. Фолбэк офлайн —
+// кэширует в noBackupFilesDir (см. MayakNoBackup), резолвит АКТИВНЫЙ пресет в (приложения, excluded)
+// для коннекта. Фолбэк офлайн —
 // системный пресет из зашитого ассета mayak_ru_direct.json. Синхрон — на старте/после логина (НЕ при
 // коннекте: DPI палит домен рядом с хендшейком, см. MayakSession).
 package org.amnezia.awg.mayak
@@ -21,14 +22,14 @@ object MayakPresets {
 
     @Volatile private var memCache: List<Preset>? = null
 
-    private fun cacheFile(ctx: Context) = File(ctx.applicationContext.filesDir, CACHE)
+    private fun cacheFile(ctx: Context) = MayakNoBackup.file(ctx, CACHE)
 
     /** Синхронизация с сервером: тянет пресеты (системные+свои), кэширует. Best-effort (ошибка → тихо). */
     suspend fun sync(ctx: Context, backend: MayakBackend, token: String) {
         val list = runCatching { backend.listPresets(token) }.getOrNull() ?: return
         if (list.isEmpty()) return
         runCatching {
-            val tmp = File(ctx.applicationContext.filesDir, "$CACHE.tmp")
+            val tmp = File(cacheFile(ctx).parentFile, "$CACHE.tmp")
             tmp.writeText(json.encodeToString(ListSerializer(Preset.serializer()), list))
             if (!tmp.renameTo(cacheFile(ctx))) { tmp.copyTo(cacheFile(ctx), overwrite = true); tmp.delete() }
             memCache = list

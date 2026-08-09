@@ -1,8 +1,8 @@
 name: tunnel (unit tests)
 run-name: "tunnel • ${{ github.ref_name }}"
 
-# Юнит-тесты Android-модуля :tunnel (JVM-тесты, без эмулятора). Гардит, в частности, per-family
-# kill-switch (Маяк, SPEC-0014) — защиту от IPv6-утечки. Нужен Android SDK (модуль — Android-библиотека).
+# Юнит-тесты Android-модуля :tunnel (JVM-тесты, без эмулятора). Гардит парсер конфига,
+# на который опирается ConfRenderer приложения. Нужен Android SDK (модуль — Android-библиотека).
 on:
   push:
     branches: [ "main", "master" ]
@@ -40,8 +40,11 @@ jobs:
         run: |
           set -euo pipefail
           chmod +x ./gradlew
-          # Пока гоняем ТОЛЬКО Маяк-добавленные тесты (kill-switch/SPEC-0014). В унаследованном от
-          # AmneziaWG наборе есть ПРЕДсуществующий провал config.BadConfigExceptionTest (парсер форка
-          # кидает иной reason на пустой Endpoint, чем ждёт upstream-тест — расходится с импорта #4,
-          # к коду Маяка не относится). Раскрыть на весь набор после триажа того теста.
-          ./gradlew --no-daemon --stacktrace :tunnel:testDebugUnitTest --tests '*GoBackendKillSwitchTest'
+          # Гоняем ConfigTest, а не весь набор: в унаследованном от AmneziaWG наборе есть
+          # ПРЕДсуществующий провал config.BadConfigExceptionTest (парсер форка кидает иной reason
+          # на пустой Endpoint, чем ждёт upstream-тест — расходится с импорта #4, к коду Маяка не
+          # относится). Раскрыть на весь набор после триажа того теста.
+          # NB: прежний фильтр '*GoBackendKillSwitchTest' указывал на тест, УДАЛЁННЫЙ 2026-07-28
+          # вместе со сломанной функцией (коммит 9724a655) — с тех пор любой пуш в tunnel/** ронял
+          # этот workflow ошибкой «No tests found». Починено 2026-08-09.
+          ./gradlew --no-daemon --stacktrace :tunnel:testDebugUnitTest --tests '*ConfigTest'

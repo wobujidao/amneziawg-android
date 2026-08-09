@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Modified 2026 by Mayak Networks. SPDX-License-Identifier: Apache-2.0 -->
 <resources>
     <plurals name="delete_error">
         <item quantity="one">Impossible de supprimer %d tunnel : %s</item>

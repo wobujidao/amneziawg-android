@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # Copyright © 2017-2023 WireGuard LLC. All Rights Reserved.
+# Modified 2026 by Mayak Networks.
 
 BUILDDIR ?= $(CURDIR)/build
 DESTDIR ?= $(CURDIR)/out

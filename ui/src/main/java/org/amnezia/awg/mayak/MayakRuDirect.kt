@@ -16,13 +16,13 @@ import java.io.File
 object MayakRuDirect {
     private const val TAG = "AmneziaWG/RuDirect"
     private const val ASSET = "mayak_ru_direct.json"
-    private const val CACHE = "ru_direct_cache.json" // OTA-кэш (свежее ассета); пишется в filesDir
+    private const val CACHE = "ru_direct_cache.json" // OTA-кэш (свежее ассета); в noBackupFilesDir (MayakNoBackup)
 
     private data class Rules(val regexes: List<Regex>, val exceptions: Set<String>, val explicit: Set<String>)
 
     @Volatile private var cache: Rules? = null
 
-    private fun cacheFile(ctx: Context) = File(ctx.applicationContext.filesDir, CACHE)
+    private fun cacheFile(ctx: Context) = MayakNoBackup.file(ctx, CACHE)
 
     /** Правила: сначала OTA-кэш (если есть/валиден), иначе зашитый ассет. Парсит {regex,exceptions,apps}. */
     private fun rules(ctx: Context): Rules {
@@ -67,7 +67,7 @@ object MayakRuDirect {
             put("apps", JSONArray(list.apps))
         }
         runCatching {
-            val tmp = File(ctx.applicationContext.filesDir, "$CACHE.tmp")
+            val tmp = File(cacheFile(ctx).parentFile, "$CACHE.tmp")
             tmp.writeText(obj.toString())
             if (!tmp.renameTo(cacheFile(ctx))) { tmp.copyTo(cacheFile(ctx), overwrite = true); tmp.delete() }
             MayakPrefs.setRuDirectVersion(ctx, list.version)
