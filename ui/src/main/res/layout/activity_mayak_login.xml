@@ -42,7 +42,7 @@
                     android:paddingStart="0dp"
                     android:paddingEnd="0dp"
                     android:contentDescription="@string/mayak_theme"
-                    app:icon="@drawable/ic_theme_system"
+                    app:icon="@drawable/ic_theme_dark"
                     app:iconGravity="textStart"
                     app:iconTint="@color/mayak_on_bg"
                     app:iconSize="24dp"

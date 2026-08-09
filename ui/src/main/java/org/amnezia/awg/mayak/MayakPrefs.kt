@@ -331,40 +331,37 @@ object MayakPrefs {
         prefs(context).edit().putLong(KEY_LAST_AUTO_DIAG_OK, System.currentTimeMillis()).apply()
     }
 
-    // Значения совпадают по смыслу с AppCompatDelegate.MODE_NIGHT_*
+    // Значения совпадают по смыслу с AppCompatDelegate.MODE_NIGHT_*.
+    // 🔴 THEME_SYSTEM (0) БОЛЬШЕ НЕ ВЫБИРАЕТСЯ (решение владельца 2026-08-09: «по умолчанию тёмная,
+    // переключатель системной убрать — человек пусть выбирает сам»). Константа оставлена НЕ для
+    // выбора, а для чтения СТАРЫХ настроек: у тех, кто уже пользуется приложением, в prefs лежит
+    // ровно этот 0, и молча считать его «светлой» значило бы включить людям не то, что они видели.
     const val THEME_SYSTEM = 0
     const val THEME_LIGHT = 1
     const val THEME_DARK = 2
 
-    /** Следующий режим в цикле Системная → Светлая → Тёмная → … */
-    fun nextMode(mode: Int): Int = when (mode) {
-        THEME_SYSTEM -> THEME_LIGHT
-        THEME_LIGHT -> THEME_DARK
-        else -> THEME_SYSTEM
-    }
+    /** Следующий режим по кругу. Режимов теперь два, поэтому это просто переброс светлая ↔ тёмная. */
+    fun nextMode(mode: Int): Int = if (mode == THEME_LIGHT) THEME_DARK else THEME_LIGHT
 
-    /** Иконка, отражающая режим: солнце/луна/авто. */
+    /** Иконка, отражающая режим: солнце или луна. */
     @DrawableRes
-    fun iconFor(mode: Int): Int = when (mode) {
-        THEME_LIGHT -> R.drawable.ic_theme_light
-        THEME_DARK -> R.drawable.ic_theme_dark
-        else -> R.drawable.ic_theme_system
-    }
+    fun iconFor(mode: Int): Int =
+        if (mode == THEME_LIGHT) R.drawable.ic_theme_light else R.drawable.ic_theme_dark
 
     /** Подпись режима для тоста. */
     @StringRes
-    fun labelFor(mode: Int): Int = when (mode) {
-        THEME_LIGHT -> R.string.mayak_theme_light
-        THEME_DARK -> R.string.mayak_theme_dark
-        else -> R.string.mayak_theme_system
-    }
+    fun labelFor(mode: Int): Int =
+        if (mode == THEME_LIGHT) R.string.mayak_theme_light else R.string.mayak_theme_dark
 
     private fun prefs(context: Context) =
         context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
-    /** Сохранённый режим темы (по умолчанию — следовать системе). */
+    /** Сохранённый режим темы. По умолчанию ТЁМНАЯ — и для новых установок, и для тех, у кого в
+     *  настройках лежит снятый режим «Системная»: выбора между тремя больше нет, а переносить
+     *  человека в светлую тему без его ведома — хуже, чем в тёмную, которую он и так видел бы
+     *  ночью. Ответ сужен до двух значений здесь, чтобы никакая ветка выше не гадала. */
     fun themeMode(context: Context): Int =
-        prefs(context).getInt(KEY_THEME, THEME_SYSTEM)
+        if (prefs(context).getInt(KEY_THEME, THEME_DARK) == THEME_LIGHT) THEME_LIGHT else THEME_DARK
 
     /** Сохранить выбор и сразу применить к приложению. */
     fun setThemeMode(context: Context, mode: Int) {
@@ -377,9 +374,8 @@ object MayakPrefs {
         AppCompatDelegate.setDefaultNightMode(toNightMode(themeMode(context)))
     }
 
-    private fun toNightMode(mode: Int): Int = when (mode) {
-        THEME_LIGHT -> AppCompatDelegate.MODE_NIGHT_NO
-        THEME_DARK -> AppCompatDelegate.MODE_NIGHT_YES
-        else -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
-    }
+    // MODE_NIGHT_FOLLOW_SYSTEM тут больше нет НАМЕРЕННО: пока он оставался запасной веткой, любое
+    // неизвестное значение в prefs снова отдавало тему системе — ровно то, что решили убрать.
+    private fun toNightMode(mode: Int): Int =
+        if (mode == THEME_LIGHT) AppCompatDelegate.MODE_NIGHT_NO else AppCompatDelegate.MODE_NIGHT_YES
 }

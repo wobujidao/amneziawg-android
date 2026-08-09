@@ -243,23 +243,19 @@ class MayakSettingsActivity : AppCompatActivity() {
             }
         }
 
-        // Тема — сегментированный переключатель (Авто/Светлая/Тёмная). check() при инициализации дёрнет
-        // листенер, но guard `mode != текущий` не даст лишнего setThemeMode/пересоздания.
+        // Тема — сегментированный переключатель (Светлая/Тёмная). Кнопки «Системная» больше нет
+        // (решение владельца 09-08): выбор за человеком, а умолчание — тёмная. check() при
+        // инициализации дёрнет листенер, но guard `mode != текущий` не даст лишнего
+        // setThemeMode/пересоздания.
         val group = findViewById<MaterialButtonToggleGroup>(R.id.mayak_theme_group)
         group.check(
-            when (MayakPrefs.themeMode(this)) {
-                MayakPrefs.THEME_LIGHT -> R.id.mayak_theme_light
-                MayakPrefs.THEME_DARK -> R.id.mayak_theme_dark
-                else -> R.id.mayak_theme_system
-            }
+            if (MayakPrefs.themeMode(this) == MayakPrefs.THEME_LIGHT) R.id.mayak_theme_light
+            else R.id.mayak_theme_dark
         )
         group.addOnButtonCheckedListener { _, checkedId, isChecked ->
             if (!isChecked) return@addOnButtonCheckedListener
-            val mode = when (checkedId) {
-                R.id.mayak_theme_light -> MayakPrefs.THEME_LIGHT
-                R.id.mayak_theme_dark -> MayakPrefs.THEME_DARK
-                else -> MayakPrefs.THEME_SYSTEM
-            }
+            val mode = if (checkedId == R.id.mayak_theme_light) MayakPrefs.THEME_LIGHT
+                       else MayakPrefs.THEME_DARK
             if (mode != MayakPrefs.themeMode(this)) {
                 MayakPrefs.setThemeMode(this, mode) // setDefaultNightMode пересоздаст активити с новой темой
             }

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:android="http://schemas.android.com/apk/res/android">
+<resources xmlns:android="http://schemas.android.com/apk/res/android"
+           xmlns:tools="http://schemas.android.com/tools">
 
     <style name="AmneziaWgTheme.Toolbar" parent="Widget.Material3.Toolbar">
         <item name="android:background">?attr/colorSurface</item>
@@ -63,6 +64,12 @@
         <!-- цвет текста/иконок в диалогах (язык/тема) тоже следует режиму -->
         <item name="android:textColorPrimary">@color/mayak_on_surface</item>
         <item name="android:textColorSecondary">@color/mayak_on_surface_muted</item>
+        <!-- Экран запуска (его рисует СИСТЕМА до старта процесса, поэтому наш выбор темы ему ещё
+             неизвестен и DayNight-цвет резолвится по режиму ТЕЛЕФОНА). На светлом телефоне это
+             давало вспышку кремового фона перед тёмным приложением — замерено на эмуляторе 09-08.
+             Цвет тут НАМЕРЕННО фиксированный тёмный, без пары в values-night: умолчание приложения
+             тёмное, а кто выбрал светлую — увидит короткий тёмный кадр вместо длинного светлого. -->
+        <item name="android:windowSplashScreenBackground" tools:targetApi="31">@color/mayak_splash_bg</item>
     </style>
 
     <!-- === Брендовые компоненты «Маяк» (цвета семантические → корректный контраст в обоих режимах) === -->

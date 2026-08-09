@@ -91,6 +91,8 @@
     <color name="mayak_bg_grad_center">#FFFDF7</color>
     <color name="mayak_bg_grad_bottom">#F3F1E9</color>
     <color name="mayak_statusbar">#FFFDF7</color>
+    <!-- Фон системного экрана запуска. НЕ имеет пары в values-night намеренно: см. MayakTheme. -->
+    <color name="mayak_splash_bg">#0C1426</color>
     <color name="mayak_surface">#FFFFFF</color>
     <color name="mayak_on_bg">#14213D</color>
     <color name="mayak_on_bg_muted">#5B6B86</color>
