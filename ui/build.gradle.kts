@@ -47,7 +47,9 @@ android {
             "String",
             "AWG_GO_VERSION",
             "\"" + (rootProject.file("tunnel/tools/libwg-go/go.mod").readLines()
-                .firstNotNullOfOrNull { Regex("""amneziawg-go\s+(v\S+)""").find(it)?.groupValues?.get(1) }
+                // С линии 3.0 путь модуля несёт суффикс мажора (amneziawg-go/v3) — регэксп обязан
+                // понимать оба написания, иначе экран «О приложении» снова показывал бы пустую версию.
+                .firstNotNullOfOrNull { Regex("""amneziawg-go(?:/v\d+)?\s+(v\S+)""").find(it)?.groupValues?.get(1) }
                 ?: "") + "\"",
         )
         // Разводит ДВА бэкенда (дев mayakvpn.ru / прод mayaknetworks.com — своя корневая CA у каждого,
