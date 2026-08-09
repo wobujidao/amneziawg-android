@@ -193,7 +193,10 @@ androidComponents {
         val versionTag = providers.gradleProperty("mayakVersionName").get() +
             "-" + providers.gradleProperty("mayakVersionCode").get()
         val copyMapping = tasks.register<Copy>("copyProdReleaseMapping") {
-            from(mappingFile)
+            // .map{listOf}.orElse(empty): при ВЫКЛЮЧЕННОМ minify у артефакта нет значения, и голый
+            // from(mappingFile) валит сборку «property has no value» — то есть аварийный откат R8
+            // (выключить одну строку) ломал бы сборку в другом месте. Нет маппинга — нет копии, не ошибка.
+            from(mappingFile.map { listOf(it) }.orElse(emptyList()))
             into(layout.buildDirectory.dir("outputs/apk-mapping/prodRelease"))
             rename { "mapping-prodRelease-$versionTag.txt" }
         }
