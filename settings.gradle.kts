@@ -1,3 +1,4 @@
+// Modified 2026 by Mayak Networks. SPDX-License-Identifier: Apache-2.0
 import com.android.build.api.dsl.SettingsExtension
 
 pluginManagement {

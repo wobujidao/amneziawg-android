@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Modified 2026 by Mayak Networks. SPDX-License-Identifier: Apache-2.0 -->
 <resources>
     <string name="app_name" translatable="false">Mayak Networks</string>
 </resources>
