@@ -89,9 +89,10 @@ android {
             // БЕЗ signingConfig в gradle → assembleRelease даёт unsigned APK, а CI подписывает его
             // ЗАЩИЩЁННЫМ релиз-ключом из секретов (ANDROID_KEYSTORE_BASE64, не в репозитории — mayak-debug.p12
             // публичен и утёк в GitGuardian, для релиза больше НЕ используем). См. .github/workflows/build.yml.
-            // minify/shrink ВЫКЛ: текущее прод-приложение не минифицировано; R8 + сериализация в релизе не
-            // проверены — не рискуем на этой сборке (включим minify отдельно после теста). Правила в
-            // proguard-rules.pro оставлены на будущее (при minify=false игнорируются).
+            // minify/shrink здесь ВЫКЛ и это осознанно: `release` — дев-вариант под снятый контур
+            // (07-08), людям не уходит. Боевой prodRelease НИЖЕ включает R8 поверх initWith —
+            // проверено живым прогоном на эмуляторе 09-08 (вход, список стран, туннель до
+            // «Защищено», «О приложении»). Правила — proguard-rules.pro.
             isMinifyEnabled = false
             isShrinkResources = false
             proguardFiles("proguard-android-optimize.txt", "proguard-rules.pro")
@@ -100,6 +101,14 @@ android {
                     excludes += "DebugProbesKt.bin"
                     excludes += "kotlin-tooling-metadata.json"
                     excludes += "META-INF/*.version"
+                    // BouncyCastle (ветка доставки, F-T8): R8 ужимает его КОД до ~60 КБ, но
+                    // classpath-ресурсы minify не трогает — и в APK въезжали таблицы пост-квантового
+                    // Picnic (org/bouncycastle/pqc/.../lowmc*.bin.properties, 1,2 МБ) и сообщения
+                    // PKIX-ревьюера (~90 КБ), чей код R8 уже выкинул (замер 09-08). Мы используем
+                    // только Ed25519 (classic crypto, lightweight API) — PQC-данные мёртвый груз.
+                    // Пока BouncyCastle в зависимостях нет, маски просто ничему не матчатся.
+                    excludes += "org/bouncycastle/pqc/**"
+                    excludes += "org/bouncycastle/x509/CertPathReviewerMessages*"
                 }
             }
         }
@@ -125,6 +134,15 @@ android {
             matchingFallbacks += "release"
             buildConfigField("boolean", "MAYAK_PROD_TARGET", "true")
             buildConfigField("String", "MAYAK_SUPPORT_EMAIL", "\"support@mayaknetworks.com\"")
+            // R8 включён 09-08 ТОЛЬКО для боевой сборки (задача «Включить R8/minify», APP-BACKLOG):
+            // без него каждая новая библиотека едет к людям целиком (BouncyCastle ветки доставки —
+            // +2,9 МБ). Обфускации НЕТ (-dontobfuscate в proguard-android-optimize.txt, как у
+            // апстрима WireGuard/AmneziaWG): R8 только выкидывает неиспользуемый код и ресурсы,
+            // имена классов не трогает — рефлексия/JNI/крэш-репорты живут с настоящими именами.
+            // Опасные места (kotlinx.serialization, Preference из res/xml) прикрыты правилами в
+            // proguard-rules.pro; mapping.txt копируется к APK задачей copyProdReleaseMapping ниже.
+            isMinifyEnabled = true
+            isShrinkResources = true
         }
     }
     androidResources {
@@ -168,4 +186,28 @@ tasks.withType<JavaCompile>().configureEach {
 
 tasks.withType<KotlinCompile>().configureEach {
     compilerOptions.jvmTarget.set(JvmTarget.JVM_17)
+}
+
+// mapping.txt от R8 — версионной копией в build/outputs/apk-mapping/. Без маппинга крэш-репорт
+// от человека нечитаем (R8 инлайнит/сдвигает строки даже без обфускации имён), а штатный
+// outputs/mapping/prodRelease/mapping.txt перезаписывается каждой сборкой — копия с версией в
+// имени переживает следующий релиз. Забирая APK на выкладку, забирать и её (retrace: команда
+// $ANDROID_SDK_ROOT/cmdline-tools/*/bin/retrace <mapping> <stacktrace>).
+// ⚠️ Каталог назначения НЕ outputs/apk/prodRelease: он принадлежит задачам AGP, и Copy туда
+// валит сборку («uses this output ... without declaring an explicit dependency», поймано 09-08).
+androidComponents {
+    onVariants(selector().withName("prodRelease")) { variant ->
+        val mappingFile = variant.artifacts.get(com.android.build.api.artifact.SingleArtifact.OBFUSCATION_MAPPING_FILE)
+        val versionTag = providers.gradleProperty("mayakVersionName").get() +
+            "-" + providers.gradleProperty("mayakVersionCode").get()
+        val copyMapping = tasks.register<Copy>("copyProdReleaseMapping") {
+            // .map{listOf}.orElse(empty): при ВЫКЛЮЧЕННОМ minify у артефакта нет значения, и голый
+            // from(mappingFile) валит сборку «property has no value» — то есть аварийный откат R8
+            // (выключить одну строку) ломал бы сборку в другом месте. Нет маппинга — нет копии, не ошибка.
+            from(mappingFile.map { listOf(it) }.orElse(emptyList()))
+            into(layout.buildDirectory.dir("outputs/apk-mapping/prodRelease"))
+            rename { "mapping-prodRelease-$versionTag.txt" }
+        }
+        tasks.matching { it.name == "assembleProdRelease" }.configureEach { finalizedBy(copyMapping) }
+    }
 }
