@@ -5,6 +5,7 @@
     <string name="mayak_password_hint">Құпиясөз</string>
     <string name="mayak_sign_in">Кіру</string>
     <string name="mayak_pick_country">Елді таңдаңыз:</string>
+    <string name="mayak_recommended_tile">⚡ Ұсынамыз</string>
     <string name="mayak_refresh">Жаңарту</string>
     <string name="mayak_disconnect">Ажырату</string>
     <string name="mayak_logout">Шығу</string>

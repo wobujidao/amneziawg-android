@@ -248,6 +248,7 @@
     <string name="mayak_password_hint">Passwort</string>
     <string name="mayak_sign_in">Anmelden</string>
     <string name="mayak_pick_country">Land auswählen:</string>
+    <string name="mayak_recommended_tile">⚡ Empfohlen</string>
     <string name="mayak_refresh">Aktualisieren</string>
     <string name="mayak_disconnect">Trennen</string>
     <string name="mayak_logout">Abmelden</string>

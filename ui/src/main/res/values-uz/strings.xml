@@ -5,6 +5,7 @@
     <string name="mayak_password_hint">Parol</string>
     <string name="mayak_sign_in">Kirish</string>
     <string name="mayak_pick_country">Mamlakatni tanlang:</string>
+    <string name="mayak_recommended_tile">⚡ Tavsiya etamiz</string>
     <string name="mayak_refresh">Yangilash</string>
     <string name="mayak_disconnect">Uzish</string>
     <string name="mayak_logout">Chiqish</string>

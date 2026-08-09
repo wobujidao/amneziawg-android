@@ -66,6 +66,7 @@ import org.amnezia.awg.mayak.core.NoReachableHostException
 import org.amnezia.awg.mayak.core.OutdatedBuild
 import org.amnezia.awg.mayak.core.accessDenial
 import org.amnezia.awg.mayak.core.outdatedBuild
+import org.amnezia.awg.mayak.core.recommendedDirection
 
 class MayakActivity : AppCompatActivity() {
 
@@ -1333,6 +1334,7 @@ class MayakActivity : AppCompatActivity() {
             container.addView(row)
             rowViews.add(row)
         }
+        renderRecommendedTile(dirs) // до selectDir ниже: строка в плитке тоже подсвечивается выбором
         val lastId = MayakPrefs.lastDirectionId(this@MayakActivity)
         val initial = dirs.firstOrNull { it.id == lastId } ?: dirs.first()
         // На живом туннеле после пересоздания Activity (смена темы) connectedDir сброшен (instance-поле) —
@@ -1372,6 +1374,9 @@ class MayakActivity : AppCompatActivity() {
         block.visibility = View.VISIBLE
         // Сортировать нечего — переключатель режима в пустой карточке только сбивает с толку.
         findViewById<View?>(R.id.mayak_sort_mode)?.visibility = View.GONE
+        // Плитка «⚡ Рекомендуем» от ПРОШЛОГО списка над карточкой «стран нет / не загрузилось»
+        // советовала бы то, чего в списке больше нет. Вернёт её следующий успешный рендер.
+        findViewById<View?>(R.id.mayak_recommended_tile)?.visibility = View.GONE
     }
 
     /** Строки появились — убрать объяснение и вернуть переключатель сортировки. */
@@ -1436,8 +1441,10 @@ class MayakActivity : AppCompatActivity() {
             repeatCount = android.view.animation.Animation.INFINITE
         }
 
-    /** Строка-страна: ВЕКТОРНЫЙ флаг + название + индикатор сигнала; тап = выбор (без подключения). */
-    private fun countryRow(d: Direction): View {
+    /** Строка-страна: ВЕКТОРНЫЙ флаг + название + индикатор сигнала; тап = выбор (без подключения).
+     *  allowReorder=false — строка живёт в плитке «⚡ Рекомендуем»: перетаскивать её некуда
+     *  (порядок «свои» — про список), долгий тап там ничего не делает. */
+    private fun countryRow(d: Direction, allowReorder: Boolean = true): View {
         val container = dirsContainer
         val row = LayoutInflater.from(this).inflate(R.layout.mayak_country_row, container, false)
         // Флаг: эмодзи (как в шторке уведомления — владелец 04-08: «они симпатичнее»), а векторный
@@ -1494,13 +1501,19 @@ class MayakActivity : AppCompatActivity() {
                 visibility = View.VISIBLE
             } else visibility = View.GONE
         }
+        // Бейдж «IPv6» (директива владельца 01-07) — ТОЛЬКО по явному ipv6:true от ядра: это
+        // проверенный egress-признак выходной ноды (curl -6 на ядре, cprepo/clientdata.go), тот же,
+        // по которому чип рисуют лендинг и кабинет. Не по AAAA и не по своим догадкам — иначе бейдж
+        // врёт; false и «поля нет» одинаково значат «не рисуем» (см. DirectionIPv6Test в :core).
+        row.findViewById<TextView>(R.id.mayak_row_ipv6).visibility =
+            if (d.ipv6) View.VISIBLE else View.GONE
         row.tag = d.id
         row.setOnClickListener {
             it.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
             selectDir(d)
         }
         // SPEC-0031, режим «свои»: зажать и перетащить строку → изменить порядок (сохраняется).
-        if (MayakPrefs.sortMode(this) == SORT_CUSTOM) {
+        if (allowReorder && MayakPrefs.sortMode(this) == SORT_CUSTOM) {
             row.setOnLongClickListener { v ->
                 v.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                 val data = ClipData.newPlainText("dirId", d.id.toString())
@@ -1509,6 +1522,34 @@ class MayakActivity : AppCompatActivity() {
             }
         }
         return row
+    }
+
+    /**
+     * Плитка «⚡ Рекомендуем» над списком (SPEC-0031 T3, хвост F-T5).
+     *
+     * Кого рекомендовать, решает СЕРВЕР (recommended:true в /v1/client/directions — живое
+     * направление с наименьшей загрузкой); клиент только рисует и отсекает заведомо мёртвое —
+     * правило в :core под тестом (recommendedDirection, RecommendationTest). Нет пометки → плитки
+     * нет: рекомендация, выдуманная клиентом, разошлась бы с сервером и кабинетом.
+     *
+     * Внутри плитки — ОБЫЧНАЯ строка-страна (countryRow): флаг, пинг и выбор по тапу достаются
+     * даром. Строка попадает в rowViews, поэтому подсветка выбора работает и в плитке, и в списке
+     * (направление в списке остаётся — плитка ярлык-дубль, а не вырезка из списка: сортировки и
+     * ручной порядок она не трогает). Перетаскивание в режиме «свои» плитке отключено.
+     */
+    private fun renderRecommendedTile(dirs: List<Direction>) {
+        val tile = findViewById<View?>(R.id.mayak_recommended_tile) ?: return
+        val slot = findViewById<android.view.ViewGroup?>(R.id.mayak_recommended_row_slot) ?: return
+        slot.removeAllViews()
+        val rec = recommendedDirection(dirs)
+        if (rec == null) {
+            tile.visibility = View.GONE
+            return
+        }
+        val row = countryRow(rec, allowReorder = false)
+        slot.addView(row)
+        rowViews.add(row)
+        tile.visibility = View.VISIBLE
     }
 
     private var draggedDirId: Long = -1L

@@ -110,6 +110,7 @@
     <string name="mayak_reset_bad_code">Invalid or expired code. Check the email or request a new one.</string>
     <string name="mayak_reset_weak_password">Password is too weak — at least 8 characters, letters and digits/symbols.</string>
     <string name="mayak_pick_country">Pick a country:</string>
+    <string name="mayak_recommended_tile">⚡ Recommended</string>
     <!-- Город в строке направления: приписывается сбоку от названия («Netherlands · Amsterdam»).
          Только пунктуация — прочие языки берут её отсюда же, переводить нечего. -->
     <string name="mayak_row_city_inline">· %1$s</string>
