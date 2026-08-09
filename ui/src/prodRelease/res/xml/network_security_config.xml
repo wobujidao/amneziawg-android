@@ -11,21 +11,66 @@
   в ui/src/prodRelease/res/raw) — это не секрет. Приватный ключ CA остаётся на сервере.
 -->
 <network-security-config>
-    <!-- По умолчанию: только TLS (без cleartext), системные корни. Под это попадает публичный
-         домен api.mayaknetworks.com (DNS-only, НЕ за Cloudflare) с обычным сертификатом
-         Let's Encrypt — спец-настройки не нужны (проверено живьём 2026-08-06). -->
+    <!-- По умолчанию: только TLS (без cleartext), системные корни. Сюда попадают резервные домены
+         из реестра ядра (/v1/client/hosts) — их состав заранее неизвестен, поэтому пиннинга у них
+         нет намеренно (пин на неизвестный будущий домен невозможен, а ломать фейловер нельзя). -->
     <base-config cleartextTrafficPermitted="false">
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>
     </base-config>
 
+    <!-- ПИННИНГ основного домена api.mayaknetworks.com (DNS-only, НЕ за Cloudflare; на :443 отвечает
+         Caddy ядра с сертификатом Let's Encrypt). Без пиннинга любой CA, добавленный в СИСТЕМНОЕ
+         хранилище телефона (корпоративный MITM, зловред с рутом, подсунутый профиль), мог бы встать
+         между приложением и ядром и читать /connect — выдачу конфигов и учётные данные.
+
+         ЧТО ЗАПИНЕНО (замер живой цепочки 2026-08-09, openssl s_client -showcerts):
+           лист api.mayaknetworks.com ← YE1 (промежуточный LE) ← Root YE (корень ISRG 2026 года)
+           ← кросс-подпись ISRG Root X2 ← кросс-подпись ISRG Root X1.
+         Пиним SPKI-хэши ТРЁХ КОРНЕЙ ISRG, а не лист и не промежуточный:
+           - лист LE живёт ~90 дней, промежуточные (YE1 → YE2 …) LE меняет без предупреждения —
+             пин на них превратил бы штатную ротацию в кирпич у всех;
+           - ключ Root YE присутствует в ЛЮБОЙ форме проверенной цепочки: на новых устройствах
+             (Root YE в хранилище) он якорь, на старых — кросс-сертификат в цепочке; Android
+             сверяет пины со ВСЕЙ проверенной цепочкой, поэтому этот пин совпадает везде;
+           - X2 (до 2040) и X1 (до 2035) — резерв: якоря на устройствах со старым хранилищем и
+             страховка, если LE вернёт выпуск через прежние иерархии (E-/R-серии под X1/X2).
+         Плановую ротацию серта/промежуточного у Let's Encrypt этот набор переживает БЕЗ обновления
+         приложения: меняются только звенья НИЖЕ запиненных ключей.
+
+         СПАСАТЕЛЬНЫЕ ЛЮКИ, если пин всё же перестанет совпадать (смена CA — напр. Caddy ушёл на
+         ZeroSSL при недоступности LE, или ISRG завела новую иерархию):
+           1) отказ пина = SSLHandshakeException = сетевая ошибка → MayakBackend штатно ротирует
+              хосты и уходит на IP-фолбэк 2.26.77.243:8443 (domain-config ниже, СВОЙ Mayak Prod CA,
+              БЕЗ пинов — не трогать!) — приложение продолжает работать, а не умирает;
+           2) expiration ниже: после этой даты Android перестаёт применять pin-set вовсе (fail-open).
+         Перевыпуск пина: openssl x509 -in <cert> -pubkey -noout | openssl pkey -pubin -outform DER |
+         openssl dgst -sha256 -binary | openssl base64. Набор пинов сверяет юнит-тест
+         ui/src/test/java/org/amnezia/awg/mayak/NetworkSecurityConfigPinTest.kt. -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="false">api.mayaknetworks.com</domain>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+        <pin-set expiration="2027-09-01">
+            <!-- C=US, O=ISRG, CN=Root YE — корень текущей цепочки LE (совпадает на всех устройствах) -->
+            <pin digest="SHA-256">sCkq5UWXjg+7mKu9lMhhYF5bGLsy7VI/UNW3tccdR7w=</pin>
+            <!-- ISRG Root X2 (ECDSA, до 2040) — резерв: якорь старых хранилищ, кросс-подписывает Root YE -->
+            <pin digest="SHA-256">diGVwiVYbubAI3RW4hB9xU8e/CH2GnkuvVFZE8zmgzI=</pin>
+            <!-- ISRG Root X1 (RSA, до 2035) — резерв: якорь самых старых устройств (Android 7.1+) -->
+            <pin digest="SHA-256">C5+lpZ7tcVwmwQIMcRtPbsQtWLABXhQzejna0wHFr8M=</pin>
+        </pin-set>
+    </domain-config>
+
     <!-- Прод-ядро по IP (серт выпущен НАШИМ Mayak Prod CA) — доверяем прод-CA только для адреса
          прод-ядра. IP-фолбэк на случай DNS-блокировки домена api.mayaknetworks.com в РФ.
          2026-08-07: ядро переехало с Melbicom (de1, 213.226.71.181 — недоступен с сотовых РФ)
          на Senko, Амстердам — 2.26.77.243.
          ⚠️ Серт client-api :8443 ядра ОБЯЗАН иметь SAN=IP:2.26.77.243 (иначе hostname-проверка
-         не пройдёт) — это условие переезда, проверить живьём (openssl s_client) после выката ядра. -->
+         не пройдёт) — это условие переезда, проверить живьём (openssl s_client) после выката ядра.
+         ⚠️ ПИНОВ здесь НЕТ и быть НЕ ДОЛЖНО: этот путь — спасательный люк пиннинга домена выше
+         (перестал совпадать пин → фейловер приводит сюда). Пин и тут запер бы оба пути разом. -->
     <domain-config cleartextTrafficPermitted="false">
         <domain includeSubdomains="false">2.26.77.243</domain>
         <trust-anchors>

@@ -154,6 +154,8 @@ dependencies {
     implementation(libs.zxing.android.embedded)
     implementation(libs.kotlinx.coroutines.android)
     coreLibraryDesugaring(libs.desugarJdkLibs)
+    // JVM-юнит-тесты :ui (первый — сторож пиннинга в network_security_config прод-варианта).
+    testImplementation(libs.junit)
 }
 
 tasks.withType<JavaCompile>().configureEach {
