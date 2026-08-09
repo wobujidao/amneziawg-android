@@ -51,6 +51,41 @@
                 android:focusable="true" />
         </LinearLayout>
 
+        <!-- Плитка «⚡ Рекомендуем» (SPEC-0031 T3, хвост F-T5) — рекомендованное ЯДРОМ направление
+             отдельным заметным элементом НАД списком, а не ещё одним бейджем в строке. Кого
+             рекомендовать, решает сервер (recommended:true в /v1/client/directions — живое
+             направление с наименьшей загрузкой); клиент рекомендацию не выдумывает: нет пометки —
+             плитки нет (visibility ставит MayakActivity.renderRecommendedTile). Внутрь слота код
+             кладёт ОБЫЧНУЮ строку-страну (mayak_country_row): флаг, название, пинг и выбор по тапу
+             достаются даром и не расходятся со списком. -->
+        <LinearLayout
+            android:id="@+id/mayak_recommended_tile"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:orientation="vertical"
+            android:background="@drawable/mayak_bg_recommended_tile"
+            android:paddingTop="7dp"
+            android:paddingBottom="2dp"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingStart="@dimen/mayak_space_3"
+                android:paddingEnd="@dimen/mayak_space_3"
+                android:text="@string/mayak_recommended_tile"
+                android:textColor="@color/mayak_accent"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.04" />
+
+            <FrameLayout
+                android:id="@+id/mayak_recommended_row_slot"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+        </LinearLayout>
+
         <!-- Прокрутка списка внутри карточки. Высоты хватает ровно на то, что даёт
              отсек-родитель (см. коммент у карточки выше): при 2-3 странах список
              помещается целиком без прокрутки, при длинном — прокручивается, а не

@@ -3,6 +3,7 @@
      фоном mayak_row_selected (левый акцентный бар). Тап = ВЫБОР (не подключение). -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/mayak_row_root"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
@@ -83,6 +84,27 @@
             android:ellipsize="end"
             android:visibility="gone" />
     </LinearLayout>
+
+    <!-- Бейдж «IPv6» (директива владельца 01-07). Зажигается КОДОМ и ТОЛЬКО по явному ipv6:true из
+         /v1/client/directions — проверенному egress-признаку выходной ноды, тем же, по которому чип
+         живёт на лендинге и в кабинете. Не по AAAA и не по догадкам — иначе бейдж врёт. Пилюля — та
+         же, что у значков «IPv6»/«Резерв» на главном (mayak_bg_ipv6_badge), только мельче: строка
+         списка ~40dp. Текст «IPv6» — имя протокола, не переводится (как у значка в hero). -->
+    <TextView
+        android:id="@+id/mayak_row_ipv6"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="6dp"
+        android:background="@drawable/mayak_bg_ipv6_badge"
+        android:paddingHorizontal="5dp"
+        android:paddingVertical="1dp"
+        android:gravity="center"
+        android:textColor="@color/mayak_accent"
+        android:textSize="9sp"
+        android:textStyle="bold"
+        android:visibility="gone"
+        tools:ignore="HardcodedText,SmallSp"
+        android:text="IPv6" />
 
     <!-- SPEC-0031 / запрос владельца 2026-07-11: ЦИФРА пинга (мс) телефон→сервер вместо полосок. -->
     <TextView
