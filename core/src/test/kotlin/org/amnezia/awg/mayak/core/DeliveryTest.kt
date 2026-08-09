@@ -246,6 +246,16 @@ class DeliveryTest {
     }
 
     @Test
+    fun `валидные seed-IP всех видов проходят`() {
+        val out = ok(
+            signedPayload(
+                """{"cores":["https://a.example"],"seeds":["255.255.255.255","0.0.0.0","::1","::ffff:1.2.3.4","2a12:bec4:1de0:434::2","1:2:3:4:5:6:7:8"]}""",
+            ),
+        )
+        assertEquals(6, out.doc.seeds.size)
+    }
+
+    @Test
     fun `плохой payload отвергается по каждому правилу`() {
         val bad = listOf(
             """{"cores":[]}""", // пусто
@@ -257,6 +267,12 @@ class DeliveryTest {
             """{"cores":["https://a.example:99999"]}""", // порт за пределами
             """{"cores":["https://пример.рф"]}""", // не-ASCII host (homograph)
             """{"cores":["https://a.example"],"seeds":["not-an-ip"]}""",
+            """{"cores":["https://a.example"],"seeds":["999.1.1.1"]}""", // символы IP, значение — нет
+            """{"cores":["https://a.example"],"seeds":["01.2.3.4"]}""", // ведущий ноль (Go ParseIP тоже режет)
+            """{"cores":["https://a.example"],"seeds":["1.2.3"]}""", // три октета
+            """{"cores":["https://a.example"],"seeds":["1::2::3"]}""", // два «::»
+            """{"cores":["https://a.example"],"seeds":["2a12:bec4:1de0:434:2"]}""", // 5 групп без «::»
+            """{"cores":["https://a.example"],"seeds":["1:2:3:4:5:6:7:8:9"]}""", // 9 групп
             """{"cores":["https://a.example"],"seeds":["1.2.3.4","1.2.3.4"]}""", // дубль seed
             """{"cores":["https://a.example"],"doh":[{"url":"https://d.example/q","bootstrap_ips":[]}]}""",
             """{"cores":["https://a.example"],"doh":[{"url":"http://d.example/q","bootstrap_ips":["1.2.3.4"]}]}""",
