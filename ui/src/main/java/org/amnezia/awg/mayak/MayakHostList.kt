@@ -43,7 +43,15 @@ object MayakHostList {
         val out = LinkedHashSet<String>()
         savedServer?.trimEnd('/')?.takeIf { it.isNotBlank() && ownContour(it) }?.let { out.add(it) }
         out.addAll(MayakPrefs.learnedHosts(context).filter { ownContour(it) })
+        // Ядра из ПОДПИСАННОГО delivery-документа (F-T8). ownContour к ним НАРОЧНО не применяется:
+        // фильтр отсекает домены, которых вшитый список не знает, а весь смысл подписанного канала —
+        // доставить НОВЫЙ домен, когда старые сгорели. Доверие здесь даёт подпись Ed25519
+        // (офлайн-ключ владельца, проверка в :core Delivery), а не совпадение зоны.
+        out.addAll(MayakDelivery.cores(context))
         out.addAll(bakedHosts)
+        // Seed-IP (L4) — самый последний резерв, после вшитых: сырому IP нужен серт с SAN=IP под
+        // вшитым CA, и пока сервер seed'ы не выдаёт (формат поддержан, список пуст).
+        out.addAll(MayakDelivery.seedUrls(context))
         return out.toList()
     }
 
@@ -172,6 +180,10 @@ object MayakHostList {
     /** Спросить у ядра актуальный реестр и запомнить. Best-effort: ошибка/пустой ответ — молча оставляем
      *  прежний список (пустой список от сервера означал бы «адресов нет» и отрезал бы клиента от ядра). */
     suspend fun refresh(context: Context, backend: MayakBackend) {
+        // Подписанный delivery-документ — отдельный, ДОВЕРЕННЫЙ источник (F-T8); его провал не должен
+        // мешать реестру доменов, и наоборот. Оба зовутся из одних и тех же мест (старт + недельный
+        // воркер), поэтому живут в одном refresh.
+        runCatching { MayakDelivery.refresh(context, backend) }
         val list = backend.hosts() ?: return
         // Кабинет приходит тем же ответом; пустое поле (старое ядро) не затираем — останется зашитый.
         list.cabinet.trim().removeSuffix("/").takeIf { it.isNotEmpty() }?.let {

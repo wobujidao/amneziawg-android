@@ -16,6 +16,10 @@ dependencies {
     // api: тип Json фигурирует в публичном API MayakBackend → должен быть виден потребителям (:ui)
     api(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.core)
+    // Ed25519-проверка подписанного delivery-документа (Delivery.kt, F-T8). Lightweight API
+    // (org.bouncycastle.crypto.*), БЕЗ регистрации JCA-провайдера — в Android вшита урезанная
+    // копия BC, и полноценный провайдер ловит конфликт имён; низкоуровневые классы его минуют.
+    implementation(libs.bouncycastle.prov)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

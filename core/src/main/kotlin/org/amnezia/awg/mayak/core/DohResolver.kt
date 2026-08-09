@@ -37,6 +37,18 @@ object DohResolver {
     private const val TOTAL_MS = 6_000L
     private const val CACHE_TTL_MS = 60_000L
 
+    /** Доп. DoH-эндпоинты из ПОДПИСАННОГО delivery-документа (F-T8): «https://<bootstrap-IP><путь>»,
+     *  собирает Delivery.dohEndpoints, кладёт MayakDelivery после успешной проверки подписи.
+     *  Пробуются ВМЕСТЕ со вшитыми (та же параллельная гонка); вшитый список не заменяют — документ
+     *  может протухнуть, а связь ломаться не должна никогда. */
+    @Volatile private var extra: Array<String> = emptyArray()
+
+    fun setExtraEndpoints(endpoints: List<String>) {
+        // только https и без дублей со вшитыми; мусор молча отбрасываем — источник уже проверен подписью,
+        // но формат мог собрать не тот слой
+        extra = endpoints.filter { it.startsWith("https://") && it !in DOH }.distinct().toTypedArray()
+    }
+
     private val pool = Executors.newCachedThreadPool { r ->
         Thread(r, "mayak-doh").apply { isDaemon = true } // демоны: не держат процесс живым
     }
@@ -56,8 +68,9 @@ object DohResolver {
         }
         val query = buildQuery(hostname) ?: return null
         val cs = ExecutorCompletionService<String?>(pool)
-        val tasks = ArrayList<Future<String?>>(DOH.size)
-        for (url in DOH) tasks.add(cs.submit { queryOne(url, query) })
+        val endpoints = DOH + extra // вшитые + из подписанного delivery-документа
+        val tasks = ArrayList<Future<String?>>(endpoints.size)
+        for (url in endpoints) tasks.add(cs.submit { queryOne(url, query) })
         val deadline = System.nanoTime() + TOTAL_MS * 1_000_000
         try {
             var pending = tasks.size

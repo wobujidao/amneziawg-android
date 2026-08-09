@@ -38,6 +38,12 @@ object MayakPrefs {
     // core.AlwaysOnNudge (там же правило показа и его юнит-тест).
     private const val KEY_ALWAYS_ON_DECISION = "always_on_decision"
     private const val KEY_LEARNED_HOSTS = "learned_hosts" // адреса ядра, полученные от сервера (реестр доменов), CSV
+    // Подписанный delivery-документ (F-T8): конверт целиком (verbatim JSON) + максимальная ПРИНЯТАЯ
+    // version. Version — анти-откат МЕЖДУ запусками: без неё цензор мог бы скормить старый (ещё не
+    // протухший) документ с уже отозванными адресами. ⚠️ resetAll() стирает и её — как и learned_hosts;
+    // это сброс к вшитым, а не дыра: следующий принятый документ снова поднимет планку.
+    private const val KEY_DELIVERY_ENVELOPE = "delivery_envelope"
+    private const val KEY_DELIVERY_VERSION = "delivery_version"
     private const val KEY_LEARNED_CABINET = "learned_cabinet" // адрес кабинета из того же реестра (роль cabinet)
     private const val KEY_LEARNED_SITE = "learned_site" // адрес сайта из того же реестра (роль site) — справка
     private const val KEY_AUTOCONNECT = "autoconnect" // F3: автоподнятие последнего рабочего туннеля (по умолч. ВЫКЛ)
@@ -94,6 +100,23 @@ object MayakPrefs {
 
     fun setLearnedHosts(context: Context, hosts: List<String>) {
         prefs(context).edit().putString(KEY_LEARNED_HOSTS, hosts.joinToString(",")).apply()
+    }
+
+    /** Последний ПРИНЯТЫЙ (подпись сошлась) delivery-конверт как есть; null — ещё не принимали.
+     *  Подпись/срок перепроверяются при чтении (MayakDelivery.accepted) — здесь только хранение. */
+    fun deliveryEnvelope(context: Context): String? =
+        prefs(context).getString(KEY_DELIVERY_ENVELOPE, null)?.takeIf { it.isNotBlank() }
+
+    /** Максимальная принятая version конверта (анти-откат между запусками). 0 = не принимали. */
+    fun deliveryVersion(context: Context): Int = prefs(context).getInt(KEY_DELIVERY_VERSION, 0)
+
+    /** Принять конверт: хранить его и поднять планку версии. Одним edit — чтобы конверт и планка
+     *  не разъехались между собой при смерти процесса посреди записи. */
+    fun setDelivery(context: Context, envelopeJson: String, version: Int) {
+        prefs(context).edit()
+            .putString(KEY_DELIVERY_ENVELOPE, envelopeJson)
+            .putInt(KEY_DELIVERY_VERSION, maxOf(version, deliveryVersion(context)))
+            .apply()
     }
 
     /** Адрес кабинета из того же реестра доменов. Пусто = сервер ещё не отвечал → берём зашитый. */
