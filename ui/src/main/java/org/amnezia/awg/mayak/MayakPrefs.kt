@@ -10,16 +10,26 @@ import androidx.appcompat.app.AppCompatDelegate
 import org.amnezia.awg.R
 import org.amnezia.awg.mayak.core.AutoDiagGate
 import org.amnezia.awg.mayak.core.LadderCounters
+import org.amnezia.awg.mayak.core.UpdateNudge
 
 object MayakPrefs {
     private const val PREFS = "mayak_ui_prefs"
     private const val KEY_THEME = "theme_mode"
     private const val KEY_LAST_DIR = "last_direction_id"
     private const val KEY_LAST_CONN_LABEL = "last_conn_label" // метка направления для шторки (переживает всё)
-    private const val KEY_UPDATE_DISMISSED = "update_dismissed_code" // versionCode, для которого нажали «Позже»
+    private const val KEY_UPDATE_DISMISSED = "update_dismissed_code" // versionCode, для которого нажали «Позже» (историческое, см. ниже)
+    // Ступенчатые напоминания об обновлении (core.UpdateNudge): за какой версией следим, когда
+    // впервые её увидели и какую ступень уже показали. Пришло на смену вечному молчанию после
+    // одного «Позже» — тот ключ выше оставлен только чтобы не показывать ступень 0 повторно тем,
+    // кто уже отказался в старой сборке.
+    private const val KEY_UPDATE_TRACKED_CODE = "update_tracked_code"
+    private const val KEY_UPDATE_FIRST_SEEN = "update_first_seen_ms"
+    private const val KEY_UPDATE_STEP = "update_nudge_step"
     private const val KEY_USE_IPV6 = "use_ipv6" // тумблер «использовать IPv6 в туннеле» (по умолч. ВКЛ)
     private const val KEY_FORCE_FALLBACK = "force_fallback" // «всегда запасной канал» (SPEC-0039, по умолч. ВЫКЛ)
     private const val KEY_SHOW_SPEED = "show_speed" // тумблер «показывать скорость передачи» (по умолч. ВЫКЛ)
+    private const val KEY_ONBOARDING_SHOWN = "onboarding_shown" // лист знакомства показан (один раз навсегда)
+    private const val KEY_HAPTICS = "haptics_enabled" // тактильный отклик (по умолч. ВКЛ — как было всегда)
     private const val KEY_SPLIT_APPS = "split_apps" // split-туннель: package-имена приложений (StringSet)
     private const val KEY_SPLIT_EXCLUDED = "split_excluded" // split-туннель: true=исключить эти, false=только эти
     private const val KEY_SPLIT_RU_PRESET = "split_ru_preset" // RU-пресет: РФ-приложения мимо VPN одной кнопкой (по умолч. ВЫКЛ)
@@ -179,6 +189,54 @@ object MayakPrefs {
 
     fun setForceFallback(context: Context, enabled: Boolean) {
         prefs(context).edit().putBoolean(KEY_FORCE_FALLBACK, enabled).apply()
+    }
+
+    /**
+     * Состояние ступенчатых напоминаний для версии latestCode: сколько дней прошло с первой встречи
+     * и какую ступень уже показывали. Первая встреча запоминается ЗДЕСЬ же — иначе отсчёт начинать
+     * не от чего; для новой версии история обнуляется (core.UpdateNudge.isNewVersion).
+     */
+    fun updateNudgeState(context: Context, latestCode: Int, nowMs: Long): Pair<Long, Int> {
+        val p = prefs(context)
+        val tracked = p.getInt(KEY_UPDATE_TRACKED_CODE, 0)
+        if (UpdateNudge.isNewVersion(latestCode, tracked)) {
+            p.edit()
+                .putInt(KEY_UPDATE_TRACKED_CODE, latestCode)
+                .putLong(KEY_UPDATE_FIRST_SEEN, nowMs)
+                .putInt(KEY_UPDATE_STEP, UpdateNudge.NO_STEP)
+                .apply()
+            // Тот, кто уже отказался от ЭТОЙ версии в старой сборке (до ступеней), нулевую ступень
+            // второй раз не увидит: уважаем прошлое «Позже», дальше он попадёт на 14-й день.
+            val legacyDismissed = p.getInt(KEY_UPDATE_DISMISSED, 0) >= latestCode
+            return 0L to (if (legacyDismissed) 0 else UpdateNudge.NO_STEP)
+        }
+        val firstSeen = p.getLong(KEY_UPDATE_FIRST_SEEN, nowMs)
+        return UpdateNudge.daysBetween(firstSeen, nowMs) to p.getInt(KEY_UPDATE_STEP, UpdateNudge.NO_STEP)
+    }
+
+    /** Запомнить показанную ступень (последняя ступень повторяется, её не записываем как «выше»). */
+    fun setUpdateNudgeStep(context: Context, step: Int) {
+        prefs(context).edit().putInt(KEY_UPDATE_STEP, step).apply()
+    }
+
+    /** Показывали ли лист знакомства. Ответ навсегда: второй раз это раздражение, а не помощь. */
+    fun onboardingShown(context: Context): Boolean =
+        prefs(context).getBoolean(KEY_ONBOARDING_SHOWN, false)
+
+    fun setOnboardingShown(context: Context) {
+        prefs(context).edit().putBoolean(KEY_ONBOARDING_SHOWN, true).apply()
+    }
+
+    /**
+     * Тактильный отклик (вибрация) на действия и на смену состояния туннеля. По умолчанию ВКЛючен:
+     * так приложение вело себя всегда, и выключатель добавлен именно как выключатель, а не как
+     * «включите, чтобы стало как раньше». Единственный читатель — MayakHaptics.
+     */
+    fun hapticsEnabled(context: Context): Boolean =
+        prefs(context).getBoolean(KEY_HAPTICS, true)
+
+    fun setHapticsEnabled(context: Context, enabled: Boolean) {
+        prefs(context).edit().putBoolean(KEY_HAPTICS, enabled).apply()
     }
 
     /** Показывать ли скорость передачи в туннеле (↓/↑, обновление раз в секунду). По умолчанию ВЫКЛ. */

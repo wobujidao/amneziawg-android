@@ -192,6 +192,27 @@
                         android:alpha="0.8"
                         android:textAppearance="@style/Mayak.Tagline" />
 
+                    <!-- Тактильный отклик (директива владельца 01-07). По умолчанию ВКЛ: так было
+                         всегда, тумблер добавлен именно чтобы выключить, а не чтобы включить. -->
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        style="@style/Mayak.Switch"
+                        android:id="@+id/mayak_settings_haptics"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:minHeight="48dp"
+                        android:textColor="@color/mayak_on_surface"
+                        android:text="@string/mayak_settings_haptics" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="@string/mayak_settings_haptics_hint"
+                        android:textColor="@color/mayak_on_surface"
+                        android:alpha="0.8"
+                        android:textAppearance="@style/Mayak.Tagline" />
+
                     <!-- Пресеты split-туннеля (SPEC-0028): само управление — на ГЛАВНОМ экране (селектор
                          пресета + тумблер у кнопки VPN). Здесь — только показывать ли этот селектор. -->
                     <com.google.android.material.materialswitch.MaterialSwitch

@@ -186,6 +186,8 @@
     <string name="mayak_update_check_failed">Update check failed</string>
     <string name="mayak_update_title">Update available</string>
     <string name="mayak_update_msg">A new version %1$s of Mayak is available.</string>
+    <string name="mayak_update_msg_aging">Version %1$s is out and your build has not been updated for three weeks. Newer builds fix what breaks connectivity on some carriers.</string>
+    <string name="mayak_update_msg_old">Your build is over a month old. We change how connections work more often than that — an old version may stop working entirely. Please update: version %1$s.</string>
     <string name="mayak_update_now">Update</string>
     <string name="mayak_update_later">Later</string>
     <string name="mayak_update_downloading">Downloading update…</string>
@@ -333,8 +335,19 @@
     <string name="mayak_disguise_notes">Notes</string>
     <string name="mayak_disguise_calc">Calculator</string>
     <string name="mayak_disguise_applied">The icon and name change in a few seconds. If not, restart the phone. Your VPN connection is not affected.</string>
-    <string name="mayak_settings_account">Account: %1$s</string>
+    <string name="mayak_settings_account">Email: %1$s</string>
     <string name="mayak_settings_account_none">not signed in</string>
+    <string name="mayak_row_connected_dot_desc">traffic goes through this country</string>
+    <string name="mayak_onboarding_title">How it works, briefly</string>
+    <string name="mayak_onboarding_1_title">One button</string>
+    <string name="mayak_onboarding_1_text">Tap the big circle and your traffic goes through our server. Tap again to turn protection off.</string>
+    <string name="mayak_onboarding_2_title">Change country any time</string>
+    <string name="mayak_onboarding_2_text">Pick a country from the list below: if protection is on, the app switches over by itself. The number next to a country is its latency — lower is faster.</string>
+    <string name="mayak_onboarding_3_title">Local services bypass the tunnel</string>
+    <string name="mayak_onboarding_3_text">The switch at the top keeps banks and government sites on your normal connection, where a foreign address only gets in the way.</string>
+    <string name="mayak_onboarding_done">Got it</string>
+    <string name="mayak_settings_haptics">Haptic feedback</string>
+    <string name="mayak_settings_haptics_hint">A short vibration on taps and when protection turns on or off.</string>
     <!-- Public account number (migration 0110): what a person calls themselves when writing to us.
          The «472-918-563» grouping is added by the display layer; storage is nine bare digits. -->
     <string name="mayak_account_number">Account number</string>

@@ -85,6 +85,18 @@
             android:visibility="gone" />
     </LinearLayout>
 
+    <!-- Точка «идёт трафик через эту страну» (пункт бэклога «выбрана И подключена»). Показывается
+         ТОЛЬКО у активного направления при поднятом туннеле. Зачем: подсветка строки означает
+         «выбрана», и она одинакова при включённом и выключенном VPN — по списку нельзя было понять,
+         где сейчас идёт трафик. Своей подписи нет: у неё contentDescription для скринридера. -->
+    <View
+        android:id="@+id/mayak_row_connected_dot"
+        android:layout_width="8dp"
+        android:layout_height="8dp"
+        android:layout_marginStart="6dp"
+        android:background="@drawable/mayak_dot_connected"
+        android:visibility="gone" />
+
     <!-- Бейдж «IPv6» (директива владельца 01-07). Зажигается КОДОМ и ТОЛЬКО по явному ipv6:true из
          /v1/client/directions — проверенному egress-признаку выходной ноды, тем же, по которому чип
          живёт на лендинге и в кабинете. Не по AAAA и не по догадкам — иначе бейдж врёт. Пилюля — та

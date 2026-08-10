@@ -394,6 +394,9 @@
     <string name="mayak_update_check_failed">Не удалось проверить обновление</string>
     <string name="mayak_update_title">Доступно обновление</string>
     <string name="mayak_update_msg">Вышла новая версия Маяка %1$s.</string>
+    <!-- Ступени напоминания (core.UpdateNudge): тон растёт, выход остаётся всегда. -->
+    <string name="mayak_update_msg_aging">Вышла версия %1$s, а ваша не обновлялась третью неделю. В новых сборках чинится то, из-за чего связь пропадает у операторов.</string>
+    <string name="mayak_update_msg_old">Ваша сборка старше месяца. Мы меняем способ подключения чаще, чем раз в месяц, — со старой версией связь может перестать работать вовсе. Пожалуйста, обновитесь: версия %1$s.</string>
     <string name="mayak_update_now">Обновить</string>
     <string name="mayak_update_later">Позже</string>
     <string name="mayak_update_downloading">Загрузка обновления…</string>
@@ -547,8 +550,24 @@
     <string name="mayak_disguise_notes">Заметки</string>
     <string name="mayak_disguise_calc">Калькулятор</string>
     <string name="mayak_disguise_applied">Иконка и имя изменятся через несколько секунд. Если нет — перезапустите телефон. На подключение это не влияет.</string>
-    <string name="mayak_settings_account">Аккаунт: %1$s</string>
+    <!-- Строка почты в настройках. Раньше называлась «Аккаунт: <почта>» — владелец 10-08:
+         это неверно, аккаунт человека теперь опознаётся НОМЕРОМ (он крупным блоком ниже), а почта
+         это лишь то, чем он входит и куда мы пишем. -->
+    <string name="mayak_settings_account">Почта: %1$s</string>
     <string name="mayak_settings_account_none">вход не выполнен</string>
+    <!-- Подпись зелёной точки в строке страны — только для скринридера, глазами она без текста. -->
+    <string name="mayak_row_connected_dot_desc">через эту страну идёт трафик</string>
+    <!-- Лист знакомства (первый вход). Три карточки, без «Далее» и точек: читается за полминуты. -->
+    <string name="mayak_onboarding_title">Коротко, как это работает</string>
+    <string name="mayak_onboarding_1_title">Одна кнопка</string>
+    <string name="mayak_onboarding_1_text">Нажмите большой круг — и трафик пойдёт через наш сервер. Второе нажатие выключает защиту.</string>
+    <string name="mayak_onboarding_2_title">Страну можно менять на ходу</string>
+    <string name="mayak_onboarding_2_text">Выберите страну в списке ниже: если защита включена, приложение переключится само, выключать ничего не нужно. Рядом со страной — задержка до неё, чем меньше, тем быстрее.</string>
+    <string name="mayak_onboarding_3_title">Российские сервисы — мимо туннеля</string>
+    <string name="mayak_onboarding_3_text">Переключатель вверху экрана оставляет банки и госуслуги на обычном канале: им зарубежный адрес только мешает.</string>
+    <string name="mayak_onboarding_done">Понятно</string>
+    <string name="mayak_settings_haptics">Отклик вибрацией</string>
+    <string name="mayak_settings_haptics_hint">Короткая вибрация на нажатия и на момент, когда защита включилась или выключилась.</string>
     <!-- Публичный номер аккаунта (миграция 0110): им человек называет себя поддержке. Формат
          «472-918-563» задаёт показ (AccountNumber.format), в базе — девять цифр без дефисов.
          Строка-подпись КОРОТКАЯ намеренно: под ней стоит сам номер крупным моноширинным. -->

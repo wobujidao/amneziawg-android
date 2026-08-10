@@ -227,7 +227,14 @@ object DiagCollector {
                 .start()
             val raw = BufferedReader(InputStreamReader(proc.inputStream)).use { it.readText() }
             proc.waitFor()
-            val ours = raw.lineSequence().filter { it.contains("AmneziaWG") }.joinToString("\n")
+            // 🔴 Ловим ОБА наших семейства тегов. Долгое время фильтр держал только «AmneziaWG», и всё,
+            // что помечено «Mayak/…», в присланный лог НЕ ПОПАДАЛО ВОВСЕ: доставка подписанного
+            // документа, сторож живости, автоподключение, перебор адресов — то есть ровно те места,
+            // куда смотришь, когда человек говорит «не подключается». Найдено 10-08 на живом логе
+            // владельца: строки про доставку были в logcat на устройстве и отсутствовали в заливке.
+            val ours = raw.lineSequence()
+                .filter { it.contains("AmneziaWG") || it.contains("Mayak/") }
+                .joinToString("\n")
             tail(scrubSecrets(ours), MAX_LOG_BYTES)
         } catch (e: Exception) {
             "не удалось собрать logcat: ${e.message}"

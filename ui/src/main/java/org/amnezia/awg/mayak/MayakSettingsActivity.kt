@@ -132,6 +132,16 @@ class MayakSettingsActivity : AppCompatActivity() {
             findViewById<View>(R.id.mayak_settings_filtering_card).visibility = View.GONE
         }
 
+        // Тактильный отклик (директива владельца 01-07): единственная точка правды — MayakPrefs,
+        // единственный исполнитель — MayakHaptics. Применяется сразу, переподключение не нужно.
+        val hapticsSwitch = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.mayak_settings_haptics)
+        hapticsSwitch.isChecked = MayakPrefs.hapticsEnabled(this)
+        hapticsSwitch.setOnCheckedChangeListener { view, checked ->
+            MayakPrefs.setHapticsEnabled(this, checked)
+            // Включили — сразу дать почувствовать, что это такое (выключили — молчим, логично).
+            if (checked) MayakHaptics.tap(view)
+        }
+
         // Тумблер «Использовать IPv6» (SPEC-0014): по умолч. ВКЛ. При выкл клиент срезает v6 из конфига
         // при следующем подключении (кэш конфига v6-полный, стрип на apply) → IPv6 идёт мимо туннеля.
         val speedSwitch = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.mayak_settings_speed)

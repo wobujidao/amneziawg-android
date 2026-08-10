@@ -59,6 +59,8 @@ import org.amnezia.awg.mayak.core.Fallback
 import org.amnezia.awg.mayak.core.FallbackDecision
 import org.amnezia.awg.mayak.core.HostProvider
 import org.amnezia.awg.mayak.core.LadderTelemetry
+import org.amnezia.awg.mayak.core.Onboarding
+import org.amnezia.awg.mayak.core.UpdateNudge
 import org.amnezia.awg.mayak.core.MayakApiException
 import org.amnezia.awg.mayak.core.MayakBackend
 import org.amnezia.awg.mayak.core.MayakHosts
@@ -352,7 +354,17 @@ class MayakActivity : AppCompatActivity() {
                 if (force) Toast.makeText(this@MayakActivity, R.string.mayak_update_uptodate, Toast.LENGTH_SHORT).show()
                 return@launch
             }
-            if (!force && MayakPrefs.updateDismissedCode(this@MayakActivity) >= info.latestVersionCode) return@launch
+            // Ступенчатые напоминания (core.UpdateNudge): день 0 — обычное предложение, 14 и 21 —
+            // повторные с более жёстким текстом, с 36-го дня — каждый холодный старт. Раньше одно
+            // «Позже» выключало напоминание про эту версию навсегда, и между ним и жёстким порогом
+            // min_version_code не было ничего.
+            var step = UpdateNudge.STEP_DAYS.size - 1 // «проверить обновления» руками — самый прямой текст
+            if (!force) {
+                val (days, lastStep) = MayakPrefs.updateNudgeState(
+                    this@MayakActivity, info.latestVersionCode, System.currentTimeMillis())
+                step = UpdateNudge.stepToShow(days, lastStep)
+                if (step == UpdateNudge.NONE) return@launch
+            }
             // Установлено из Play — обновляет сам Play. Наш APK с сайта подписан ДРУГИМ ключом, и
             // установка такому человеку гарантированно падает на несовпадении подписи: он качает
             // файл, ждёт и получает отказ, который читается как поломка приложения. Поэтому здесь
@@ -362,7 +374,7 @@ class MayakActivity : AppCompatActivity() {
                 if (force) showPlayUpdateDialog()
                 return@launch
             }
-            showUpdateDialog(info)
+            showUpdateDialog(info, step)
         }
     }
 
@@ -376,10 +388,19 @@ class MayakActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun showUpdateDialog(info: AppVersionInfo) {
+    /**
+     * Окно «вышло обновление». Ступень (core.UpdateNudge) меняет ТОЛЬКО тон текста, а не поведение:
+     * кнопки те же, отказ всегда возможен. Настойчивость — в словах, а не в отнятии выхода.
+     */
+    private fun showUpdateDialog(info: AppVersionInfo, step: Int) {
         val name = info.latestVersionName.ifBlank { info.latestVersionCode.toString() }
+        val lead = when (step) {
+            0, 1 -> getString(R.string.mayak_update_msg, name)
+            2 -> getString(R.string.mayak_update_msg_aging, name)
+            else -> getString(R.string.mayak_update_msg_old, name)
+        }
         val msg = buildString {
-            append(getString(R.string.mayak_update_msg, name))
+            append(lead)
             if (info.changelog.isNotBlank()) { append("\n\n"); append(info.changelog) }
         }
         AlertDialog.Builder(this)
@@ -387,8 +408,11 @@ class MayakActivity : AppCompatActivity() {
             .setMessage(msg)
             .setPositiveButton(R.string.mayak_update_now) { _, _ -> startInAppUpdate(info) }
             .setNegativeButton(R.string.mayak_update_later) { _, _ ->
-                MayakPrefs.setUpdateDismissedCode(this, info.latestVersionCode)
+                // Записываем ПОКАЗАННУЮ ступень, а не «отказался навсегда»: следующая ступень придёт
+                // сама на своём сроке. Старый ключ update_dismissed_code больше не растим.
+                MayakPrefs.setUpdateNudgeStep(this, step)
             }
+            .setOnDismissListener { MayakPrefs.setUpdateNudgeStep(this, step) }
             .show()
     }
 
@@ -1055,7 +1079,7 @@ class MayakActivity : AppCompatActivity() {
         dirsContainer?.setOnDragListener { _, event -> handleRowDrag(event) }
         // Кнопка «Обновить» — явно перетянуть список стран с сервера (новые направления без перелогина).
         findViewById<View?>(R.id.mayak_refresh_dirs)?.setOnClickListener {
-            it.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+            MayakHaptics.tap(it)
             MayakPingCache.clear() // «Обновить» ПЕРЕМЕРЯЕТ и пинги (иначе кэш 3 мин отдаёт старые) — правка владельца
             loadDirections(forceRefresh = true)
             checkAppUpdate(force = true) // «Обновить» проверяет и список стран, И версию приложения
@@ -1064,7 +1088,7 @@ class MayakActivity : AppCompatActivity() {
         findViewById<android.widget.TextView?>(R.id.mayak_sort_mode)?.let { btn ->
             updateSortModeLabel(btn)
             btn.setOnClickListener {
-                it.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                MayakHaptics.tap(it)
                 val next = (MayakPrefs.sortMode(this) + 1) % 3
                 MayakPrefs.setSortMode(this, next)
                 updateSortModeLabel(btn)
@@ -1109,7 +1133,7 @@ class MayakActivity : AppCompatActivity() {
 
         // Тап с press-feedback: лёгкое сжатие 0.96 + haptic-tick, затем toggle.
         connectCircle?.setOnClickListener { v ->
-            v.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+            MayakHaptics.tap(v)
             pressSqueeze(v)
             toggleConnect()
         }
@@ -1119,13 +1143,13 @@ class MayakActivity : AppCompatActivity() {
         val openDetails = View.OnClickListener {
             when {
                 connState == ConnState.CONNECTED -> {
-                    it.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                    MayakHaptics.tap(it)
                     showConnectionDetails()
                 }
                 // Провал подключения: тот же жест (тап по надписи под кнопкой), но ведёт в помощь,
                 // а не в подробности — подключения-то и не случилось.
                 errorHelpAvailable -> {
-                    it.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                    MayakHaptics.tap(it)
                     openErrorHelp()
                 }
             }
@@ -1365,6 +1389,7 @@ class MayakActivity : AppCompatActivity() {
         // Меряем RTT во ВСЕХ режимах (не только «пинг»), чтобы ЦИФРА пинга показывалась всегда (запрос
         // владельца 2026-07-11: цифры вместо полосок). Кэш (TTL) не даёт спамить серверы повторно.
         pingDirectionsOnce(dirs)
+        maybeShowOnboarding() // после отрисовки списка: экран уже настоящий, а не пустой каркас
     }
 
     /**
@@ -1382,7 +1407,7 @@ class MayakActivity : AppCompatActivity() {
         findViewById<MaterialButton?>(R.id.mayak_dirs_state_action)?.apply {
             setText(actionLabel)
             setOnClickListener {
-                it.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                MayakHaptics.tap(it)
                 MayakPingCache.clear()
                 loadDirections(forceRefresh = true)
             }
@@ -1523,15 +1548,24 @@ class MayakActivity : AppCompatActivity() {
         // врёт; false и «поля нет» одинаково значат «не рисуем» (см. DirectionIPv6Test в :core).
         row.findViewById<TextView>(R.id.mayak_row_ipv6).visibility =
             if (d.ipv6) View.VISIBLE else View.GONE
+        // Точка «трафик идёт через эту страну» — только у активного направления и только при живом
+        // туннеле. Подсветка строки говорит «выбрана», и она одинакова при выключенном VPN; отличить
+        // «выбрана» от «работает» по списку было нельзя. Условие — то же, что у живого пинга выше.
+        row.findViewById<View>(R.id.mayak_row_connected_dot).apply {
+            val active = connState == ConnState.CONNECTED &&
+                d.id == (GoTunnel.connectedDirectionId ?: connectedDir?.id)
+            visibility = if (active) View.VISIBLE else View.GONE
+            contentDescription = if (active) getString(R.string.mayak_row_connected_dot_desc) else null
+        }
         row.tag = d.id
         row.setOnClickListener {
-            it.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+            MayakHaptics.tap(it)
             selectDir(d)
         }
         // SPEC-0031, режим «свои»: зажать и перетащить строку → изменить порядок (сохраняется).
         if (allowReorder && MayakPrefs.sortMode(this) == SORT_CUSTOM) {
             row.setOnLongClickListener { v ->
-                v.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                MayakHaptics.longPress(v)
                 val data = ClipData.newPlainText("dirId", d.id.toString())
                 v.startDragAndDrop(data, View.DragShadowBuilder(v), v, 0)
                 true
@@ -2216,6 +2250,11 @@ class MayakActivity : AppCompatActivity() {
         // скоупно) — на повторном открытии покажем то же направление.
         connectedDir = d // направление ЖИВОГО туннеля — из аргумента, не из мутабельного выбора в списке
         GoTunnel.connectedDirectionId = d?.id // надёжный процесс-скоупный источник активной страны (для показа её пинга без hairpin)
+        // Точка «идёт трафик» — ПОСЛЕ того, как активное направление стало известно. renderState выше
+        // отрисовал круг раньше этой строки, и тогда активной страны ещё не было: на эмуляторе точка
+        // не зажглась вовсе, хотя туннель стоял. Отрисовка состояния и знание «куда» приходят в
+        // РАЗНЫЕ моменты — поэтому дёргаем оба раза.
+        refreshConnectedDots()
         GoTunnel.connectedLabel = MayakNotification.labelFor(this, d)
         MayakPrefs.setLastConnLabel(this, GoTunnel.connectedLabel) // запасной источник для шторки (см. MayakPrefs)
         MayakNotification.show(this, GoTunnel.connectedLabel, GoTunnel.connectedPingMs)
@@ -2250,6 +2289,34 @@ class MayakActivity : AppCompatActivity() {
         }, delay)
     }
 
+    /**
+     * Знакомство при первом входе: три коротких карточки о том, что это и как пользоваться.
+     *
+     * Показывается ДО первого подключения — в отличие от разговора про постоянное подключение,
+     * который начинается ПОСЛЕ первого удачного коннекта. Порядок именно такой: сперва «нажми
+     * кнопку», потом «а чтобы не рвалось во сне — вот системная настройка». Два листа подряд на
+     * одном экране человек не читает, поэтому пересечься они не могут по построению (правила
+     * core.Onboarding и core.AlwaysOnNudge смотрят на счётчик подключений с разных сторон).
+     */
+    private fun maybeShowOnboarding() {
+        if (!Onboarding.shouldShow(
+                alreadyShown = MayakPrefs.onboardingShown(this),
+                signedIn = session.hasToken(),
+                connectCount = MayakPrefs.connectCount(this),
+            )
+        ) return
+        MayakPrefs.setOnboardingShown(this) // помечаем СРАЗУ: показали — значит показали, второй раз не надо
+        val view = layoutInflater.inflate(R.layout.sheet_mayak_onboarding, null)
+        val sheet = com.google.android.material.bottomsheet.BottomSheetDialog(this)
+        sheet.setContentView(view)
+        if (reducedMotion()) sheet.window?.setWindowAnimations(0)
+        view.findViewById<View>(R.id.mayak_onboarding_done).setOnClickListener {
+            MayakHaptics.tap(it)
+            sheet.dismiss()
+        }
+        sheet.show()
+    }
+
     /** Сам лист. Любой из трёх выходов закрывает разговор навсегда — различаем их только смыслом. */
     private fun showAlwaysOnSheet() {
         val view = layoutInflater.inflate(R.layout.sheet_mayak_always_on, null)
@@ -2263,7 +2330,7 @@ class MayakActivity : AppCompatActivity() {
             sheet.dismiss()
         }
         view.findViewById<View>(R.id.mayak_alwayson_open).setOnClickListener {
-            it.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+            MayakHaptics.tap(it)
             // Включил он там настройку или передумал — нам не видно (см. MayakAlwaysOn), поэтому
             // считаем разговор состоявшимся в любом случае и больше не возвращаемся к нему.
             if (!MayakAlwaysOn.openSystemSettings(this)) {
@@ -2278,12 +2345,10 @@ class MayakActivity : AppCompatActivity() {
         sheet.show()
     }
 
-    /** Success-haptic при подтверждении подключения (CONFIRM с API30, иначе обычный тик). */
+    /** Отклик на подтверждённое подключение. Тумблер «Отклик вибрацией» смотрит MayakHaptics. */
     private fun successHaptic() {
         val v = connectCircle ?: return
-        val feedback = if (android.os.Build.VERSION.SDK_INT >= 30) HapticFeedbackConstants.CONFIRM
-        else HapticFeedbackConstants.VIRTUAL_KEY
-        v.performHapticFeedback(feedback)
+        MayakHaptics.stateChanged(v, connected = true)
     }
 
     private fun fadeIn(v: View) {
@@ -2396,7 +2461,15 @@ class MayakActivity : AppCompatActivity() {
 
     /** Применяет визуальное состояние круга/иконки/статуса/таймера + анимацию (пульс/glow). */
     private fun renderState(state: ConnState) = runOnUiThread {
+        // Отклик вибрацией на ОТКЛЮЧЕНИЕ — только на настоящем переходе «было подключено → стало нет».
+        // Без этого условия телефон вибрировал бы на каждом холодном старте: renderState(DISCONNECTED)
+        // зовётся и при первой отрисовке экрана, когда ничего не отключалось.
+        val wasConnected = connState == ConnState.CONNECTED
+        if (wasConnected && state == ConnState.DISCONNECTED) {
+            connectCircle?.let { MayakHaptics.stateChanged(it, connected = false) }
+        }
         connState = state // единый источник истины: connState всегда синхронен с отрисованным состоянием
+        refreshConnectedDots() // точка «идёт трафик» в списке живёт по тому же состоянию, что и круг
         val circleBg = when (state) {
             ConnState.DISCONNECTED -> R.drawable.mayak_circle_disconnected
             ConnState.CONNECTING -> R.drawable.mayak_circle_connecting
@@ -2636,6 +2709,24 @@ class MayakActivity : AppCompatActivity() {
      * rowViews — единственный список видимых строк (список + плитка), поэтому это и есть общий
      * источник: то же представление обновляют и подсветка выбора (selectDir), и живой пинг.
      */
+    /**
+     * Точка «через эту страну идёт трафик» — по всем видимым строкам сразу.
+     *
+     * Идём по rowViews, а не по детям контейнера, по той же причине, что и живой пинг ниже: активная
+     * строка может жить в плитке «⚡ Рекомендуем», а она контейнеру списка не ребёнок. Зовётся из
+     * renderState — то есть из единственного места, где состояние подключения становится видимым;
+     * вешать это на каждое присваивание connState (их восемь) значило бы однажды забыть одно.
+     */
+    private fun refreshConnectedDots() {
+        val activeId = if (connState == ConnState.CONNECTED) (GoTunnel.connectedDirectionId ?: connectedDir?.id) else null
+        for (row in rowViews) {
+            val dot = row.findViewById<View>(R.id.mayak_row_connected_dot) ?: continue
+            val on = activeId != null && (row.tag as? Long) == activeId
+            dot.visibility = if (on) View.VISIBLE else View.GONE
+            dot.contentDescription = if (on) getString(R.string.mayak_row_connected_dot_desc) else null
+        }
+    }
+
     private fun refreshActiveRowPing(ms: Int?) {
         val activeId = GoTunnel.connectedDirectionId ?: connectedDir?.id ?: return
         for (row in rowViews) {
