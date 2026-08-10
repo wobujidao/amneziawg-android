@@ -51,7 +51,6 @@ import org.amnezia.awg.BuildConfig
 import org.amnezia.awg.R
 import org.amnezia.awg.backend.GoBackend
 import org.amnezia.awg.mayak.core.AccessDenial
-import org.amnezia.awg.mayak.core.AlwaysOnNudge
 import org.amnezia.awg.mayak.core.AppVersionInfo
 import org.amnezia.awg.mayak.core.Direction
 import org.amnezia.awg.mayak.core.DohResolver
@@ -2259,44 +2258,21 @@ class MayakActivity : AppCompatActivity() {
         MayakPrefs.setLastConnLabel(this, GoTunnel.connectedLabel) // запасной источник для шторки (см. MayakPrefs)
         MayakNotification.show(this, GoTunnel.connectedLabel, GoTunnel.connectedPingMs)
         Toast.makeText(this, getString(R.string.mayak_connected), Toast.LENGTH_SHORT).show()
-        maybeShowAlwaysOnNudge() // единственный момент, когда мы говорим про постоянное подключение
     }
 
-    /**
-     * Разговор про постоянное подключение — ОДИН раз, сразу после первого успешного подключения.
-     *
-     * Зачем именно здесь: в глубоком Doze (экран погашен, телефон в кармане или в лифте) система
-     * выгружает наш процесс, туннель умирает и сам НЕ встаёт — человек сидит без интернета, пока не
-     * откроет приложение. Рабочее лечение сегодня одно: системное постоянное подключение, которое
-     * человек включает сам. Раньше мы про это писали только в «Настройках → Защита» — пятый экран,
-     * новичок туда не доходит. ⛔ Авто-переподъём при смене сети тут не при чём и не трогается:
-     * выкатывали дважды и дважды делали хуже (откат 0.3.78, запрет в Application.kt:169).
-     *
-     * Правило показа — core.AlwaysOnNudge (чистое, под юнит-тестом). Небольшая задержка нужна, чтобы
-     * лист не выпрыгнул поверх тоста «Подключено» и анимации круга; при системном «убрать анимацию»
-     * не ждём вовсе. Проверка isFinishing/isDestroyed — на случай, если за эту паузу экран закрыли.
-     */
-    private fun maybeShowAlwaysOnNudge() {
-        if (!AlwaysOnNudge.shouldShow(
-                decision = MayakPrefs.alwaysOnDecision(this),
-                connectCount = MayakPrefs.connectCount(this), // noteConnect выше уже учёл текущее
-                alwaysOnProven = MayakAlwaysOn.isProvenEnabled(this),
-            )
-        ) return
-        val delay = if (reducedMotion()) 0L else ALWAYS_ON_NUDGE_DELAY_MS
-        connectCircle?.postDelayed({
-            if (!isFinishing && !isDestroyed) showAlwaysOnSheet()
-        }, delay)
-    }
+    // ⛔ Разговора про «постоянное подключение» после первого коннекта здесь БОЛЬШЕ НЕТ (решение
+    // владельца 10-08: «и без этого всё нормально работает, а просить пользователя, особенно
+    // нового, что-то делать — не очень хорошая мысль»). Лист выпрыгивал сразу после первой
+    // удачи и уводил человека в системные настройки Android. Сама возможность никуда не делась:
+    // кнопка «Без защиты — без интернета» живёт в «Настройках» и открывает тот же системный
+    // раздел — но её человек нажимает САМ, когда захочет, а не по нашей просьбе.
 
     /**
      * Знакомство при первом входе: три коротких карточки о том, что это и как пользоваться.
      *
-     * Показывается ДО первого подключения — в отличие от разговора про постоянное подключение,
-     * который начинается ПОСЛЕ первого удачного коннекта. Порядок именно такой: сперва «нажми
-     * кнопку», потом «а чтобы не рвалось во сне — вот системная настройка». Два листа подряд на
-     * одном экране человек не читает, поэтому пересечься они не могут по построению (правила
-     * core.Onboarding и core.AlwaysOnNudge смотрят на счётчик подключений с разных сторон).
+     * Показывается ДО первого подключения и ровно один раз. Это ЕДИНСТВЕННЫЙ лист, который человек
+     * видит сам собой: разговор про постоянное подключение, приезжавший после первого коннекта,
+     * снят 10-08 — просить нового человека лезть в системные настройки мы не будем.
      */
     private fun maybeShowOnboarding() {
         if (!Onboarding.shouldShow(
@@ -2314,34 +2290,6 @@ class MayakActivity : AppCompatActivity() {
             MayakHaptics.tap(it)
             sheet.dismiss()
         }
-        sheet.show()
-    }
-
-    /** Сам лист. Любой из трёх выходов закрывает разговор навсегда — различаем их только смыслом. */
-    private fun showAlwaysOnSheet() {
-        val view = layoutInflater.inflate(R.layout.sheet_mayak_always_on, null)
-        val sheet = com.google.android.material.bottomsheet.BottomSheetDialog(this)
-        sheet.setContentView(view)
-        // Системное «убрать анимацию» относится и к выезду листа — он приезжает оконной анимацией темы.
-        if (reducedMotion()) sheet.window?.setWindowAnimations(0)
-
-        fun close(decision: Int) {
-            MayakPrefs.setAlwaysOnDecision(this, decision)
-            sheet.dismiss()
-        }
-        view.findViewById<View>(R.id.mayak_alwayson_open).setOnClickListener {
-            MayakHaptics.tap(it)
-            // Включил он там настройку или передумал — нам не видно (см. MayakAlwaysOn), поэтому
-            // считаем разговор состоявшимся в любом случае и больше не возвращаемся к нему.
-            if (!MayakAlwaysOn.openSystemSettings(this)) {
-                Toast.makeText(this, R.string.mayak_settings_killswitch_unavailable, Toast.LENGTH_LONG).show()
-            }
-            close(AlwaysOnNudge.SENT_TO_SETTINGS)
-        }
-        view.findViewById<View>(R.id.mayak_alwayson_done).setOnClickListener { close(AlwaysOnNudge.CONFIRMED) }
-        view.findViewById<View>(R.id.mayak_alwayson_later).setOnClickListener { close(AlwaysOnNudge.POSTPONED) }
-        // Свайп вниз / кнопка «назад» — то же «Позже»: иначе окно вернулось бы на следующем коннекте.
-        sheet.setOnCancelListener { MayakPrefs.setAlwaysOnDecision(this, AlwaysOnNudge.POSTPONED) }
         sheet.show()
     }
 
@@ -3098,10 +3046,6 @@ class MayakActivity : AppCompatActivity() {
 
         /** Через сколько текст ошибки под кнопкой считается протухшим (см. clearStaleError). */
         private const val ERROR_STALE_MS = 30_000L
-
-        /** Пауза перед листом про постоянное подключение (см. maybeShowAlwaysOnNudge): даём тосту
-         *  «Подключено» и анимации круга закончиться, чтобы лист не выпрыгнул поверх них. */
-        private const val ALWAYS_ON_NUDGE_DELAY_MS = 1_200L
 
         /** Сколько ждём молча, прежде чем ОБЪЯСНИТЬ задержку (см. bringUpUdp). 6 с — быстрый путь
          *  (обычный случай, ~5-9 с до «Защищено») успевает закончиться и лишней надписи не показывает. */

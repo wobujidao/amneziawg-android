@@ -42,11 +42,10 @@ object MayakPrefs {
     // РФ иначе банки и Госуслуги идут через туннель и не пускают его, а тумблер он сам не найдёт.
     private const val KEY_RU_AUTO_TRIED = "ru_auto_tried" // проверка страны РЕАЛЬНО состоялась — не повторяем
     private const val KEY_PRESET_USER_DECIDED = "preset_user_decided" // человек сам тронул тумблер пресета руками
-    // Разговор про постоянное подключение (Always-On) — один раз после первого успешного коннекта.
-    // Хранится ОТВЕТ человека, а не «показывали/не показывали»: «Позже» и «уже включено» — разные
-    // вещи, и если мы когда-нибудь решим напомнить, напоминать надо только первым. Значения — из
-    // core.AlwaysOnNudge (там же правило показа и его юнит-тест).
-    private const val KEY_ALWAYS_ON_DECISION = "always_on_decision"
+    // Ключ "always_on_decision" здесь БЫЛ и снят 10-08 вместе с самим разговором про постоянное
+    // подключение (решение владельца). У тех, кто успел ответить, значение так и лежит в
+    // SharedPreferences — не читаем его и не чистим: чистка ради чистки трогает чужой файл настроек
+    // на всех телефонах разом, а мёртвый ключ не стоит ничего.
     private const val KEY_LEARNED_HOSTS = "learned_hosts" // адреса ядра, полученные от сервера (реестр доменов), CSV
     // Подписанный delivery-документ (F-T8): конверт целиком (verbatim JSON) + максимальная ПРИНЯТАЯ
     // version. Version — анти-откат МЕЖДУ запусками: без неё цензор мог бы скормить старый (ещё не
@@ -143,14 +142,6 @@ object MayakPrefs {
 
     fun setLearnedSite(context: Context, host: String) {
         prefs(context).edit().putString(KEY_LEARNED_SITE, host).apply()
-    }
-
-    /** Ответ человека на разговор о постоянном подключении (AlwaysOnNudge.NOT_ASKED и далее). */
-    fun alwaysOnDecision(context: Context): Int =
-        prefs(context).getInt(KEY_ALWAYS_ON_DECISION, org.amnezia.awg.mayak.core.AlwaysOnNudge.NOT_ASKED)
-
-    fun setAlwaysOnDecision(context: Context, decision: Int) {
-        prefs(context).edit().putInt(KEY_ALWAYS_ON_DECISION, decision).apply()
     }
 
     fun autoConnect(context: Context): Boolean =
