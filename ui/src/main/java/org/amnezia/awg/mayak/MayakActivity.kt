@@ -66,7 +66,7 @@ import org.amnezia.awg.mayak.core.NoReachableHostException
 import org.amnezia.awg.mayak.core.OutdatedBuild
 import org.amnezia.awg.mayak.core.accessDenial
 import org.amnezia.awg.mayak.core.outdatedBuild
-import org.amnezia.awg.mayak.core.recommendedDirection
+import org.amnezia.awg.mayak.core.splitRecommended
 
 class MayakActivity : AppCompatActivity() {
 
@@ -1336,12 +1336,16 @@ class MayakActivity : AppCompatActivity() {
             return
         }
         hideDirsState()
-        for (d in dirs) {
+        // Разбор на плитку/список — В :core (splitRecommended, RecommendationTest): рекомендованное
+        // направление живёт РОВНО в одном месте на экране (баг 09-08 «Почему тут 2 Нидерланды?» —
+        // плитку рисовали НАД полным списком, не убирая из него то же направление).
+        val split = splitRecommended(dirs)
+        for (d in split.list) {
             val row = countryRow(d)
             container.addView(row)
             rowViews.add(row)
         }
-        renderRecommendedTile(dirs) // до selectDir ниже: строка в плитке тоже подсвечивается выбором
+        renderRecommendedTile(split.tile) // до selectDir ниже: строка в плитке тоже подсвечивается выбором
         val lastId = MayakPrefs.lastDirectionId(this@MayakActivity)
         val initial = dirs.firstOrNull { it.id == lastId } ?: dirs.first()
         // На живом туннеле после пересоздания Activity (смена темы) connectedDir сброшен (instance-поле) —
@@ -1535,20 +1539,24 @@ class MayakActivity : AppCompatActivity() {
      * Плитка «⚡ Рекомендуем» над списком (SPEC-0031 T3, хвост F-T5).
      *
      * Кого рекомендовать, решает СЕРВЕР (recommended:true в /v1/client/directions — живое
-     * направление с наименьшей загрузкой); клиент только рисует и отсекает заведомо мёртвое —
-     * правило в :core под тестом (recommendedDirection, RecommendationTest). Нет пометки → плитки
-     * нет: рекомендация, выдуманная клиентом, разошлась бы с сервером и кабинетом.
+     * направление с наименьшей загрузкой); отбор и разбор со списком — в :core (splitRecommended,
+     * RecommendationTest), сюда приходит уже готовый Direction? (null → плитки нет: рекомендация,
+     * выдуманная клиентом, разошлась бы с сервером и кабинетом; либо направление ровно одно —
+     * см. doc-комментарий splitRecommended).
      *
      * Внутри плитки — ОБЫЧНАЯ строка-страна (countryRow): флаг, пинг и выбор по тапу достаются
-     * даром. Строка попадает в rowViews, поэтому подсветка выбора работает и в плитке, и в списке
-     * (направление в списке остаётся — плитка ярлык-дубль, а не вырезка из списка: сортировки и
-     * ручной порядок она не трогает). Перетаскивание в режиме «свои» плитке отключено.
+     * даром. Строка попадает в rowViews (тот же список, что и строки под ней) — благодаря этому
+     * подсветка выбора И живой пинг активного направления (refreshActiveRowPing) находят строку
+     * ГДЕ БЫ она ни отрисовалась, в плитке или в списке. Направление отрисовывается РОВНО в одном
+     * месте (splitRecommended уже вырезал его из списка) — двух чисел под одно направление больше
+     * не бывает (баг 09-08: плитка 119 мс, строка снизу 76 мс — потому что раньше это были ДВЕ
+     * разные View одного и того же направления, и живой пинг обновлял только ту, что в списке).
+     * Перетаскивание в режиме «свои» плитке отключено.
      */
-    private fun renderRecommendedTile(dirs: List<Direction>) {
+    private fun renderRecommendedTile(rec: Direction?) {
         val tile = findViewById<View?>(R.id.mayak_recommended_tile) ?: return
         val slot = findViewById<android.view.ViewGroup?>(R.id.mayak_recommended_row_slot) ?: return
         slot.removeAllViews()
-        val rec = recommendedDirection(dirs)
         if (rec == null) {
             tile.visibility = View.GONE
             return
@@ -2613,12 +2621,19 @@ class MayakActivity : AppCompatActivity() {
      * держала замер, сделанный ДО подключения (по открытой сети), и обновлялась только при
      * перерисовке списка. Два разных числа про один сервер на одном экране — человек справедливо
      * не верит ни одному. Теперь активная строка ходит за тем же пингом, что и надпись сверху.
+     *
+     * Ищем ПО rowViews, а не по детям dirsContainer (правка 09-08): активное направление могло
+     * оказаться той самой строкой в плитке «⚡ Рекомендуем» (mayak_recommended_row_slot — сосед
+     * dirsContainer, не его ребёнок). Со старым поиском только по контейнеру списка плитка на живой
+     * тик пинга не подписывалась вовсе и застревала на числе из момента отрисовки — тот самый баг
+     * «119 мс в плитке против 76 мс в списке»: до сегодняшней правки splitRecommended направление
+     * ещё и дублировалось (строка была И в списке, И в плитке), и обновлялась только копия в списке.
+     * rowViews — единственный список видимых строк (список + плитка), поэтому это и есть общий
+     * источник: то же представление обновляют и подсветка выбора (selectDir), и живой пинг.
      */
     private fun refreshActiveRowPing(ms: Int?) {
-        val container = dirsContainer ?: return
         val activeId = GoTunnel.connectedDirectionId ?: connectedDir?.id ?: return
-        for (i in 0 until container.childCount) {
-            val row = container.getChildAt(i)
+        for (row in rowViews) {
             if ((row.tag as? Long) != activeId) continue
             row.findViewById<TextView>(R.id.mayak_row_ping)?.apply {
                 clearAnimation()

@@ -2,6 +2,7 @@ package org.amnezia.awg.mayak.core
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -51,6 +52,43 @@ class RecommendationTest {
     fun `две пометки (кривое ядро) — берём первую по порядку сервера`() {
         val dirs = listOf(dir(1), dir(2, recommended = true), dir(3, recommended = true))
         assertEquals(2L, recommendedDirection(dirs)?.id)
+    }
+
+    // --- splitRecommended: плитка НЕ дублирует список (баг 09-08: «Почему тут 2 Нидерланды?») ---
+
+    @Test
+    fun `рекомендованное уходит в плитку и пропадает из списка`() {
+        val dirs = listOf(dir(1), dir(2, recommended = true), dir(3))
+        val split = splitRecommended(dirs)
+        assertEquals(2L, split.tile?.id)
+        assertEquals(listOf(1L, 3L), split.list.map { it.id })
+        // Рекомендованного id в списке быть не должно — это и есть дубликат, который видел владелец.
+        assertTrue(split.list.none { it.id == 2L })
+    }
+
+    @Test
+    fun `нет рекомендации — плитки нет, список полный`() {
+        val dirs = listOf(dir(1), dir(2), dir(3))
+        val split = splitRecommended(dirs)
+        assertNull(split.tile)
+        assertEquals(listOf(1L, 2L, 3L), split.list.map { it.id })
+    }
+
+    @Test
+    fun `единственное направление и оно рекомендовано — плитки нет, список не пустой`() {
+        // Решение (см. doc-комментарий splitRecommended): сравнивать не с чем — плитку не рисуем,
+        // а не оставляем человека с плиткой над ПУСТЫМ списком.
+        val dirs = listOf(dir(1, recommended = true))
+        val split = splitRecommended(dirs)
+        assertNull(split.tile)
+        assertEquals(listOf(1L), split.list.map { it.id })
+    }
+
+    @Test
+    fun `пустой список направлений — пустой список, плитки нет`() {
+        val split = splitRecommended(emptyList())
+        assertNull(split.tile)
+        assertTrue(split.list.isEmpty())
     }
 
     @Test
