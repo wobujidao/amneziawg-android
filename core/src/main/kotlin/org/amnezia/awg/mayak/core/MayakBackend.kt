@@ -242,6 +242,13 @@ class MayakBackend(
             json.decodeFromString(RuDirectList.serializer(), resp)
         }.getOrNull()
 
+    /** ПОДПИСАННЫЙ delivery-документ (F-T8, SPEC-0009): GET /v1/client/delivery, БЕЗ токена, тело —
+     *  configsign.Envelope как есть (проверка подписи — Delivery.verify, НЕ здесь). 404 — ШТАТНО:
+     *  документ на ядре не заведён (владелец отложил каналы); любая ошибка → null, клиент живёт на
+     *  прежнем списке и человеку ничего не показывает. */
+    suspend fun deliveryEnvelope(): String? =
+        runCatching { call("GET", "/v1/client/delivery", token = null, body = null) }.getOrNull()
+
     /** Адреса ядра из реестра доменов: публичный /v1/client/hosts, БЕЗ токена (список нужен и до входа,
      *  и когда основной домен уже не отвечает). Любая ошибка → null: у клиента остаётся прежний список. */
     suspend fun hosts(): HostList? =

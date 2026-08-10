@@ -245,7 +245,12 @@ class MayakActivity : AppCompatActivity() {
         if (hostsRefreshedThisProcess) return
         hostsRefreshedThisProcess = true
         val b = backend ?: return
-        lifecycleScope.launch { runCatching { MayakHostList.refresh(this@MayakActivity, b) } }
+        lifecycleScope.launch {
+            // DoH-резолверы из ПРИНЯТОГО РАНЬШЕ delivery-документа (F-T8) — до сети, из кэша:
+            // они нужны ровно тогда, когда сеть до ядра ещё не достучалась.
+            runCatching { MayakDelivery.applyDoh(this@MayakActivity) }
+            runCatching { MayakHostList.refresh(this@MayakActivity, b) }
+        }
     }
 
     /** Синхрон пресетов split-туннеля с ядра (SPEC-0028): системные «РФ напрямую» + пользовательские.
