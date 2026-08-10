@@ -22,10 +22,12 @@ import android.util.Base64
 object MayakDeliveryTrust {
     /** эпоха ключа → сырые 32 байта публичного ключа (base64 StdEncoding — как configsign.EncodePublicKey). */
     val anchorsByEpoch: Map<Int, ByteArray> = buildMap {
-        // put(1, anchor("<PUBKEY_EPOCH_1_BASE64>"))
-        // put(2, anchor("<PUBKEY_EPOCH_2_BASE64>"))
+        // Эпоха 1 — церемония 2026-08-10. Приватный ключ: ~/.mayak-secrets/mayak-configsign-root.key
+        // (решение владельца: рядом с ключами подписи приложения, а не «настоящим офлайном» — там же
+        // лежит ключ подписи APK, который сильнее, см. mayak-configsign-root-KEY-INFO.txt).
+        put(1, anchor("azQE0W2t7YiAq6e44knmjdUuukNoyX50cVYuUcb6jGU="))
+        // put(2, anchor("<PUBKEY_EPOCH_2_BASE64>")) // ротация: сперва релиз с ОБОИМИ якорями
     }
 
-    @Suppress("unused") // используется, как только появится первый ключ
     private fun anchor(b64: String): ByteArray = Base64.decode(b64, Base64.DEFAULT)
 }
