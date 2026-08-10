@@ -47,6 +47,17 @@
                     android:layout_height="22dp"
                     android:layout_marginEnd="8dp"
                     android:importantForAccessibility="no" />
+                <!-- Эмодзи-флаг: тот же приём, что в списке стран. Он собирается из любых двух букв
+                     кода, поэтому новая страна показывает флаг ДО того, как заведут вектор. -->
+                <TextView
+                    android:id="@+id/mayak_det_flag_emoji"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    android:textSize="18sp"
+                    android:visibility="gone"
+                    android:importantForAccessibility="no"
+                    tools:ignore="HardcodedText" />
                 <TextView
                     android:id="@+id/mayak_det_direction"
                     style="@style/Mayak.DetailRow.Value"

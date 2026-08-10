@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Флаг Польши: две горизонтальные полосы, белая сверху, красная снизу.
+     Заведён 2026-08-10: направление «Польша» живёт с 08-08, а вектора для него не было —
+     «Подробности подключения» рисовали вместо флага глобус (нашёл владелец на своём телефоне). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="28dp"
+    android:height="20dp"
+    android:viewportWidth="28"
+    android:viewportHeight="20">
+    <path android:fillColor="#FFFFFF" android:pathData="M0,0h28v10h-28z" />
+    <path android:fillColor="#DC143C" android:pathData="M0,10h28v10h-28z" />
+</vector>

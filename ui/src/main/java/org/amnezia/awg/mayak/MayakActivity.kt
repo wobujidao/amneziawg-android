@@ -1492,16 +1492,7 @@ class MayakActivity : AppCompatActivity() {
         // поэтому спрашиваем систему, есть ли глиф, и только тогда прячем картинку.
         val flagImage = row.findViewById<ImageView>(R.id.mayak_row_flag)
         val flagEmojiView = row.findViewById<TextView>(R.id.mayak_row_flag_emoji)
-        flagImage.setImageResource(MayakFlags.drawableForCode(d.flagCode()))
-        val emoji = MayakFlags.emojiForCode(d.flagCode())
-        if (flagEmojiView.paint.hasGlyph(emoji)) {
-            flagEmojiView.text = emoji
-            flagEmojiView.visibility = View.VISIBLE
-            flagImage.visibility = View.GONE
-        } else {
-            flagEmojiView.visibility = View.GONE
-            flagImage.visibility = View.VISIBLE
-        }
+        MayakFlags.apply(flagImage, flagEmojiView, d.flagCode())
         // SPEC-0031 / запрос владельца 2026-07-11: ЦИФРА клиентского пинга (мс), а не полоски. Цвет —
         // по качеству (зелёный→оранжевый). Не измерен/провалился → «—» серым. Сортировка «Пинг» — по нему.
         row.findViewById<TextView>(R.id.mayak_row_ping).apply {
@@ -2899,12 +2890,16 @@ class MayakActivity : AppCompatActivity() {
         // Направление: флаг + название (живого туннеля, иначе выбранного)
         val d = connectedDir ?: selectedDir
         val flag = view.findViewById<ImageView>(R.id.mayak_det_flag)
+        val flagEmoji = view.findViewById<TextView>(R.id.mayak_det_flag_emoji)
         val dirText = view.findViewById<TextView>(R.id.mayak_det_direction)
         if (d != null) {
-            flag.setImageResource(MayakFlags.drawableForCode(d.flagCode())); flag.visibility = View.VISIBLE
+            // Тем же способом, что список стран (MayakFlags.apply): раньше здесь стоял ТОЛЬКО вектор,
+            // и Польша показывала глобус, потому что flag_pl завести забыли. Одно решение на оба экрана.
+            MayakFlags.apply(flag, flagEmoji, d.flagCode())
             dirText.text = d.displayLabel()
         } else {
             flag.visibility = View.GONE
+            flagEmoji.visibility = View.GONE
             dirText.text = GoTunnel.connectedLabel ?: "—"
         }
 
