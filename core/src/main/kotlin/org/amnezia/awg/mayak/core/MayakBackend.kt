@@ -366,6 +366,47 @@ class MayakBackend(
         call("POST", "/v1/client/support/$id/messages", token = token, body = body)
     }
 
+    // ===== Ящик сообщений (SPEC-0047) =====
+
+    /**
+     * Свои сообщения: GET /v1/client/messages?since_id=N. Пустой список — норма (ядро отдаёт 200).
+     *
+     * `sinceId` = 0 → всё за последние 90 дней (не более 100), как просит экран «Сообщения»; фоновая
+     * проверка передаёт id последнего, о котором уже уведомляла, чтобы не показать одно и то же дважды.
+     *
+     * ⚠️ Побочный эффект НА ЯДРЕ: выданные сообщения помечаются доставленными. Значит звать это
+     * «на всякий случай» из мест, которые человеку ничего не показывают, нельзя — статистика
+     * кампании начнёт считать доставленным то, чего человек не видел.
+     */
+    suspend fun messages(token: String, sinceId: Long = 0): MessagesResponse {
+        val path = if (sinceId > 0) "/v1/client/messages?since_id=$sinceId" else "/v1/client/messages"
+        val resp = call("GET", path, token = token, body = null)
+        return json.decodeFromString(MessagesResponse.serializer(), resp)
+    }
+
+    /** Пометить своё сообщение прочитанным: POST /v1/client/messages/{id}/read.
+     *  404 `message_not_found` — нет такого ИЛИ оно чужое: ядро НАРОЧНО не различает эти случаи. */
+    suspend fun markMessageRead(token: String, id: Long) {
+        call("POST", "/v1/client/messages/$id/read", token = token, body = null)
+    }
+
+    /** Выключатели уведомлений: GET /v1/client/notification-prefs. Строки в базе может не быть —
+     *  ядро в этом случае отдаёт значения по умолчанию, а не ошибку. */
+    suspend fun notificationPrefs(token: String): NotificationPrefs {
+        val resp = call("GET", "/v1/client/notification-prefs", token = token, body = null)
+        return json.decodeFromString(NotificationPrefs.serializer(), resp)
+    }
+
+    /**
+     * Сменить выключатели: PUT /v1/client/notification-prefs. Тело — РОВНО три ключа (ядро читает
+     * строго). Включение `news` ядро записывает как согласие с временем и источником — отдельного
+     * поля для этого в запросе нет и быть не должно: время согласия проставляет сервер.
+     */
+    suspend fun updateNotificationPrefs(token: String, prefs: NotificationPrefs) {
+        val body = json.encodeToString(NotificationPrefs.serializer(), prefs)
+        call("PUT", "/v1/client/notification-prefs", token = token, body = body)
+    }
+
     /**
      * Один HTTP-вызов с фейловером по доменам. На сетевой ошибке (домен недоступен/заблокирован)
      * крутим HostProvider и повторяем; на HTTP-ответе (в т.ч. 4xx/5xx) — НЕ переключаемся, а

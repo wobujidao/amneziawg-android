@@ -10,6 +10,7 @@ import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
 
 /**
  * Вход. `totpCode` — код двухфакторной аутентификации ЛИБО резервный код; пустая строка = не слали
@@ -585,3 +586,63 @@ private fun parseSupportTime(s: String?): Long? {
     if (s.isNullOrBlank()) return null
     return runCatching { java.time.OffsetDateTime.parse(s).toInstant().toEpochMilli() }.getOrNull()
 }
+
+// ===== Ящик сообщений (SPEC-0047, internal/clientapi + internal/usermsg) =====
+//
+// GET  /v1/client/messages?since_id=N -> {messages:[…], unread:N, next_check_after_sec:N}
+// POST /v1/client/messages/{id}/read  -> {status:"ok"}
+// GET  /v1/client/notification-prefs  -> {service,news,quiet_hours}
+// PUT  /v1/client/notification-prefs  <- {service,news,quiet_hours}
+//
+// Разбор ответов ЛОЯЛЬНЫЙ (ignoreUnknownKeys у defaultJson): серверная половина пишется параллельно
+// с этой, и лишнее поле в ответе не должно ронять весь ящик. В ЗАПРОС же (PUT) уходит ровно три
+// ключа — ядро читает тело строго (DisallowUnknownFields), лишний ключ там = 400 на весь запрос.
+
+/**
+ * Одно сообщение человеку. `title`/`body` собраны СЕРВЕРОМ и годятся всегда; приложение по паре
+ * ([kind], [params]) рисует локализованный текст для известных поводов, а для незнакомого повода и
+ * для `custom` показывает серверный текст как есть (SPEC-0047 §2.4).
+ *
+ * `params` — [JsonObject], а не Map<String,String>: в базе это `jsonb`, и число `{"days":3}` вместо
+ * строки `{"days":"3"}` уронило бы разбор ВСЕГО ящика на строгой карте. Читать через [param].
+ */
+@Serializable
+data class UserMessage(
+    val id: Long = 0,
+    val category: String = "",
+    val kind: String = "",
+    val title: String = "",
+    val body: String = "",
+    val params: JsonObject = JsonObject(emptyMap()),
+    val action: String = MessageActions.NONE,
+    @SerialName("action_param") val actionParam: String = "",
+    val critical: Boolean = false,
+    @SerialName("created_at") val createdAt: String = "",
+    val read: Boolean = false,
+) {
+    /** Значение параметра строкой; нет ключа/это объект или массив → null (подставлять нечего). */
+    fun param(key: String): String? = paramString(params, key)
+
+    /** Когда сообщение создано, в мс эпохи; null — дата не разобралась (тогда время не показываем). */
+    fun createdMs(): Long? = parseSupportTime(createdAt)
+}
+
+/** Ответ ящика. `nextCheckAfterSec` — через сколько сервер просит зайти снова (0 = не сказал). */
+@Serializable
+data class MessagesResponse(
+    val messages: List<UserMessage> = emptyList(),
+    val unread: Int = 0,
+    @SerialName("next_check_after_sec") val nextCheckAfterSec: Int = 0,
+)
+
+/**
+ * Выключатели уведомлений. Строки в базе может не быть — это НЕ ошибка, а «всё по умолчанию»
+ * (SPEC-0047 §2.3), поэтому дефолты здесь обязаны совпадать с дефолтами таблицы.
+ * Категория `account` выключателя не имеет вовсе — это работа сервиса, а не рассылка.
+ */
+@Serializable
+data class NotificationPrefs(
+    val service: Boolean = true,
+    val news: Boolean = false,
+    @SerialName("quiet_hours") val quietHours: Boolean = true,
+)
