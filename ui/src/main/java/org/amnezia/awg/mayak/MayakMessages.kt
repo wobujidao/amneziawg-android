@@ -358,8 +358,12 @@ object MayakMessages {
         MessageKinds.SUBSCRIPTION_EXPIRING ->
             m.param("days")?.let { context.getString(R.string.mayak_msg_subscription_expiring_body, it) }
 
+        // Ключ именно `grace_days`, а не `days`: сервер кладёт сюда ЛЬГОТНЫЕ дни (сколько осталось
+        // продлить без перерыва), и это другое число, чем «дней до конца» у соседнего повода.
+        // Имена сверены с internal/usermsg — разойдутся, и человек молча получит серверный текст
+        // вместо локализованного (SPEC-0047 §2.4).
         MessageKinds.SUBSCRIPTION_EXPIRED ->
-            m.param("days")?.let { context.getString(R.string.mayak_msg_subscription_expired_body, it) }
+            m.param("grace_days")?.let { context.getString(R.string.mayak_msg_subscription_expired_body, it) }
                 ?: context.getString(R.string.mayak_msg_subscription_expired_body_plain)
 
         MessageKinds.ACCESS_REVOKED -> context.getString(R.string.mayak_msg_access_revoked_body)
