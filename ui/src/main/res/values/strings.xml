@@ -75,7 +75,7 @@
     <string name="mayak_reg_intro">No email, no letters. Pick a password — we will give you an account number and you are in. The number and the password are your way in.</string>
     <string name="mayak_reg_password_hint">Password</string>
     <string name="mayak_reg_password_helper">At least 8 characters, letters and digits.</string>
-    <string name="mayak_reg_generate">Pick one for me</string>
+    <string name="mayak_reg_generate">Generate</string>
     <string name="mayak_reg_copy_password">Copy</string>
     <string name="mayak_reg_password_copied">Password copied</string>
     <string name="mayak_reg_consent">I agree to the processing of my personal data</string>

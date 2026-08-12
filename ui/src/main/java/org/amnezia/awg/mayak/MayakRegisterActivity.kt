@@ -205,7 +205,13 @@ class MayakRegisterActivity : AppCompatActivity() {
     }
 
     private fun syncSubmit() {
-        submit.isEnabled = RegisterForm.canSubmit(consent.isChecked, inFlight)
+        val live = RegisterForm.canSubmit(consent.isChecked, inFlight)
+        submit.isEnabled = live
+        // Приглушаем ЯВНО: у нашей главной кнопки фон задан сплошным цветом (Mayak.Button.Primary),
+        // и выключенная она выглядела ровно как живая — человек жал по ней и не понимал, почему
+        // ничего не происходит (замерено на эмуляторе 13-08). Выключенная кнопка обязана выглядеть
+        // выключенной, иначе правило «без согласия нельзя» читается как поломка приложения.
+        submit.alpha = if (live) 1f else 0.45f
         submit.setText(if (inFlight) R.string.mayak_reg_working else R.string.mayak_reg_title)
     }
 
@@ -367,6 +373,12 @@ class MayakRegisterActivity : AppCompatActivity() {
                 if (!request.isForMainFrame) return // упавший ресурс виджета доложит сама страница
                 onCaptchaFailed("page_not_loaded")
             }
+
+            // Строка в логе про ЗАГРУЗКУ страницы — единственный способ отличить «виджет не решился»
+            // от «страница не открылась» при разборе жалобы: изнутри WebView мы больше ничего не видим.
+            override fun onPageFinished(view: WebView, url: String) {
+                android.util.Log.i(TAG, "страница проверки загружена: ${logsafeHost(url)}")
+            }
         }
         web.loadUrl(MayakHostList.appCaptchaUrl(this, sitekey, dark = isDarkNow()))
 
@@ -384,11 +396,16 @@ class MayakRegisterActivity : AppCompatActivity() {
     private inner class CaptchaBridge {
         @JavascriptInterface
         fun onToken(token: String) {
+            // Явная строка про МОСТ, а не только про результат: у страницы есть запасной путь через
+            // свою схему, и без этой записи «интерфейс не подключился» выглядело бы в логе так же,
+            // как «интерфейс сработал». Токен в лог не пишем — только его длину.
+            android.util.Log.i(TAG, "мост со страницей: onToken (${token.length} симв.)")
             runOnUiThread { onCaptchaToken(token) }
         }
 
         @JavascriptInterface
         fun onError(code: String) {
+            android.util.Log.i(TAG, "мост со страницей: onError($code)")
             runOnUiThread { onCaptchaFailed(code) }
         }
     }

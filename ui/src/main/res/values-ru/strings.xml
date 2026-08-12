@@ -283,7 +283,7 @@
     <string name="mayak_reg_intro">Ни почты, ни писем. Придумайте пароль — мы выдадим номер аккаунта, и вы сразу внутри. Номер и пароль и будут вашим входом.</string>
     <string name="mayak_reg_password_hint">Пароль</string>
     <string name="mayak_reg_password_helper">Не меньше 8 символов, буквы и цифры.</string>
-    <string name="mayak_reg_generate">Придумать за меня</string>
+    <string name="mayak_reg_generate">Придумать</string>
     <string name="mayak_reg_copy_password">Скопировать</string>
     <string name="mayak_reg_password_copied">Пароль скопирован</string>
     <string name="mayak_reg_consent">Согласен на обработку персональных данных</string>

@@ -137,6 +137,9 @@
                         <!-- Согласие. Ссылку на Политику держим ОТДЕЛЬНОЙ кнопкой, а не ссылкой внутри
                              подписи чекбокса: тап по подписи переключает сам чекбокс, и человек, целясь
                              в ссылку, вместо неё снимал бы согласие. -->
+                        <!-- buttonTint фирменным тоном: дефолт Material красит «отмечено» лавандовым,
+                             и на экране появлялось второе «включено» другого цвета (ту же правку
+                             однажды делали тумблерам, см. res/color/mayak_switch_track.xml). -->
                         <com.google.android.material.checkbox.MaterialCheckBox
                             android:id="@+id/mayak_reg_consent"
                             android:layout_width="match_parent"
@@ -144,7 +147,8 @@
                             android:layout_marginTop="@dimen/mayak_space_4"
                             android:minHeight="48dp"
                             android:text="@string/mayak_reg_consent"
-                            android:textColor="@color/mayak_on_surface" />
+                            android:textColor="@color/mayak_on_surface"
+                            app:buttonTint="@color/mayak_outline" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/mayak_reg_policy"
