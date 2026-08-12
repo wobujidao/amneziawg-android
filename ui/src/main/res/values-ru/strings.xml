@@ -276,7 +276,29 @@
     <string name="mayak_tagline">Свободный доступ</string>
     <string name="mayak_login_hint">Почта или номер аккаунта</string>
     <string name="mayak_email_hint">Email</string>
-    <string name="mayak_register_cabinet">Регистрация / Личный кабинет</string>
+    <!-- Регистрация ПРЯМО В ПРИЛОЖЕНИИ (SPEC-0048). Раньше эта кнопка уводила в браузер, и человек
+         возвращался вводить всё заново; теперь она открывает свой экран. Слова «VPN», «туннель»,
+         «обход» ни в одной строке ниже быть не может — сторож MayakMessagesWordsTest. -->
+    <string name="mayak_reg_title">Создать аккаунт</string>
+    <string name="mayak_reg_intro">Ни почты, ни писем. Придумайте пароль — мы выдадим номер аккаунта, и вы сразу внутри. Номер и пароль и будут вашим входом.</string>
+    <string name="mayak_reg_password_hint">Пароль</string>
+    <string name="mayak_reg_password_helper">Не меньше 8 символов, буквы и цифры.</string>
+    <string name="mayak_reg_generate">Придумать за меня</string>
+    <string name="mayak_reg_copy_password">Скопировать</string>
+    <string name="mayak_reg_password_copied">Пароль скопирован</string>
+    <string name="mayak_reg_consent">Согласен на обработку персональных данных</string>
+    <string name="mayak_reg_working">Создаём аккаунт…</string>
+    <string name="mayak_reg_captcha_wait">Проверяем, что вы человек…</string>
+    <string name="mayak_reg_browser">Открыть регистрацию в браузере</string>
+    <string name="mayak_reg_err_weak">Такой пароль сервис не примет: нужно не меньше 8 символов, буквы и цифры.</string>
+    <string name="mayak_reg_err_consent">Отметьте согласие на обработку данных — без него аккаунт создать нельзя.</string>
+    <string name="mayak_reg_err_captcha">Проверка «вы человек» не пройдена. Попробуйте ещё раз или создайте аккаунт в браузере.</string>
+    <string name="mayak_reg_err_captcha_unavailable">Проверка «вы человек» сейчас не открывается. Попробуйте позже или создайте аккаунт в браузере.</string>
+    <string name="mayak_reg_done_title">Ваш номер аккаунта</string>
+    <string name="mayak_reg_done_warning">Запишите номер и пароль. Показываем номер один раз: почты у аккаунта нет, и восстановить доступ без них будет нечем. Нужна возможность восстановления — привяжите почту в личном кабинете.</string>
+    <string name="mayak_reg_no_session">Аккаунт создан, но войти автоматически не получилось. Запишите номер и пароль — сейчас откроется вход, номер уже подставлен.</string>
+    <string name="mayak_reg_trial">Пробный доступ уже включён: %1$d дн.</string>
+    <string name="mayak_reg_continue">Продолжить</string>
     <string name="mayak_consent_note">Входя, вы принимаете Политику конфиденциальности и Условия использования.</string>
     <string name="mayak_err_email_not_verified">Подтвердите email на сайте.</string>
     <string name="mayak_err_bad_creds">Неверная почта (или номер аккаунта) либо пароль.</string>

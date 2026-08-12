@@ -177,6 +177,22 @@ object MayakHostList {
      */
     fun cabinetRegisterUrl(context: Context): String = cabinetUrl(context) + "/#/register"
 
+    /**
+     * Страница-виджет «не робот» для WebView шага регистрации (SPEC-0048, T1).
+     *
+     * Лежит в КАБИНЕТЕ, а не на лендинге: скрипт Turnstile разрешён политикой безопасности только
+     * там (и заголовком Caddy, и `<meta>` в index.html). Адрес берём из того же реестра доменов, что
+     * и остальные ссылки, — иначе после смены домена приложение открывало бы виджет в никуда, а
+     * регистрация в приложении умирала бы молча.
+     *
+     * Ключ сайта передаём параметром: он публичен по устройству Turnstile, а менять его надо БЕЗ
+     * релиза приложения. Тему передаём явно — у нас она своя, системной здесь верить нельзя.
+     */
+    fun appCaptchaUrl(context: Context, sitekey: String, dark: Boolean): String =
+        cabinetUrl(context) + "/app-captcha.html?sitekey=" +
+            java.net.URLEncoder.encode(sitekey, "UTF-8") +
+            "&theme=" + (if (dark) "dark" else "light")
+
     /** Спросить у ядра актуальный реестр и запомнить. Best-effort: ошибка/пустой ответ — молча оставляем
      *  прежний список (пустой список от сервера означал бы «адресов нет» и отрезал бы клиента от ядра). */
     suspend fun refresh(context: Context, backend: MayakBackend) {

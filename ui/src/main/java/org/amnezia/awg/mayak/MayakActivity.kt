@@ -552,10 +552,19 @@ class MayakActivity : AppCompatActivity() {
         findViewById<MaterialButton>(R.id.mayak_forgot_password).setOnClickListener {
             showForgotPasswordDialog(emailField.text?.toString()?.trim().orEmpty())
         }
-        // Регистрация и личный кабинет — в вебе (там же подтверждение email).
-        // Кнопка новичка ведёт на РЕГИСТРАЦИЮ, а не на вход (аудит 2026-07-31: голый адрес кабинета
-        // роутер уводит на форму входа, и человек без аккаунта упирался в тупик на первом шаге).
-        findViewById<MaterialButton>(R.id.mayak_register).setOnClickListener { openUrl(MayakHostList.cabinetRegisterUrl(this)) }
+        // Регистрация — СВОИМ экраном (SPEC-0048). Раньше кнопка открывала браузер: человек заводил
+        // аккаунт в вебе и возвращался вводить номер и пароль заново, теряя первые минуты знакомства.
+        // Дорога в браузер осталась ВНУТРИ того экрана — на случай, если проверка «вы человек» не
+        // проходит (тупика быть не должно).
+        findViewById<MaterialButton>(R.id.mayak_register).setOnClickListener {
+            MayakRegisterActivity.open(this)
+        }
+        // Пришли с экрана регистрации, где учётка создалась, а сессию сервер не выдал: номер уже
+        // известен — подставляем, чтобы человек не переписывал его руками с прошлого экрана.
+        intent?.getStringExtra(EXTRA_PREFILL_LOGIN)?.takeIf { it.isNotBlank() }?.let { login ->
+            emailField.setText(login)
+            passField.requestFocus()
+        }
     }
 
     // Разбор регистрационной ссылки mayak://reg?… жил здесь и вызывался из QR-сканера и диалога
@@ -3241,6 +3250,10 @@ class MayakActivity : AppCompatActivity() {
 
         /** Точку входа перезапустили из-за отозванного входа — на экране логина объясним, почему. */
         private const val EXTRA_SESSION_EXPIRED = "mayak_session_expired"
+
+        /** Подставить логин в форму входа: номер новой учётки, которой сервер не выдал сессию
+         *  (SPEC-0048, ветка «аккаунт создан, а токен не выдан»). */
+        const val EXTRA_PREFILL_LOGIN = "mayak_prefill_login"
 
         /** Один отзыв входа — один перезапуск: 401 может прилететь сразу из нескольких запросов. */
         @Volatile private var sessionExpiredHandled = false

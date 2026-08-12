@@ -138,6 +138,26 @@ class MayakSession(
         // ключи устройства оставляем — это идентичность устройства; токен/девайс перезаведём при логине
     }
 
+    /**
+     * Принять сессию, ВЫДАННУЮ ПРИ РЕГИСТРАЦИИ (SPEC-0048): токен приезжает тем же ответом, что и
+     * номер аккаунта, второй раз логиниться тем же паролем незачем.
+     *
+     * Кладём то же самое, что кладёт [login], плюс номер: он у такой учётки ЕДИНСТВЕННЫЙ якорь (почты
+     * нет), и человек назовёт его поддержке. В `K_EMAIL` уходит номер — это поле значит «чем вошли»,
+     * а не «почта аккаунта» (см. [loginName]), и именно номер подставится обратно в форму входа.
+     *
+     * ⚠️ Зовётся ТОЛЬКО когда сервер отдал непустой токен. В ветке «учётка создана, а сессия не
+     * выдана» номер в хранилище класть нельзя: сессии нет, а сохранённый номер стал бы чужим для
+     * следующего вошедшего (освежается он лишь при пустом кэше — MayakAccountNumber.refresh).
+     */
+    fun adoptRegistration(token: String, accountNumber: String) {
+        require(token.isNotBlank()) { "нечего принимать: токен пустой" }
+        store.put(K_TOKEN, token)
+        store.put(K_EMAIL, accountNumber.trim())
+        org.amnezia.awg.mayak.core.AccountNumber.remember(store, accountNumber)
+        invalidateDirections() // новая учётка — чужой кэш направлений неактуален
+    }
+
     /** Логин по email: получаем токен и кладём в защищённое хранилище. totpCode — код 2FA, если запрошен. */
     suspend fun login(backend: MayakBackend, email: String, password: String, totpCode: String = "") {
         val resp = backend.login(email, password, totpCode)

@@ -28,8 +28,14 @@ class MayakMessagesWordsTest {
         /** Что не должно попасться НИ В ОДНОМ показываемом тексте ящика (регистр не важен). */
         val FORBIDDEN = listOf("vpn", "туннел", "обход", "обойт", "tunnel", "bypass", "circumvent")
 
-        /** Префиксы имён строк, которые человек видит в уведомлении, в списке и в карточке. */
-        val PREFIXES = listOf("mayak_messages_", "mayak_msg_", "mayak_settings_notify")
+        /**
+         * Префиксы имён строк, которые человек видит в уведомлении, в списке и в карточке.
+         *
+         * `mayak_reg_` добавлен 13-08 вместе с регистрацией в приложении (SPEC-0048, T6): это ПЕРВЫЙ
+         * экран, который видит новичок, и объяснять на нём, «зачем это приложение», нельзя ровно по
+         * той же причине — карточка Play, скриншот через плечо, реклама VPN в РФ запрещена.
+         */
+        val PREFIXES = listOf("mayak_messages_", "mayak_msg_", "mayak_settings_notify", "mayak_reg_")
     }
 
     /** Рабочий каталог юнит-тестов AGP — каталог модуля (ui/), но не полагаемся на это. */
@@ -57,7 +63,7 @@ class MayakMessagesWordsTest {
     }
 
     @Test
-    fun `в текстах ящика нет слов, выдающих назначение приложения`() {
+    fun `в текстах ящика и регистрации нет слов, выдающих назначение приложения`() {
         for (file in FILES) {
             for ((name, value) in strings(file)) {
                 if (PREFIXES.none { name.startsWith(it) }) continue

@@ -200,14 +200,18 @@
                          снова — вернуть их надо не кнопкой, а deep-link'ом mayak:// в манифесте;
                          разбор ссылки со всей защитой (opaque-URI, sanitizeServer) лежит в истории git
                          и в core/RegLink. -->
+                    <!-- Регистрация теперь СВОИМ экраном (SPEC-0048), а не уходом в браузер: до
+                         13-08 эта кнопка открывала веб-кабинет, человек заводил там аккаунт и
+                         возвращался вводить номер и пароль заново — на этом шаге терялась половина
+                         людей. Кнопка стала заметнее (обведённая, а не текстовая): это главная
+                         дорога новичка, а не сноска под формой. -->
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/mayak_register"
-                        style="@style/Mayak.Button.Text"
+                        style="@style/Mayak.Button.Outlined"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="@dimen/mayak_space_2"
-                        android:textColor="@color/mayak_outline"
-                        android:text="@string/mayak_register_cabinet" />
+                        android:text="@string/mayak_reg_title" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

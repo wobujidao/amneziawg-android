@@ -68,7 +68,29 @@
     <string name="mayak_tagline">Connect freely</string>
     <string name="mayak_login_hint">Email or account number</string>
     <string name="mayak_email_hint">Email</string>
-    <string name="mayak_register_cabinet">Sign up / Account cabinet</string>
+    <!-- In-app registration (SPEC-0048). This button used to open a browser; now it opens our own
+         screen. None of the strings below may contain "VPN", "tunnel" or "bypass" — see the guard
+         MayakMessagesWordsTest. -->
+    <string name="mayak_reg_title">Create account</string>
+    <string name="mayak_reg_intro">No email, no letters. Pick a password — we will give you an account number and you are in. The number and the password are your way in.</string>
+    <string name="mayak_reg_password_hint">Password</string>
+    <string name="mayak_reg_password_helper">At least 8 characters, letters and digits.</string>
+    <string name="mayak_reg_generate">Pick one for me</string>
+    <string name="mayak_reg_copy_password">Copy</string>
+    <string name="mayak_reg_password_copied">Password copied</string>
+    <string name="mayak_reg_consent">I agree to the processing of my personal data</string>
+    <string name="mayak_reg_working">Creating the account…</string>
+    <string name="mayak_reg_captcha_wait">Confirming that you are human…</string>
+    <string name="mayak_reg_browser">Open sign-up in a browser</string>
+    <string name="mayak_reg_err_weak">The service will not accept this password: at least 8 characters, letters and digits.</string>
+    <string name="mayak_reg_err_consent">Tick the data processing consent — the account cannot be created without it.</string>
+    <string name="mayak_reg_err_captcha">The "you are human" check did not pass. Try again or create the account in a browser.</string>
+    <string name="mayak_reg_err_captcha_unavailable">The "you are human" check does not open right now. Try later or create the account in a browser.</string>
+    <string name="mayak_reg_done_title">Your account number</string>
+    <string name="mayak_reg_done_warning">Write down the number and the password. We show the number once: the account has no email, so without them there is nothing to restore access with. If you want recovery, add an email in the account cabinet.</string>
+    <string name="mayak_reg_no_session">The account was created, but we could not sign you in automatically. Write down the number and the password — the sign-in screen opens next with the number already filled in.</string>
+    <string name="mayak_reg_trial">Trial access is already on: %1$d days.</string>
+    <string name="mayak_reg_continue">Continue</string>
     <string name="mayak_consent_note">By signing in you accept the Privacy Policy and Terms of Use.</string>
     <string name="mayak_err_email_not_verified">Please verify your email on the website.</string>
     <string name="mayak_err_bad_creds">Wrong email/account number or password.</string>

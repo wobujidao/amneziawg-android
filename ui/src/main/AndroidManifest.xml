@@ -178,6 +178,18 @@
             android:launchMode="singleTop"
             android:theme="@style/MayakTheme" />
 
+        <!-- Регистрация ПРЯМО В ПРИЛОЖЕНИИ (SPEC-0048): пароль, согласие, проверка «вы человек» в
+             WebView, показ номера аккаунта. НЕ exported: запустить её снаружи не должно быть
+             возможно — иначе любое приложение на телефоне могло бы показать человеку наш экран с
+             полем пароля. adjustResize — под полем стоит чекбокс согласия и кнопка, и клавиатура не
+             имеет права их накрыть (без согласия кнопка не активна, а он бы её не увидел). -->
+        <activity
+            android:name="org.amnezia.awg.mayak.MayakRegisterActivity"
+            android:exported="false"
+            android:label="@string/mayak_reg_title"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/MayakTheme" />
+
         <!-- Экран «О приложении»: версия, на чём основано, лицензии -->
         <activity
             android:name="org.amnezia.awg.mayak.MayakAboutActivity"
