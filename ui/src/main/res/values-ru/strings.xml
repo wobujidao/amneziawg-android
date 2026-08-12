@@ -692,7 +692,14 @@
          плечо, а приложение умеет прятаться под «Погоду»/«Заметки». Сторож — MayakMessagesWordsTest. -->
     <string name="mayak_messages_title">Сообщения</string>
     <string name="mayak_messages_empty">Сообщений пока нет.</string>
-    <string name="mayak_messages_load_err">Не удалось загрузить сообщения. %1$s</string>
+    <!-- Отказы ящика — СВОИ слова, а не заимствованные у поддержки: у той 404 значит «обращение
+         не найдено», и на пустом экране получалось «Не удалось загрузить сообщения. Обращение не
+         найдено» (поймано на эмуляторе 12-08). Здесь 404 значит другое: ядро про ящик ещё не знает. -->
+    <string name="mayak_messages_err_offline">Нет связи с сервером. Проверьте интернет и обновите.</string>
+    <string name="mayak_messages_err_login">Войдите в аккаунт, чтобы читать сообщения.</string>
+    <string name="mayak_messages_err_unavailable">Сообщения пока недоступны. Загляните позже.</string>
+    <string name="mayak_messages_err_rate">Слишком часто. Попробуйте через несколько минут.</string>
+    <string name="mayak_messages_err_retry">Не удалось загрузить сообщения. Попробуйте ещё раз.</string>
     <string name="mayak_messages_unread_mark">Новое</string>
     <string name="mayak_messages_badge_many">99+</string>
     <string name="mayak_messages_channel_name">Сообщения</string>

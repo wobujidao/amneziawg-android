@@ -673,7 +673,11 @@
     <!-- ===== Message inbox (SPEC-0047) ===== -->
     <string name="mayak_messages_title">Messages</string>
     <string name="mayak_messages_empty">No messages yet.</string>
-    <string name="mayak_messages_load_err">Could not load messages. %1$s</string>
+    <string name="mayak_messages_err_offline">No connection to the server. Check the internet and refresh.</string>
+    <string name="mayak_messages_err_login">Sign in to read your messages.</string>
+    <string name="mayak_messages_err_unavailable">Messages are not available yet. Come back later.</string>
+    <string name="mayak_messages_err_rate">Too often. Try again in a few minutes.</string>
+    <string name="mayak_messages_err_retry">Could not load messages. Please try again.</string>
     <string name="mayak_messages_unread_mark">New</string>
     <string name="mayak_messages_badge_many">99+</string>
     <string name="mayak_messages_channel_name">Messages</string>

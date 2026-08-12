@@ -113,13 +113,12 @@ class MayakMessagesActivity : AppCompatActivity() {
                 render(resp.messages)
             } catch (e: Exception) {
                 findViewById<LinearLayout>(R.id.mayak_messages_list).removeAllViews()
-                // «Не загрузилось» — это ОТДЕЛЬНОЕ состояние, с причиной словами и кнопкой «Повторить».
+                // «Не загрузилось» — это ОТДЕЛЬНОЕ состояние, с причиной словами. Причину берём у
+                // ящика, а не у поддержки: её слова про «текст сохранён» и «обращение не найдено»
+                // здесь были бы враньём (см. MayakMessages.failureText).
                 showState(
-                    getString(
-                        R.string.mayak_messages_load_err,
-                        MayakSupport.failureText(this@MayakMessagesActivity, e),
-                    ),
-                    retry = true,
+                    MayakMessages.failureText(this@MayakMessagesActivity, e),
+                    retry = MayakMessages.canRetry(e),
                 )
             }
         }
@@ -177,7 +176,7 @@ class MayakMessagesActivity : AppCompatActivity() {
     }
 
     private fun showNeedLogin() {
-        showState(getString(R.string.mayak_support_err_login), retry = false)
+        showState(getString(R.string.mayak_messages_err_login), retry = false)
         findViewById<MaterialButton>(R.id.mayak_messages_login).visibility = View.VISIBLE
         findViewById<MaterialButton>(R.id.mayak_messages_reload).visibility = View.GONE
     }

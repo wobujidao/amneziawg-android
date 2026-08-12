@@ -204,18 +204,27 @@ object MayakMessages {
             context, notifId(m.id), open,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-        val text = body(context, m)
         val builder = NotificationCompat.Builder(context, channel)
             .setSmallIcon(R.drawable.ic_stat_mayak)
+            // 🔒 В УВЕДОМЛЕНИИ ТОЛЬКО ЗАГОЛОВОК. Тела здесь нет и не должно быть.
+            //
+            // Замерено на эмуляторе 12-08: одного `VISIBILITY_PRIVATE` для «на экране блокировки не
+            // видно текста» НЕ ХВАТАЕТ. Android прячет содержимое, только если ОБА условия сразу:
+            // уведомление просит приватности И человек сам включил «скрывать личное на заблокированном
+            // экране» (по умолчанию оно ВЫКЛЮЧЕНО). С настройкой по умолчанию «Осталось дней: 3» и
+            // «Зачислено: 299 ₽» читались на локскрине целиком — то есть настройка защищала ровно
+            // тех, кто и так о ней позаботился, а всех остальных — нет.
+            //
+            // Заставить систему скрыть текст у всех нельзя (локскрин принадлежит человеку, а не нам),
+            // поэтому единственная надёжная защита — не класть текст в уведомление вовсе. Заголовок
+            // нейтрален по построению (сторож MayakMessagesWordsTest), полный текст живёт на экране
+            // «Сообщения». Ровно это и обещает SPEC-0047 §5: заголовок в шторке, текст — в приложении.
             .setContentTitle(title(context, m))
-            .setContentText(text)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setAutoCancel(true)
             .setContentIntent(pi)
             .setPriority(if (quiet) NotificationCompat.PRIORITY_LOW else NotificationCompat.PRIORITY_DEFAULT)
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
-            // 🔒 На заблокированном экране текст не показываем: его читают через плечо, а полный
-            // текст — единственное место, где мы называем вещи своими именами.
+            // Оставляем и его: тем, кто «скрывать личное» включил, система спрячет и заголовок.
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
         NotificationManagerCompat.from(context).notify(notifId(m.id), builder.build())
     }
@@ -230,8 +239,10 @@ object MayakMessages {
                     context.getString(R.string.mayak_messages_channel_name),
                     NotificationManager.IMPORTANCE_DEFAULT,
                 ).apply {
+                    // lockscreenVisibility здесь НЕ ставим: система такое присвоение от приложения
+                    // молча игнорирует (поле правит только она сама — в дампе остаётся
+                    // VISIBILITY_NO_OVERRIDE, проверено 12-08). Приватность задаёт само уведомление.
                     description = context.getString(R.string.mayak_messages_channel_desc)
-                    lockscreenVisibility = android.app.Notification.VISIBILITY_PRIVATE
                 }
             )
         }
@@ -243,7 +254,6 @@ object MayakMessages {
                     NotificationManager.IMPORTANCE_LOW, // важность LOW = без звука. Иначе тихие часы не тихие
                 ).apply {
                     description = context.getString(R.string.mayak_messages_channel_quiet_desc)
-                    lockscreenVisibility = android.app.Notification.VISIBILITY_PRIVATE
                     setSound(null, null)
                     enableVibration(false)
                 }
@@ -263,6 +273,39 @@ object MayakMessages {
      *  решения — звенеть ли ночью; за ним в 23:00 в сеть не сходишь. */
     fun rememberPrefs(context: Context, prefsValue: NotificationPrefs) {
         prefs(context).edit().putBoolean(K_QUIET_HOURS, prefsValue.quietHours).apply()
+    }
+
+    // ===== Почему не загрузилось =====
+
+    /**
+     * Отказ СЛОВАМИ для экрана «Сообщения». Классификацию берём общую (`supportFailure` в :core, она
+     * под тестами), а формулировки — СВОИ.
+     *
+     * 🔴 Почему не переиспользовать тексты поддержки целиком: они написаны про форму обращения и
+     * говорят «Текст сохранён — нажмите Повторить», а 404 у них значит «обращение не найдено». На
+     * пустом экране ящика это выглядело именно так — «Не удалось загрузить сообщения. Обращение не
+     * найдено» (поймано на эмуляторе 12-08). Тот же класс, что «текст пережил фичу, которую
+     * описывал»: слова из соседнего экрана становятся ложью, как только их переносят.
+     *
+     * 404 здесь значит другое: ядро про ящик ещё не знает (серверная половина выкатывается отдельно).
+     */
+    fun failureText(context: Context, e: Throwable): String = context.getString(
+        when (org.amnezia.awg.mayak.core.supportFailure(e)) {
+            org.amnezia.awg.mayak.core.SupportFailure.NO_CONNECTION -> R.string.mayak_messages_err_offline
+            org.amnezia.awg.mayak.core.SupportFailure.NEED_LOGIN -> R.string.mayak_messages_err_login
+            org.amnezia.awg.mayak.core.SupportFailure.NOT_FOUND -> R.string.mayak_messages_err_unavailable
+            org.amnezia.awg.mayak.core.SupportFailure.RATE_LIMITED -> R.string.mayak_messages_err_rate
+            else -> R.string.mayak_messages_err_retry
+        }
+    )
+
+    /** Есть ли смысл в кнопке «Повторить»: там, где повтор даст тот же отказ, её быть не должно. */
+    fun canRetry(e: Throwable): Boolean = when (org.amnezia.awg.mayak.core.supportFailure(e)) {
+        org.amnezia.awg.mayak.core.SupportFailure.NEED_LOGIN,
+        org.amnezia.awg.mayak.core.SupportFailure.NOT_FOUND,
+        org.amnezia.awg.mayak.core.SupportFailure.RATE_LIMITED -> false
+
+        else -> true
     }
 
     // ===== Текст повода на языке интерфейса =====
