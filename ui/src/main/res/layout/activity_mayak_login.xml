@@ -108,13 +108,21 @@
                         style="@style/Mayak.TextInput"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="@string/mayak_email_hint">
+                        android:hint="@string/mayak_login_hint">
 
+                        <!-- Логин — ПОЧТА ИЛИ НОМЕР АККАУНТА (9 цифр). Поле было объявлено почтовым
+                             (inputType=textEmailAddress + подпись «Email»), и человек без почты не
+                             догадывался, что сюда можно ввести номер: вход по нему на сервере
+                             работает с 11-08, мешали только слова и клавиатура. Держим обычный
+                             текст: почтовая клавиатура прячет цифры, цифровая — собаку.
+                             autofillHints=username, чтобы менеджер паролей подставлял логин, а не
+                             перебирал адреса почты. -->
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/mayak_login"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:inputType="textEmailAddress"
+                            android:inputType="text"
+                            android:autofillHints="username"
                             android:maxLines="1" />
                     </com.google.android.material.textfield.TextInputLayout>
 

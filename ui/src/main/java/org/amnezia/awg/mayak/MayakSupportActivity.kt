@@ -98,7 +98,7 @@ class MayakSupportActivity : AppCompatActivity() {
             MayakSupport.copyEmail(this, R.string.mayak_support_email_copied)
         }
         findViewById<MaterialButton>(R.id.mayak_support_mailto).setOnClickListener {
-            MayakSupport.writeToSupport(this, session.email())
+            MayakSupport.writeToSupport(this, session.loginName())
         }
         // Справка живёт в реестре доменов и может быть не задана — тогда прячем кнопку, а не показываем
         // неработающую (то же правило, что в настройках).

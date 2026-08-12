@@ -66,12 +66,12 @@
     <string name="allowed_ips">Allowed IPs</string>
     <string name="app_name" translatable="false">Mayak Networks</string>
     <string name="mayak_tagline">Connect freely</string>
-    <string name="mayak_login_hint">Login</string>
+    <string name="mayak_login_hint">Email or account number</string>
     <string name="mayak_email_hint">Email</string>
     <string name="mayak_register_cabinet">Sign up / Account cabinet</string>
     <string name="mayak_consent_note">By signing in you accept the Privacy Policy and Terms of Use.</string>
     <string name="mayak_err_email_not_verified">Please verify your email on the website.</string>
-    <string name="mayak_err_bad_creds">Wrong email or password.</string>
+    <string name="mayak_err_bad_creds">Wrong email/account number or password.</string>
     <string name="mayak_totp_hint">Two-factor code</string>
     <string name="mayak_totp_helper">Password is correct — enter the code from your authenticator app (or a recovery code).</string>
     <string name="mayak_err_totp_invalid">Wrong code. Try again.</string>
@@ -96,7 +96,10 @@
     <string name="mayak_sign_in">Sign in</string>
     <string name="mayak_forgot_password">Forgot password?</string>
     <string name="mayak_forgot_title">Reset password</string>
-    <string name="mayak_forgot_msg">Enter your account email — we\'ll send a reset code.</string>
+    <string name="mayak_forgot_msg">Enter the email of your account — we\'ll send a reset code. Works only if an email is linked.</string>
+    <!-- В поле сброса ввели НОМЕР аккаунта: у такой учётки почты может не быть вовсе, и «код
+         отправлен» был бы ложью. Отвечаем сами, не тревожа сервер. -->
+    <string name="mayak_forgot_no_email">This needs the account\'s email: there is nowhere to send a code for a number or a login. If no email is linked, sign in with your number and password and link one in the cabinet — or write to support.</string>
     <string name="mayak_forgot_send">Send code</string>
     <string name="mayak_forgot_sending">Sending code…</string>
     <string name="mayak_forgot_sent">Code sent to your email (if the account exists). Check your inbox.</string>
@@ -122,7 +125,7 @@
     <string name="mayak_sort_custom_hint">Long-press and drag a country to reorder; the order is saved</string>
     <string name="mayak_disconnect">Disconnect</string>
     <string name="mayak_logout">Log out</string>
-    <string name="mayak_logout_msg">The connection will drop and settings on this phone will be erased. You will need your e-mail and password to come back. Your account and remaining access stay untouched.</string>
+    <string name="mayak_logout_msg">The connection will drop and settings on this phone will be erased. You will need your email (or account number) and password to come back. Your account and remaining access stay untouched.</string>
     <string name="mayak_delete_account">Delete account</string>
     <string name="mayak_delete_account_msg">Account %1$s and all of its devices will be deleted permanently. Any remaining access is lost and cannot be restored. Enter your password to confirm.</string>
     <string name="mayak_delete_account_confirm">Delete permanently</string>
@@ -204,7 +207,7 @@
     <string name="mayak_a11y_connect">Connect</string>
     <string name="mayak_a11y_connecting">Connecting</string>
     <string name="mayak_a11y_disconnect">Disconnect</string>
-    <string name="mayak_err_fill_login">Enter e-mail and password</string>
+    <string name="mayak_err_fill_login">Enter your login and password</string>
     <string name="mayak_err_bad_link">Link not recognized</string>
     <string name="mayak_err_no_vpn_perm">VPN permission denied</string>
     <string name="mayak_err_empty_dirs">Core returned no countries</string>
@@ -331,6 +334,9 @@
     <string name="mayak_disguise_applied">The icon and name change in a few seconds. If not, restart the phone. Your VPN connection is not affected.</string>
     <string name="mayak_settings_account">Email: %1$s</string>
     <string name="mayak_settings_account_none">not signed in</string>
+    <!-- У учётки почты нет вовсе (анонимная регистрация, подарочная, из бота) — говорим прямо и
+         называем путь: привязать её можно в кабинете, кнопка стоит рядом. -->
+    <string name="mayak_settings_account_no_email">Email: not linked — you can add one in the cabinet</string>
     <string name="mayak_row_connected_dot_desc">traffic goes through this country</string>
     <string name="mayak_onboarding_title">How it works, briefly</string>
     <string name="mayak_onboarding_1_title">One button</string>
@@ -404,7 +410,7 @@
     <string name="mayak_support_err_unknown">Did not work out: %1$s</string>
     <string name="mayak_support_tickets_title">My tickets</string>
     <string name="mayak_support_tickets_loading">Loading…</string>
-    <string name="mayak_support_tickets_empty">No tickets yet. Write to us above — the reply comes here and to your mail.</string>
+    <string name="mayak_support_tickets_empty">No tickets yet. Write to us above — the reply shows up here (and by email, if one is linked).</string>
     <string name="mayak_support_tickets_err">Could not load the list: %1$s</string>
     <string name="mayak_support_tickets_reload">Refresh</string>
     <string name="mayak_support_ticket_new_answer">New reply</string>

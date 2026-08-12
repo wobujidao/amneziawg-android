@@ -274,12 +274,12 @@
     <string name="tunnel_status_connected">Подключено</string>
     <string name="tunnel_status_connecting">Подключение…</string>
     <string name="mayak_tagline">Свободный доступ</string>
-    <string name="mayak_login_hint">Логин</string>
+    <string name="mayak_login_hint">Почта или номер аккаунта</string>
     <string name="mayak_email_hint">Email</string>
     <string name="mayak_register_cabinet">Регистрация / Личный кабинет</string>
     <string name="mayak_consent_note">Входя, вы принимаете Политику конфиденциальности и Условия использования.</string>
     <string name="mayak_err_email_not_verified">Подтвердите email на сайте.</string>
-    <string name="mayak_err_bad_creds">Неверный email или пароль.</string>
+    <string name="mayak_err_bad_creds">Неверная почта (или номер аккаунта) либо пароль.</string>
     <string name="mayak_totp_hint">Код двухфакторной аутентификации</string>
     <!-- Поле кода показывается ТОЛЬКО после ответа ядра «нужен код», поэтому подпись под ним отвечает
          сразу на два вопроса: почему вход не прошёл (пароль-то верный) и где взять код. -->
@@ -306,7 +306,8 @@
     <string name="mayak_sign_in">Войти</string>
     <string name="mayak_forgot_password">Забыли пароль?</string>
     <string name="mayak_forgot_title">Сброс пароля</string>
-    <string name="mayak_forgot_msg">Укажите email аккаунта — пришлём код для сброса.</string>
+    <string name="mayak_forgot_msg">Укажите почту аккаунта — пришлём код для сброса. Работает, только если почта привязана.</string>
+    <string name="mayak_forgot_no_email">Здесь нужна почта аккаунта: по номеру или логину код прислать некуда. Если почта не привязана — войдите номером и паролем и привяжите её в кабинете, либо напишите в поддержку.</string>
     <string name="mayak_forgot_send">Прислать код</string>
     <string name="mayak_forgot_sending">Отправляем код…</string>
     <string name="mayak_forgot_sent">Код отправлен на почту (если аккаунт существует). Проверьте письмо.</string>
@@ -329,7 +330,7 @@
     <string name="mayak_sort_custom_hint">Зажмите и перетащите страну, чтобы изменить порядок — он сохранится</string>
     <string name="mayak_disconnect">Отключить</string>
     <string name="mayak_logout">Выйти</string>
-    <string name="mayak_logout_msg">Подключение отключится, а настройки на этом телефоне сотрутся. Чтобы вернуться, понадобится e-mail и пароль. Аккаунт и оплаченный доступ останутся на месте.</string>
+    <string name="mayak_logout_msg">Подключение отключится, а настройки на этом телефоне сотрутся. Чтобы вернуться, понадобятся почта (или номер аккаунта) и пароль. Аккаунт и оплаченный доступ останутся на месте.</string>
     <string name="mayak_delete_account">Удалить аккаунт</string>
     <string name="mayak_delete_account_msg">Аккаунт %1$s и все его устройства будут удалены безвозвратно. Оставшийся доступ сгорает, восстановить его нельзя. Для подтверждения введите пароль.</string>
     <string name="mayak_delete_account_confirm">Удалить навсегда</string>
@@ -415,7 +416,7 @@
     <string name="mayak_a11y_connect">Подключиться</string>
     <string name="mayak_a11y_connecting">Подключение</string>
     <string name="mayak_a11y_disconnect">Отключиться</string>
-    <string name="mayak_err_fill_login">Введите e-mail и пароль</string>
+    <string name="mayak_err_fill_login">Введите логин и пароль</string>
     <string name="mayak_err_bad_link">Ссылка не распознана</string>
     <string name="mayak_err_no_vpn_perm">Система не разрешила защищённое подключение</string>
     <string name="mayak_err_empty_dirs">Ядро не вернуло ни одной страны</string>
@@ -549,6 +550,7 @@
          это лишь то, чем он входит и куда мы пишем. -->
     <string name="mayak_settings_account">Почта: %1$s</string>
     <string name="mayak_settings_account_none">вход не выполнен</string>
+    <string name="mayak_settings_account_no_email">Почта: не привязана — можно добавить в кабинете</string>
     <!-- Подпись зелёной точки в строке страны — только для скринридера, глазами она без текста. -->
     <string name="mayak_row_connected_dot_desc">через эту страну идёт трафик</string>
     <!-- Лист знакомства (первый вход). Три карточки, без «Далее» и точек: читается за полминуты. -->
@@ -624,7 +626,7 @@
     <string name="mayak_support_err_unknown">Не получилось: %1$s</string>
     <string name="mayak_support_tickets_title">Мои обращения</string>
     <string name="mayak_support_tickets_loading">Загружаем…</string>
-    <string name="mayak_support_tickets_empty">Обращений пока нет. Напишите нам выше — ответ придёт сюда и на почту.</string>
+    <string name="mayak_support_tickets_empty">Обращений пока нет. Напишите нам выше — ответ появится здесь (и придёт на почту, если она привязана).</string>
     <string name="mayak_support_tickets_err">Не удалось загрузить список: %1$s</string>
     <string name="mayak_support_tickets_reload">Обновить</string>
     <string name="mayak_support_ticket_new_answer">Есть ответ</string>

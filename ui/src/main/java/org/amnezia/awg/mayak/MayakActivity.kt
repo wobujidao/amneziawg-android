@@ -541,12 +541,19 @@ class MayakActivity : AppCompatActivity() {
     // Разбор со всей защитой (opaque-URI не роняет приложение, server только валидный https) — в
     // истории git и частично в core/RegLink; возвращать его надо deep-link'ом, а не кнопкой.
 
-    /** «Забыли пароль?» шаг 1: спросить email → POST /forgot (код на почту) → шаг 2 (ввод кода+нового пароля). */
+    /** «Забыли пароль?» шаг 1: спросить email → POST /forgot (код на почту) → шаг 2 (ввод кода+нового пароля).
+     *
+     *  🔴 Сюда вводят НОМЕР АККАУНТА — потому что в соседнее поле входа его вводить можно, и у части
+     *  людей (анонимная регистрация, подарочные учётки) почты нет вовсе. Раньше такой ввод уходил на
+     *  сервер и возвращался бодрым «код отправлен» — человек шёл ждать письмо, которого не будет
+     *  никогда. Теперь не-почту заворачиваем ЗДЕСЬ и объясняем, что делать вместо этого. */
     private fun showForgotPasswordDialog(prefillEmail: String) {
         val input = TextInputEditText(this).apply {
             hint = getString(R.string.mayak_email_hint)
             inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
-            if (prefillEmail.isNotBlank()) setText(prefillEmail)
+            // Номер в поле входа не подставляем: он тут не работает, а подставленное значение
+            // читается как «этого достаточно, жми кнопку».
+            if (prefillEmail.contains('@')) setText(prefillEmail)
         }
         val wrapper = TextInputLayout(this).apply { setPadding(dp(24), dp(8), dp(24), 0); addView(input) }
         AlertDialog.Builder(this)
@@ -556,6 +563,10 @@ class MayakActivity : AppCompatActivity() {
             .setPositiveButton(getString(R.string.mayak_forgot_send)) { _, _ ->
                 val email = input.text?.toString()?.trim().orEmpty()
                 if (email.isBlank()) { setStatus(getString(R.string.mayak_err_fill_login)); return@setPositiveButton }
+                // Не почта (номер аккаунта, логин бота, опечатка) — код слать некуда. Говорим сразу
+                // и отдельным окном: строку статуса под карточкой закрывает клавиатура, а это тупик,
+                // который человек обязан прочитать целиком.
+                if (!email.contains('@')) { showForgotNoEmail(); return@setPositiveButton }
                 backend = MayakBackend(hostProvider(), bypassTunnel = OutsideTunnel.opener(this@MayakActivity))
                 setStatus(getString(R.string.mayak_forgot_sending))
                 lifecycleScope.launch {
@@ -563,9 +574,27 @@ class MayakActivity : AppCompatActivity() {
                         backend!!.forgotPassword(email)
                         setStatus(getString(R.string.mayak_forgot_sent))
                         showResetPasswordDialog(email)
+                    } catch (e: MayakApiException) {
+                        // Ядро с 12-08 честно отказывает по номеру (no_email_recovery). Сюда попасть
+                        // можно только с адресом, который наш фильтр счёл почтой, а ядро — номером.
+                        if (e.code == "no_email_recovery") showForgotNoEmail() else setStatus(humanError(e))
                     } catch (e: Exception) { setStatus(humanError(e)) }
                 }
             }
+            .setNegativeButton(getString(R.string.mayak_cancel), null)
+            .show()
+    }
+
+    /**
+     * Тупик «сбрасывать нечем»: в поле сброса не почта. Объясняем, что делать вместо ожидания
+     * письма — войти номером и паролем и привязать почту в кабинете, либо написать в поддержку.
+     * Кнопка ведёт в кабинет: одно нажатие вместо пересказа адреса.
+     */
+    private fun showForgotNoEmail() {
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.mayak_forgot_title))
+            .setMessage(getString(R.string.mayak_forgot_no_email))
+            .setPositiveButton(getString(R.string.mayak_open_cabinet)) { _, _ -> openUrl(MayakHostList.cabinetUrl(this)) }
             .setNegativeButton(getString(R.string.mayak_cancel), null)
             .show()
     }
@@ -730,7 +759,11 @@ class MayakActivity : AppCompatActivity() {
                     // и аккаунт заблокирован), и предлагать заблокированному «подтвердить почту» —
                     // отправлять его чинить не то.
                     e.code == "account_blocked" -> showAccountBlocked(email)
-                    e.status == 403 -> showEmailNotVerified()
+                    // Ветвимся по КОДУ, а не по статусу: под 403 у ядра живёт не только
+                    // «подтвердите почту», и звать к подтверждению почты того, у кого её нет,
+                    // — отправлять чинить не то. Незнакомый 403 уйдёт в общую ветку и покажет
+                    // текст ядра как есть.
+                    e.code == "email_not_verified" -> showEmailNotVerified()
                     e.code == "totp_required" -> askTotpCode()
                     e.code == "totp_invalid" -> showTotpError()
                     e.status == 401 -> showLoginError(getString(R.string.mayak_err_bad_creds))

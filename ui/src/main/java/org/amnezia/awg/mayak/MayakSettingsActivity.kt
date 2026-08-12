@@ -35,6 +35,9 @@ class MayakSettingsActivity : AppCompatActivity() {
     /** Текущие настройки аккаунта с ядра; null — ещё не загрузились или загрузка не удалась. */
     private var accountSettings: AccountSettings? = null
 
+    /** Настоящая почта учётки со слов ядра; null — ещё не спрашивали ИЛИ почты у неё нет вовсе. */
+    private var accountEmail: String? = null
+
     private fun backend(): MayakBackend =
         MayakBackend(
             HostProvider(MayakHostList.effective(this, store.get(MayakActivity.KEY_SERVER))),
@@ -103,11 +106,9 @@ class MayakSettingsActivity : AppCompatActivity() {
         if (session.hasToken()) deleteAccount.setOnClickListener { confirmDeleteAccount() }
         else deleteAccount.visibility = View.GONE
 
-        // Показываем, под каким email выполнен вход (запрос владельца: в приложении не было видно аккаунта).
-        findViewById<TextView>(R.id.mayak_settings_account).text = getString(
-            R.string.mayak_settings_account,
-            session.email() ?: getString(R.string.mayak_settings_account_none),
-        )
+        // Под кем вошли (запрос владельца: в приложении не было видно аккаунта). Сначала — то, что
+        // знаем без сети, потом строку уточнит ответ ядра (loadAccountCard).
+        showAccountEmail(fromCore = null)
         // Номер аккаунта: сначала из хранилища (мгновенно, работает и без сети), потом — освежить.
         showAccountNumber(org.amnezia.awg.mayak.core.AccountNumber.display(store))
         findViewById<MaterialButton>(R.id.mayak_settings_cabinet).setOnClickListener {
@@ -126,7 +127,7 @@ class MayakSettingsActivity : AppCompatActivity() {
         if (session.hasToken()) {
             loadFiltering()
             loadSubscription()
-            loadAccountNumber()
+            loadAccountCard()
         } else {
             // Не вошли — карточка фильтрации бесполезна (менять нечего) и только путала бы.
             findViewById<View>(R.id.mayak_settings_filtering_card).visibility = View.GONE
@@ -472,10 +473,68 @@ class MayakSettingsActivity : AppCompatActivity() {
      * поэтому это один запрос на установку). Не удалось — строка просто останется скрытой: ни
      * ошибки, ни пустого поля «Номер аккаунта: —», которое человек попробовал бы диктовать.
      */
-    private fun loadAccountNumber() {
+    /**
+     * Карточка учётки с ядра: номер И настоящая почта. Одним запросом, потому что показываются они
+     * рядом и порознь смысла не имеют. Любой отказ проглатываем: на экране остаётся то, что знали
+     * без сети, — это не тот блок, из-за которого стоит ронять настройки.
+     */
+    private fun loadAccountCard() {
         lifecycleScope.launch {
-            val shown = runCatching { session.accountNumber(backend()) }.getOrNull() ?: return@launch
-            showAccountNumber(shown)
+            val info = runCatching { session.accountCard(backend()) }.getOrNull() ?: return@launch
+            // Номер берём из ХРАНИЛИЩА, а не из ответа: пустое поле в ответе означает «ядро старее
+            // правки», а не «номера больше нет», и сохранённый номер оно не стирает (AccountNumber.remember).
+            showAccountNumber(org.amnezia.awg.mayak.core.AccountNumber.display(store))
+            accountEmail = info.email?.takeIf { it.isNotBlank() }
+            showAccountEmail(fromCore = info.email.orEmpty())
+        }
+    }
+
+    /**
+     * Чем называть учётку в вопросах-подтверждениях: почтой, если она есть, иначе НОМЕРОМ с дефисами
+     * (то, что человек видит на этом же экране). Введённый логин — последний запасной вариант: у
+     * безпочтового это тот же номер, но без разметки.
+     */
+    private fun accountLabel(): String =
+        accountEmail
+            ?: session.loginName()?.takeIf { it.contains('@') }
+            ?: org.amnezia.awg.mayak.core.AccountNumber.display(store)
+            ?: session.loginName().orEmpty()
+
+    /**
+     * Строка «Почта: …» в карточке аккаунта.
+     *
+     * 🔴 Раньше сюда печаталось ВВЕДЁННОЕ в поле входа, и у вошедшего номером получалась «Почта:
+     * 848681728» — приложение называло почтой то, что ею не является (ревизия 12-08). Теперь:
+     *   • [fromCore] непусто — показываем настоящую почту учётки;
+     *   • [fromCore] пустая строка (ядро ответило «почты нет») — говорим прямо, что она не привязана,
+     *     и что её можно добавить: кнопка кабинета стоит тут же, а привязка изнутри кабинета живая с 12-08;
+     *   • [fromCore] == null (ядро ещё не ответило или сети нет) — показываем введённый логин, но
+     *     ТОЛЬКО если он похож на почту; иначе строку прячем, чтобы не соврать. Человек в этот
+     *     момент не остаётся без опознания: ниже стоит его номер, и он есть в хранилище с прошлого раза.
+     */
+    private fun showAccountEmail(fromCore: String?) {
+        val row = findViewById<TextView>(R.id.mayak_settings_account)
+        if (!session.hasToken()) {
+            row.text = getString(R.string.mayak_settings_account, getString(R.string.mayak_settings_account_none))
+            row.visibility = View.VISIBLE
+            return
+        }
+        val shown = when {
+            fromCore == null -> session.loginName()?.takeIf { it.contains('@') }
+            fromCore.isNotBlank() -> fromCore
+            else -> null
+        }
+        when {
+            shown != null -> {
+                row.text = getString(R.string.mayak_settings_account, shown)
+                row.visibility = View.VISIBLE
+            }
+            // Ядро ответило «почты нет» — это не пустота экрана, а осмысленное состояние.
+            fromCore != null -> {
+                row.text = getString(R.string.mayak_settings_account_no_email)
+                row.visibility = View.VISIBLE
+            }
+            else -> row.visibility = View.GONE
         }
     }
 
@@ -626,7 +685,10 @@ class MayakSettingsActivity : AppCompatActivity() {
         }
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.mayak_delete_account))
-            .setMessage(getString(R.string.mayak_delete_account_msg, session.email().orEmpty()))
+            // Называем учётку тем, что человек про себя знает: почтой, если она есть, иначе НОМЕРОМ
+            // (с дефисами — так он и записан у него на экране). Раньше сюда шёл введённый логин, и
+            // безпочтовый читал «Аккаунт 848681728 будет удалён» — свой же номер в чужом формате.
+            .setMessage(getString(R.string.mayak_delete_account_msg, accountLabel()))
             .setView(wrapper)
             .setPositiveButton(getString(R.string.mayak_delete_account_confirm)) { _, _ ->
                 deleteAccount(input.text?.toString().orEmpty())

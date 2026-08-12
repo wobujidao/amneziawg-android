@@ -117,8 +117,14 @@ class MayakSession(
 
     fun hasToken(): Boolean = store.get(K_TOKEN) != null
 
-    /** Email аккаунта, под которым выполнен вход (для показа в Настройках). null — если не входили. */
-    fun email(): String? = store.get(K_EMAIL)
+    /**
+     * ЧТО ВВЕЛИ в поле входа: почта — или НОМЕР АККАУНТА (вход по нему работает с 11-08).
+     *
+     * 🔴 Это НЕ «почта аккаунта» и показывать это как почту нельзя: у вошедшего номером получалось
+     * «Почта: 848681728». Настоящую почту отдаёт ядро — [accountCard]. Здесь остаётся ровно то, для
+     * чего значение годится без сети: понять, под кем вошли, и подставить логин обратно в форму.
+     */
+    fun loginName(): String? = store.get(K_EMAIL)
 
     fun logout() {
         store.remove(K_TOKEN)
@@ -368,6 +374,19 @@ class MayakSession(
      */
     suspend fun accountNumber(backend: MayakBackend): String? =
         MayakAccountNumber.refresh(store, requireToken(), backend)
+
+    /**
+     * Карточка учётки с ядра (GET /v1/client/account): номер И настоящая почта одним запросом.
+     *
+     * Зачем отдельно от [accountNumber]: тот отдаёт сохранённый номер и в сеть без нужды не ходит
+     * (номер не меняется никогда), а почта — меняется: её можно привязать в кабинете уже после
+     * входа. Экран Настроек зовёт это при открытии, попутно освежая номер в хранилище.
+     */
+    suspend fun accountCard(backend: MayakBackend): org.amnezia.awg.mayak.core.AccountInfo {
+        val info = backend.account(requireToken())
+        org.amnezia.awg.mayak.core.AccountNumber.remember(store, info.accountNumber)
+        return info
+    }
 
     /** Устройства аккаунта — для экрана «Мои устройства» (MayakDevices). Требует входа. */
     suspend fun listDevices(backend: MayakBackend): List<org.amnezia.awg.mayak.core.DeviceItem> =
