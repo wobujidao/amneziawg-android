@@ -172,9 +172,22 @@ object MayakMessages {
     private fun notifyAbout(context: Context, messages: List<UserMessage>, firstSync: Boolean) {
         val fresh = messages.filter { !it.read }.sortedBy { it.id }
         val maxId = messages.maxOfOrNull { it.id } ?: 0L
-        if (maxId > 0) prefs(context).edit().putLong(K_LAST_NOTIFIED, maxId).apply()
-        if (fresh.isEmpty()) return
-        if (!MayakNotification.canPost(context)) return
+        val canPost = MayakNotification.canPost(context)
+        // 🔴 ОТМЕТКУ «ОБ ЭТОМ УЖЕ СКАЗАЛИ» ДВИГАЕМ, ТОЛЬКО ЕСЛИ СКАЗАТЬ РЕАЛЬНО МОГЛИ.
+        //
+        // Найдено живым прогоном на эмуляторе 12-08. Раньше отметка ставилась ДО проверки прав — и
+        // ровно в первый раз это ломало всё: разрешение на уведомления (Android 13+) человек выдаёт
+        // в диалоге сразу после входа, а первая сверка ящика успевает пройти РАНЬШЕ. Сообщение
+        // помечалось как «о нём уведомили», хотя уведомить было нечем, и в шторку оно не попадало
+        // уже никогда — человек видел только цифру на конверте. Именно первое сообщение новичка,
+        // то есть худший возможный случай.
+        //
+        // Когда уведомлять нечего (`fresh` пуст), отметку двигаем всё равно: иначе она замерла бы на
+        // старом id и следующая пачка сочлась бы «первой» (лимит в одно уведомление).
+        if (maxId > 0 && (fresh.isEmpty() || canPost)) {
+            prefs(context).edit().putLong(K_LAST_NOTIFIED, maxId).apply()
+        }
+        if (fresh.isEmpty() || !canPost) return
         // Первый заход после установки/входа: в ящике может лежать всё за 90 дней, и разом звенеть на
         // всю пачку нельзя. Показываем ОДНО, самое свежее — остальное человек увидит по бейджу.
         val limit = if (firstSync) 1 else MAX_NOTIFY_PER_SYNC
