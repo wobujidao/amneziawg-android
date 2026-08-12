@@ -51,7 +51,10 @@ object MayakNotification {
         nm.createNotificationChannel(ch)
     }
 
-    private fun canPost(ctx: Context): Boolean =
+    /** Разрешено ли вообще показывать уведомления (POST_NOTIFICATIONS с Android 13).
+     *  Не private: ту же проверку делает ящик сообщений (MayakMessages), и второй её копии,
+     *  которая когда-нибудь разъедется с этой, у нас быть не должно. */
+    internal fun canPost(ctx: Context): Boolean =
         Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
             ContextCompat.checkSelfPermission(ctx, Manifest.permission.POST_NOTIFICATIONS) ==
             PackageManager.PERMISSION_GRANTED

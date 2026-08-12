@@ -428,6 +428,29 @@ class MayakSession(
     suspend fun replySupport(backend: MayakBackend, id: Long, message: String) =
         backend.replySupport(requireToken(), id, message)
 
+    // ===== Ящик сообщений (SPEC-0047) =====
+    //
+    // Тонкие обёртки: решения («что показать», «звенеть ли») живут в MayakMessages и на экране.
+    // Здесь только токен — чтобы ни воркеру, ни экрану не приходилось доставать его из хранилища.
+
+    /** Свои сообщения. sinceId = 0 — всё за 90 дней (экран); иначе только новее указанного (фон). */
+    suspend fun messages(backend: MayakBackend, sinceId: Long = 0): org.amnezia.awg.mayak.core.MessagesResponse =
+        backend.messages(requireToken(), sinceId)
+
+    /** Пометить своё сообщение прочитанным. Чужое/несуществующее → 404 (ядро их не различает). */
+    suspend fun markMessageRead(backend: MayakBackend, id: Long) =
+        backend.markMessageRead(requireToken(), id)
+
+    /** Выключатели уведомлений (категории + тихие часы). */
+    suspend fun notificationPrefs(backend: MayakBackend): org.amnezia.awg.mayak.core.NotificationPrefs =
+        backend.notificationPrefs(requireToken())
+
+    /** Сменить выключатели. Время согласия на новости проставляет СЕРВЕР, не мы. */
+    suspend fun updateNotificationPrefs(
+        backend: MayakBackend,
+        prefs: org.amnezia.awg.mayak.core.NotificationPrefs,
+    ) = backend.updateNotificationPrefs(requireToken(), prefs)
+
     /** id устройства из хранилища (0 — ещё не зарегистрировано); для контекста диаг-лога. */
     fun deviceId(): Long = store.get(K_DEVICE)?.toLongOrNull() ?: 0L
 

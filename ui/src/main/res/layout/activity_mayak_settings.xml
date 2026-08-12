@@ -4,6 +4,7 @@
      «Отправить лог» (главное действие для разбора проблем подключения). -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/mayak_bg_gradient">
@@ -388,6 +389,124 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
                         android:text="@string/mayak_settings_applock_hint"
+                        android:textColor="@color/mayak_on_surface"
+                        android:alpha="0.8"
+                        android:textAppearance="@style/Mayak.Tagline" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ===== Уведомления (SPEC-0047) =====
+                 Карточка целиком прячется, если ядро о ящике ещё не знает: показывать выключатели,
+                 которым некуда сохраняться, — это кнопки без эффекта. -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/mayak_settings_notify_card"
+                style="@style/Mayak.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/mayak_settings_notify"
+                        android:textAppearance="@style/Mayak.CardTitle" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/mayak_settings_messages"
+                        style="@style/Mayak.Button.Outlined"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:text="@string/mayak_messages_title" />
+
+                    <!-- «Доступ и деньги» ВСЕГДА включено и неактивно: чек об оплате, конец доступа
+                         и вход с нового устройства — это работа сервиса, а не рассылка, и выключить
+                         её нельзя. Тумблер стоит здесь, чтобы человек ВИДЕЛ, что такая категория
+                         существует; рядом — почему он не нажимается. -->
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        style="@style/Mayak.Switch"
+                        android:id="@+id/mayak_settings_notify_account"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:minHeight="48dp"
+                        android:checked="true"
+                        android:enabled="false"
+                        android:textColor="@color/mayak_on_surface"
+                        android:text="@string/mayak_settings_notify_account" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="@string/mayak_settings_notify_account_hint"
+                        android:textColor="@color/mayak_on_surface"
+                        android:alpha="0.8"
+                        android:textAppearance="@style/Mayak.Tagline" />
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        style="@style/Mayak.Switch"
+                        android:id="@+id/mayak_settings_notify_service"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:minHeight="48dp"
+                        android:textColor="@color/mayak_on_surface"
+                        android:text="@string/mayak_settings_notify_service" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="@string/mayak_settings_notify_service_hint"
+                        android:textColor="@color/mayak_on_surface"
+                        android:alpha="0.8"
+                        android:textAppearance="@style/Mayak.Tagline" />
+
+                    <!-- «Новости и предложения» по умолчанию ВЫКЛЮЧЕНЫ: реклама по сетям связи —
+                         только по предварительному согласию (38-ФЗ ст. 18). Включение спрашивает
+                         согласие отдельным окном, и время согласия записывает сервер. -->
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        style="@style/Mayak.Switch"
+                        android:id="@+id/mayak_settings_notify_news"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:minHeight="48dp"
+                        android:textColor="@color/mayak_on_surface"
+                        android:text="@string/mayak_settings_notify_news" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="@string/mayak_settings_notify_news_hint"
+                        android:textColor="@color/mayak_on_surface"
+                        android:alpha="0.8"
+                        android:textAppearance="@style/Mayak.Tagline" />
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        style="@style/Mayak.Switch"
+                        android:id="@+id/mayak_settings_notify_quiet"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:minHeight="48dp"
+                        android:textColor="@color/mayak_on_surface"
+                        android:text="@string/mayak_settings_notify_quiet" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="@string/mayak_settings_notify_quiet_hint"
                         android:textColor="@color/mayak_on_surface"
                         android:alpha="0.8"
                         android:textAppearance="@style/Mayak.Tagline" />

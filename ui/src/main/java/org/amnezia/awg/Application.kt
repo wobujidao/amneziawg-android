@@ -136,6 +136,11 @@ class Application : android.app.Application() {
         // Идемпотентно (ExistingPeriodicWorkPolicy.KEEP) → безопасно на каждом старте. Без UI/эффекта;
         // если не вошёл или сбой — тихо no-op. См. MayakTelemetryWorker / TELEMETRY-DISCLOSURE.md.
         runCatching { org.amnezia.awg.mayak.MayakTelemetryWorker.enqueue(this) }
+
+        // Ящик сообщений (SPEC-0047): фоновая проверка раз в 6 часов. Тоже идемпотентно и тоже
+        // молча — не вошёл или ядро не отвечает, значит просто ничего не показали. Без этой работы
+        // «доступ заканчивается» дошло бы до человека только когда он сам откроет приложение.
+        runCatching { org.amnezia.awg.mayak.MayakMessagesWorker.enqueue(this) }
     }
 
     override fun onTerminate() {

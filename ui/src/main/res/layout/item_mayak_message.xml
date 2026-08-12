@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Строка ящика: заголовок повода, когда пришло, первая строка текста и пометка «новое».
+     Вся строка кликабельна и открывает карточку — действие тут одно и оно безопасное. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?attr/selectableItemBackground"
+    android:gravity="center_vertical"
+    android:minHeight="56dp"
+    android:orientation="horizontal"
+    android:paddingTop="10dp"
+    android:paddingBottom="10dp">
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/message_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="2"
+            android:textAppearance="@style/Mayak.CardTitle"
+            android:textColor="@color/mayak_on_surface"
+            tools:text="Доступ скоро закончится" />
+
+        <TextView
+            android:id="@+id/message_preview"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:ellipsize="end"
+            android:maxLines="2"
+            android:textAppearance="@style/Mayak.Tagline"
+            android:textColor="@color/mayak_on_surface_muted"
+            tools:text="Осталось дней: 3. Продлите, чтобы всё продолжало работать." />
+
+        <TextView
+            android:id="@+id/message_time"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textAppearance="@style/Mayak.Tagline"
+            android:textColor="@color/mayak_on_surface_muted"
+            android:textSize="12sp"
+            tools:text="5 минут назад" />
+
+        <!-- Пометка «новое»: единственное, что отличает непрочитанное от прочитанного. Без неё
+             человек, у которого в ящике десяток строк, не видит, что именно пришло. -->
+        <TextView
+            android:id="@+id/message_badge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/mayak_bg_ipv6_badge"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:paddingTop="2dp"
+            android:paddingBottom="2dp"
+            android:text="@string/mayak_messages_unread_mark"
+            android:textColor="@color/mayak_accent"
+            android:textSize="12sp"
+            android:visibility="gone"
+            tools:visibility="visible" />
+    </LinearLayout>
+
+    <ImageView
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:importantForAccessibility="no"
+        android:src="@drawable/ic_chevron_right"
+        app:tint="@color/mayak_on_surface_muted" />
+
+</LinearLayout>

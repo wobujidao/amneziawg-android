@@ -447,6 +447,9 @@ class MayakActivity : AppCompatActivity() {
             syncConnStateFromTunnel()
             // Пинг сервера — только на переднем плане (см. onPause). Возобновляем при возврате, если подключены.
             if (connState == ConnState.CONNECTED) startPing()
+            // Вернулись с экрана «Сообщения» — там могли что-то прочитать: кружок обязан это отразить,
+            // иначе он висит с прежним числом и читается как «прочтение не сработало».
+            updateMessagesBadge()
         }
         // Пока экран открыт, надпись под кнопкой ходит за процесс-скоупным сторожем живости: сеть
         // может пропасть между тактами пинга, и человек не должен узнавать об этом позже шторки.
@@ -1152,6 +1155,13 @@ class MayakActivity : AppCompatActivity() {
             startActivity(Intent(this, MayakSettingsActivity::class.java))
             MayakTransitions.applyAxis(this) // плавный переход к настройкам
         }
+        // Ящик сообщений (SPEC-0047): кнопка в шапке + кружок непрочитанного.
+        findViewById<MaterialButton?>(R.id.mayak_messages_button)?.setOnClickListener {
+            MayakHaptics.tap(it)
+            MayakMessagesActivity.open(this)
+        }
+        updateMessagesBadge()
+        syncMessages() // тихая проверка ящика при открытии приложения (сама себя ограничивает по частоте)
 
         setupPresetSelector() // селектор пресета split-туннеля над кнопкой VPN (SPEC-0028)
 
@@ -1239,6 +1249,37 @@ class MayakActivity : AppCompatActivity() {
             )
             view.setOnClickListener { openUrl(MayakHostList.cabinetUrl(this@MayakActivity)) }
             view.visibility = View.VISIBLE
+        }
+    }
+
+    /**
+     * Кружок с числом непрочитанных сообщений в шапке. Рисуется по СОХРАНЁННОМУ значению, то есть
+     * виден сразу и без сети: тянуть его из сети было бы «сначала пусто, потом дёрнулось».
+     * Больше 99 не пишем — в кружок 16dp такое число всё равно не влезет.
+     */
+    private fun updateMessagesBadge() {
+        val badge = findViewById<TextView?>(R.id.mayak_messages_badge) ?: return
+        val n = MayakMessages.unread(this)
+        if (n <= 0) {
+            badge.visibility = View.GONE
+            return
+        }
+        badge.text = if (n > 99) getString(R.string.mayak_messages_badge_many) else n.toString()
+        badge.visibility = View.VISIBLE
+    }
+
+    /**
+     * Тихая проверка ящика (SPEC-0047). Зовётся при открытии приложения и после удачного подъёма
+     * туннеля — это два момента, когда мы и так в сети, а человек уже смотрит на экран.
+     *
+     * Сама себя ограничивает по частоте (MayakMessages.dueForSync) и молчит при любой беде: нет
+     * входа, нет сети, ручки на ядре ещё не завезли. Сообщение появится уведомлением, а число —
+     * кружком в шапке, который дорисовываем по факту ответа.
+     */
+    private fun syncMessages() {
+        if (!session.hasToken()) return
+        lifecycleScope.launch {
+            if (MayakMessages.sync(this@MayakActivity)) updateMessagesBadge()
         }
     }
 
@@ -2282,6 +2323,9 @@ class MayakActivity : AppCompatActivity() {
         MayakPrefs.setLastConnLabel(this, GoTunnel.connectedLabel) // запасной источник для шторки (см. MayakPrefs)
         MayakNotification.show(this, GoTunnel.connectedLabel, GoTunnel.connectedPingMs)
         Toast.makeText(this, getString(R.string.mayak_connected), Toast.LENGTH_SHORT).show()
+        // Туннель поднялся — значит связь ЕСТЬ. Второй из трёх поводов заглянуть в ящик (SPEC-0047):
+        // у части людей до ядра иначе не достучаться вовсе, и это единственный надёжный момент.
+        syncMessages()
     }
 
     // ⛔ Разговора про «постоянное подключение» после первого коннекта здесь БОЛЬШЕ НЕТ (решение

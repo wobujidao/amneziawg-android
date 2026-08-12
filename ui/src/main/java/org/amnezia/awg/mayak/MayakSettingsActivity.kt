@@ -38,6 +38,9 @@ class MayakSettingsActivity : AppCompatActivity() {
     /** Настоящая почта учётки со слов ядра; null — ещё не спрашивали ИЛИ почты у неё нет вовсе. */
     private var accountEmail: String? = null
 
+    /** Выключатели уведомлений с ядра (SPEC-0047); null — ещё не ответило или ручки там нет. */
+    private var notifyPrefs: org.amnezia.awg.mayak.core.NotificationPrefs? = null
+
     private fun backend(): MayakBackend =
         MayakBackend(
             HostProvider(MayakHostList.effective(this, store.get(MayakActivity.KEY_SERVER))),
@@ -124,10 +127,19 @@ class MayakSettingsActivity : AppCompatActivity() {
         findViewById<MaterialButton>(R.id.mayak_settings_dns).setOnClickListener {
             if (accountSettings == null) loadFiltering() else showDnsDialog()
         }
+        // Ящик сообщений (SPEC-0047): вход на экран из настроек — второй путь к нему помимо шапки
+        // главного. Кнопка живёт в той же карточке, что и выключатели уведомлений: человек, который
+        // ищет «где посмотреть, что мне писали», и человек, который ищет «как это выключить», —
+        // приходят в одно и то же место.
+        findViewById<MaterialButton>(R.id.mayak_settings_messages).setOnClickListener {
+            MayakMessagesActivity.open(this)
+        }
+
         if (session.hasToken()) {
             loadFiltering()
             loadSubscription()
             loadAccountCard()
+            loadNotificationPrefs()
         } else {
             // Не вошли — карточка фильтрации бесполезна (менять нечего) и только путала бы.
             findViewById<View>(R.id.mayak_settings_filtering_card).visibility = View.GONE
@@ -448,6 +460,90 @@ class MayakSettingsActivity : AppCompatActivity() {
         }
     }
 
+    // ===== Уведомления (SPEC-0047): категории и тихие часы =====
+
+    /**
+     * Подтянуть выключатели с ядра и показать карточку. Не получилось — карточку НЕ показываем
+     * вовсе: ручки может ещё не быть (серверная половина едет отдельно), а тумблеры, которым некуда
+     * сохраняться, — это интерфейс, который врёт про сохранение.
+     */
+    private fun loadNotificationPrefs() {
+        lifecycleScope.launch {
+            val prefs = runCatching { session.notificationPrefs(backend()) }.getOrNull() ?: return@launch
+            MayakMessages.rememberPrefs(this@MayakSettingsActivity, prefs)
+            notifyPrefs = prefs
+            renderNotificationPrefs(prefs)
+            findViewById<View>(R.id.mayak_settings_notify_card).visibility = View.VISIBLE
+        }
+    }
+
+    private fun switchById(id: Int) =
+        findViewById<com.google.android.material.materialswitch.MaterialSwitch>(id)
+
+    /**
+     * Расставить тумблеры. Слушатели вешаем ПОСЛЕ setChecked и снимаем перед ним: иначе первичная
+     * отрисовка сама себя отправила бы на сервер, а включение «Новостей» ещё и спросило бы согласие
+     * у человека, который экран только открыл.
+     */
+    private fun renderNotificationPrefs(prefs: org.amnezia.awg.mayak.core.NotificationPrefs) {
+        val service = switchById(R.id.mayak_settings_notify_service)
+        val news = switchById(R.id.mayak_settings_notify_news)
+        val quiet = switchById(R.id.mayak_settings_notify_quiet)
+        service.setOnCheckedChangeListener(null)
+        news.setOnCheckedChangeListener(null)
+        quiet.setOnCheckedChangeListener(null)
+        service.isChecked = prefs.service
+        news.isChecked = prefs.news
+        quiet.isChecked = prefs.quietHours
+        service.setOnCheckedChangeListener { _, checked -> saveNotificationPrefs(prefs().copy(service = checked)) }
+        quiet.setOnCheckedChangeListener { _, checked -> saveNotificationPrefs(prefs().copy(quietHours = checked)) }
+        news.setOnCheckedChangeListener { view, checked ->
+            if (!checked) {
+                // Выключение — сразу и без вопросов. Время согласия сервер НЕ стирает: доказательство
+                // «согласие было» должно пережить отказ от него.
+                saveNotificationPrefs(prefs().copy(news = false))
+                return@setOnCheckedChangeListener
+            }
+            // Включение = согласие на рекламные сообщения (38-ФЗ ст. 18). Спрашиваем явно и
+            // короткими словами; отказался — возвращаем тумблер на место, ничего не сохраняя.
+            com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.mayak_settings_notify_news)
+                .setMessage(R.string.mayak_settings_notify_news_consent)
+                .setPositiveButton(R.string.mayak_settings_notify_news_agree) { _, _ ->
+                    saveNotificationPrefs(prefs().copy(news = true))
+                }
+                .setNegativeButton(R.string.mayak_cancel) { _, _ -> view.isChecked = false }
+                .setOnCancelListener { view.isChecked = false }
+                .show()
+        }
+    }
+
+    /** Текущее состояние выключателей: то, что пришло с ядра, а до ответа — умолчания таблицы. */
+    private fun prefs(): org.amnezia.awg.mayak.core.NotificationPrefs =
+        notifyPrefs ?: org.amnezia.awg.mayak.core.NotificationPrefs()
+
+    /**
+     * Сохранить выключатели. Не ушло — говорим об этом и ВОЗВРАЩАЕМ тумблеры к тому, что реально
+     * лежит на сервере: тумблер, оставшийся в новом положении после неудачи, — это ровно тот класс
+     * вранья, из-за которого экран регистрации месяц говорил «код отправлен».
+     */
+    private fun saveNotificationPrefs(update: org.amnezia.awg.mayak.core.NotificationPrefs) {
+        lifecycleScope.launch {
+            val ok = runCatching { session.updateNotificationPrefs(backend(), update) }.isSuccess
+            if (ok) {
+                notifyPrefs = update
+                MayakMessages.rememberPrefs(this@MayakSettingsActivity, update)
+            } else {
+                Toast.makeText(
+                    this@MayakSettingsActivity,
+                    R.string.mayak_settings_notify_save_err,
+                    Toast.LENGTH_LONG,
+                ).show()
+                renderNotificationPrefs(prefs())
+            }
+        }
+    }
+
     // ===== Подписка: до какой даты действует доступ и сколько устройств занято =====
 
     /** Срок доступа с ядра (GET /v1/client/sync). Best-effort: нет сети — строку просто не показываем. */
@@ -651,6 +747,9 @@ class MayakSettingsActivity : AppCompatActivity() {
                     // Пресеты сплит-туннеля принадлежат аккаунту: следующий вошедший на этом телефоне
                     // не должен ни видеть, ни применять чужие правила (разбор 2026-07-27).
                     MayakPresets.clear(this@MayakSettingsActivity)
+                    // Ящик — тоже про КОНКРЕТНУЮ учётку: счётчик непрочитанного и «о чём уже
+                    // уведомляли» не должны пережить выход и достаться следующему вошедшему.
+                    MayakMessages.clear(this@MayakSettingsActivity)
                     // Перезапускаем точку входа — без токена покажется экран логина.
                     val intent = Intent(this@MayakSettingsActivity, MayakActivity::class.java)
                         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
@@ -715,9 +814,10 @@ class MayakSettingsActivity : AppCompatActivity() {
                 ).show()
                 return@launch
             }
-            // Аккаунта больше нет: гасим туннель, стираем пресеты и уходим на экран входа.
+            // Аккаунта больше нет: гасим туннель, стираем пресеты и ящик, уходим на экран входа.
             runCatching { tunnel.down() }
             MayakPresets.clear(this@MayakSettingsActivity)
+            MayakMessages.clear(this@MayakSettingsActivity)
             Toast.makeText(this@MayakSettingsActivity, R.string.mayak_delete_account_done, Toast.LENGTH_LONG).show()
             val intent = Intent(this@MayakSettingsActivity, MayakActivity::class.java)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)

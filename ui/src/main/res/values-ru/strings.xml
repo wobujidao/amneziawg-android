@@ -687,4 +687,86 @@
     <string name="mayak_preset_editor_save_copy">Сохранить как свою копию</string>
     <string name="mayak_update_via_play">Вышла новая версия. Приложение установлено из Google Play — обновите его там.</string>
     <string name="mayak_update_open_play">Открыть Google Play</string>
+    <!-- ===== Ящик сообщений (SPEC-0047) =====
+         ⚠️ Слова «VPN», «туннель», «обход» здесь запрещены: заголовок уведомления читают через
+         плечо, а приложение умеет прятаться под «Погоду»/«Заметки». Сторож — MayakMessagesWordsTest. -->
+    <string name="mayak_messages_title">Сообщения</string>
+    <string name="mayak_messages_empty">Сообщений пока нет.</string>
+    <string name="mayak_messages_load_err">Не удалось загрузить сообщения. %1$s</string>
+    <string name="mayak_messages_unread_mark">Новое</string>
+    <string name="mayak_messages_badge_many">99+</string>
+    <string name="mayak_messages_channel_name">Сообщения</string>
+    <string name="mayak_messages_channel_desc">Оплата, срок доступа, ответы поддержки и приглашения.</string>
+    <string name="mayak_messages_channel_quiet_name">Сообщения без звука</string>
+    <string name="mayak_messages_channel_quiet_desc">Те же сообщения ночью — приходят молча (23:00–09:00).</string>
+
+    <!-- Кнопки действия в карточке сообщения -->
+    <string name="mayak_messages_action_billing">Открыть личный кабинет</string>
+    <string name="mayak_messages_action_support">Открыть обращение</string>
+    <string name="mayak_messages_action_group">Открыть общий доступ</string>
+    <string name="mayak_messages_action_devices">Мои устройства</string>
+    <string name="mayak_messages_action_connect">На главный экран</string>
+    <string name="mayak_messages_action_settings">Открыть настройки</string>
+
+    <!-- Поводы (kind): наш перевод. Незнакомый повод и «своё сообщение» показываются текстом сервера. -->
+    <string name="mayak_msg_subscription_expiring">Доступ скоро закончится</string>
+    <string name="mayak_msg_subscription_expiring_body">Осталось дней: %1$s. Продлите, чтобы всё продолжало работать.</string>
+    <string name="mayak_msg_subscription_expired">Доступ закончился</string>
+    <string name="mayak_msg_subscription_expired_body">Осталось льготных дней: %1$s. Продлите, чтобы всё продолжало работать.</string>
+    <string name="mayak_msg_subscription_expired_body_plain">Продлите доступ, чтобы всё продолжало работать.</string>
+    <string name="mayak_msg_access_revoked">Доступ отключён</string>
+    <string name="mayak_msg_access_revoked_body">Продлите доступ или напишите нам — разберёмся.</string>
+    <string name="mayak_msg_payment_receipt">Оплата прошла</string>
+    <string name="mayak_msg_payment_receipt_body">Зачислено: %1$s. Спасибо!</string>
+    <string name="mayak_msg_payment_receipt_body_plain">Спасибо! Оплата зачислена.</string>
+    <string name="mayak_msg_payment_refund">Возврат оформлен</string>
+    <string name="mayak_msg_payment_refund_body">Вернули: %1$s.</string>
+    <string name="mayak_msg_payment_refund_body_plain">Деньги вернутся тем же способом, которым вы платили.</string>
+    <string name="mayak_msg_balance_topup">Счёт пополнен</string>
+    <string name="mayak_msg_balance_topup_body">Зачислено: %1$s.</string>
+    <string name="mayak_msg_balance_topup_body_plain">Средства зачислены на ваш счёт.</string>
+    <string name="mayak_msg_balance_charge">Списание со счёта</string>
+    <string name="mayak_msg_balance_charge_body">Списано: %1$s.</string>
+    <string name="mayak_msg_balance_charge_body_plain">Средства списаны со счёта.</string>
+    <string name="mayak_msg_autorenew_ok">Продление прошло</string>
+    <string name="mayak_msg_autorenew_ok_body">Доступ продлён автоматически — делать ничего не нужно.</string>
+    <string name="mayak_msg_autorenew_failed">Не удалось продлить автоматически</string>
+    <string name="mayak_msg_autorenew_failed_body">На счёте не хватило средств. Пополните — и доступ продолжится.</string>
+    <string name="mayak_msg_plan_changed">Тариф изменён</string>
+    <string name="mayak_msg_plan_changed_body">Теперь у вас: %1$s.</string>
+    <string name="mayak_msg_group_invited">Приглашение в общий доступ</string>
+    <string name="mayak_msg_group_invited_body">Вас пригласили пользоваться доступом вместе. Примите приглашение, чтобы место закрепилось за вами.</string>
+    <string name="mayak_msg_group_invite_accepted">Приглашение принято</string>
+    <string name="mayak_msg_group_invite_accepted_body">Ваше приглашение приняли — место занято.</string>
+    <string name="mayak_msg_group_slot_revoked">Место в общем доступе отозвано</string>
+    <string name="mayak_msg_group_slot_revoked_body">Ваше место больше не действует. Оформите свой доступ, чтобы всё продолжало работать.</string>
+    <string name="mayak_msg_group_root_expiring">У владельца общего доступа заканчивается срок</string>
+    <string name="mayak_msg_group_root_expiring_body">Когда его срок закончится, ваше место перестанет действовать.</string>
+    <string name="mayak_msg_new_device_login">Вход с нового устройства</string>
+    <string name="mayak_msg_new_device_login_body">Устройство: %1$s. Если это были не вы — смените пароль.</string>
+    <string name="mayak_msg_new_device_login_body_plain">Если это были не вы — смените пароль.</string>
+    <string name="mayak_msg_password_changed">Пароль изменён</string>
+    <string name="mayak_msg_password_changed_body">Если это были не вы — сразу напишите нам.</string>
+    <string name="mayak_msg_support_reply">Ответ по вашему обращению</string>
+    <string name="mayak_msg_support_reply_body">Мы ответили — откройте, чтобы прочитать.</string>
+    <string name="mayak_msg_inactive_warning">Учётной записью давно не пользовались</string>
+    <string name="mayak_msg_inactive_warning_body">Если не зайти в течение %1$s дн., мы её удалим.</string>
+    <string name="mayak_msg_inactive_warning_body_plain">Зайдите в приложение, чтобы её не удалили.</string>
+    <string name="mayak_msg_never_connected">Вы ещё ни разу не подключались</string>
+    <string name="mayak_msg_never_connected_body">Откройте приложение и нажмите большую круглую кнопку — этого достаточно.</string>
+    <string name="mayak_msg_maintenance">Плановые работы</string>
+
+    <!-- Настройки → Уведомления -->
+    <string name="mayak_settings_notify">Уведомления</string>
+    <string name="mayak_settings_notify_account">Доступ и деньги</string>
+    <string name="mayak_settings_notify_account_hint">Чеки, срок доступа и безопасность приходят всегда: это работа сервиса, а не рассылка, и выключить её нельзя.</string>
+    <string name="mayak_settings_notify_service">Сервисные</string>
+    <string name="mayak_settings_notify_service_hint">Ответы поддержки, плановые работы, подсказки по настройке.</string>
+    <string name="mayak_settings_notify_news">Новости и предложения</string>
+    <string name="mayak_settings_notify_news_hint">Скидки и новое в сервисе. По умолчанию выключено.</string>
+    <string name="mayak_settings_notify_news_consent">Мы будем присылать вам сообщения о скидках и новых возможностях сервиса. Отказаться можно в любой момент — этим же переключателем.</string>
+    <string name="mayak_settings_notify_news_agree">Согласен получать</string>
+    <string name="mayak_settings_notify_quiet">Тихие часы (23:00–09:00)</string>
+    <string name="mayak_settings_notify_quiet_hint">Ночью сообщения приходят без звука. Время берём с вашего телефона.</string>
+    <string name="mayak_settings_notify_save_err">Не удалось сохранить. Попробуйте ещё раз.</string>
 </resources>

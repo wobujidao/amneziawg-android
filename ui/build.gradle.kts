@@ -211,3 +211,15 @@ androidComponents {
         tasks.matching { it.name == "assembleProdRelease" }.configureEach { finalizedBy(copyMapping) }
     }
 }
+
+// Сторожи, которые читают РЕСУРСЫ и КОНФИГИ из дерева исходников (MayakMessagesWordsTest,
+// NetworkSecurityConfigPinTest), Gradle сам инпутами не считает: правка текста строки не меняет ни
+// одного .class, задача остаётся «up-to-date», и тест НЕ ЗАПУСКАЕТСЯ вовсе. Проверено 12-08:
+// нарочно испорченная строка («VPN отключён») дала BUILD SUCCESSFUL — то есть сторож молчал ровно
+// в том случае, ради которого заведён. Объявляем эти файлы входами задачи тестов явно.
+tasks.withType<Test>().configureEach {
+    inputs.files(
+        fileTree("src/main/res") { include("values*/strings.xml") },
+        fileTree("src/prodRelease/res") { include("xml/*.xml") },
+    ).withPathSensitivity(PathSensitivity.RELATIVE).withPropertyName("mayakGuardedResources")
+}

@@ -80,6 +80,51 @@
             android:layout_height="1dp"
             android:layout_weight="1" />
 
+        <!-- Ящик сообщений (SPEC-0047). Стоит В ШАПКЕ, а не в настройках, ровно по одной причине:
+             до него канала до человека без почты не было вовсе, и прятать его на пятом экране
+             прокрутки — значит снова не доставить. Кружок с числом непрочитанного ставится кодом
+             (updateMessagesBadge) и виден без всякой сети — по данным прошлой проверки. -->
+        <FrameLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/mayak_messages_button"
+                style="@style/Mayak.Button.Text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:contentDescription="@string/mayak_messages_title"
+                app:icon="@drawable/ic_message"
+                app:iconTint="@color/mayak_on_bg"
+                app:iconSize="22dp"
+                app:iconPadding="0dp"
+                android:text="" />
+
+            <TextView
+                android:id="@+id/mayak_messages_badge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="top|end"
+                android:layout_marginTop="2dp"
+                android:layout_marginEnd="4dp"
+                android:background="@drawable/mayak_bg_unread_badge"
+                android:gravity="center"
+                android:minWidth="16dp"
+                android:minHeight="16dp"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
+                android:textColor="@android:color/white"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:visibility="gone"
+                tools:text="3"
+                tools:visibility="visible" />
+        </FrameLayout>
+
         <com.google.android.material.button.MaterialButton
             android:id="@+id/mayak_settings_button"
             style="@style/Mayak.Button.Text"

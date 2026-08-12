@@ -168,6 +168,16 @@
             android:windowSoftInputMode="adjustResize"
             android:theme="@style/MayakTheme" />
 
+        <!-- Экран «Сообщения» (SPEC-0047): ящик сообщений от нас — чеки, срок доступа, ответы
+             поддержки, приглашения. singleTop: тап по уведомлению при уже открытом экране обязан
+             показать ТУ карточку (onNewIntent), а не положить сверху вторую копию экрана. -->
+        <activity
+            android:name="org.amnezia.awg.mayak.MayakMessagesActivity"
+            android:exported="false"
+            android:label="@string/mayak_messages_title"
+            android:launchMode="singleTop"
+            android:theme="@style/MayakTheme" />
+
         <!-- Экран «О приложении»: версия, на чём основано, лицензии -->
         <activity
             android:name="org.amnezia.awg.mayak.MayakAboutActivity"
