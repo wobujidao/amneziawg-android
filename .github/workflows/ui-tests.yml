@@ -1,0 +1,59 @@
+name: ui (unit tests)
+run-name: "ui tests • ${{ github.ref_name }}"
+
+# JVM-юнит-тесты модуля :ui — сторожа, которые читают файлы дерева исходников и проверяют то, что
+# иначе замечает только человек глазами:
+#   • MayakMessagesWordsTest — в текстах ящика сообщений нет слов «VPN»/«туннель»/«обход» (их видят
+#     в шторке и через плечо), и у каждого повода есть перевод;
+#   • NetworkSecurityConfigPinTest — пины сертификата в прод-конфиге сети;
+#   • MayakNoBackupTest — перенос кэшей в noBackupFilesDir.
+#
+# 🔴 Заведено 12-08. До этого дня НИ ОДИН из этих сторожей в CI не гонялся вовсе: core.yml тестирует
+# только :core, а build.yml собирает APK (сборка тесты не запускает). То есть сторож, написанный
+# «чтобы не забыли», сам зависел от того, вспомнит ли человек запустить его руками.
+#
+# Эмулятор не нужен: это чистые JVM-тесты. Ключа подписи тоже — тестам сборка APK не требуется.
+on:
+  push:
+    paths:
+      - "ui/**"
+      - "core/**"
+      - "gradle/libs.versions.toml"
+      - "settings.gradle.kts"
+      - "build.gradle.kts"
+      - ".github/workflows/ui-tests.yml"
+  pull_request:
+    paths:
+      - "ui/**"
+  workflow_dispatch: {}
+
+jobs:
+  ui-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Unit tests :ui (prodRelease)
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x ./gradlew
+          ./gradlew --no-daemon --stacktrace :ui:testProdReleaseUnitTest
+
+      - name: Отчёты тестов (когда упало — смотреть сюда)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-test-reports
+          path: ui/build/reports/tests/
+          if-no-files-found: ignore
