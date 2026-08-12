@@ -7,8 +7,24 @@
 // общий доступ, — до половины людей не доходили никак. Ящик закрывает именно это.
 //
 // Сегодня приложение в фоне на сервер не ходит вовсе (кроме телеметрии раз в 7 дней) — значит вся
-// доставка держится на трёх поводах: открытие приложения, удачный подъём туннеля и фоновая проверка
-// раз в 6 часов (MayakMessagesWorker).
+// доставка держится на четырёх поводах: открытие приложения (MayakActivity.onResume), удачный подъём
+// туннеля, частая проверка, пока туннель поднят (MayakMessagesPoll), и фоновая проверка раз в 6 часов
+// (MayakMessagesWorker).
+//
+// 🔴 ЧЕМУ НАУЧИЛ ЖИВОЙ ТЕЛЕФОН 13-08 (разбор — docs/research/2026-08-13-uvedomleniya-ne-doshli-razbor.md).
+// Первая версия ящика на живом телефоне не доставила НИ ОДНОГО уведомления, хотя на эмуляторе
+// проходила целиком. Сложились два решения, каждое по отдельности разумное:
+//   1) проверка на переднем плане была зажата анти-дребезгом в ЧАС (сервер просит 6 ч, вилка
+//      [5 мин, 1 ч] давала час) — человек открыл приложение через 4 минуты после сообщения, и
+//      приложение молча не пошло на сервер вовсе;
+//   2) экран «Сообщения» забирал ящик САМ и намеренно не показывал уведомлений (человек и так
+//      смотрит в список).
+// Вместе: единственный путь, которым сообщение попадало в телефон, совпал с тем, где показ запрещён.
+// Уведомление было структурно недостижимо — при любых настройках телефона.
+//
+// Отсюда устройство этого файла: «ЗАБРАТЬ» и «ПОКАЗАТЬ» разведены явно (SyncTrigger), а частота
+// захода — свойство ПОВОДА, а не одна константа на всех. Открыл приложение — идём (пол в секундах,
+// не в часах).
 //
 // ⚠️ СЛОВА. Уведомление читают через плечо, а приложение умеет прятаться под «Погоду»/«Заметки»
 // (MayakDisguise). Поэтому ни в одном показываемом тексте нет слов «VPN», «туннель», «обход» — это
@@ -22,6 +38,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import java.util.Calendar
@@ -29,6 +46,7 @@ import org.amnezia.awg.R
 import org.amnezia.awg.mayak.core.HostProvider
 import org.amnezia.awg.mayak.core.MayakBackend
 import org.amnezia.awg.mayak.core.MessageKinds
+import org.amnezia.awg.mayak.core.MessagesResponse
 import org.amnezia.awg.mayak.core.NotificationPrefs
 import org.amnezia.awg.mayak.core.UserMessage
 import org.amnezia.awg.mayak.core.quietHourNow
@@ -40,11 +58,23 @@ object MayakMessages {
 
     /**
      * Второй канал — для тихих часов. Он существует не «на всякий случай», а потому что с Android 8
-     * звук решает КАНАЛ, а не уведомление: `setSilent(true)` на канале с важностью DEFAULT ничего не
-     * заглушит, и настройка «тихие часы» была бы кнопкой без эффекта. Единственный надёжный способ
-     * показать без звука — положить уведомление в канал с важностью LOW.
+     * звук решает КАНАЛ, а не уведомление: у канала с важностью DEFAULT сигнал по умолчанию свой, и
+     * настройка «тихие часы» без отдельного канала была бы кнопкой без эффекта.
+     *
+     * 🔴 Суффикс `_v2` и важность DEFAULT — правка 13-08. Первая версия канала была IMPORTANCE_LOW,
+     * и это оказалось перестраховкой с ценой: с Android 11 система прячет значки «тихих» уведомлений
+     * из статус-бара, а у человека сверху может быть ещё и «Не беспокоить» (на Samsung он умеет
+     * убирать уведомления из шторки целиком) — получалось ДВОЙНОЕ глушение, при котором ночное
+     * сообщение не видно вообще нигде. Нам нужно ровно «без звука», а не «поменьше заметно»: канал
+     * DEFAULT со снятым звуком и вибрацией даёт значок в статус-баре и обычную строку в шторке.
+     *
+     * Важность существующего канала приложение изменить НЕ может (после создания её правит только
+     * человек) — поэтому новый id, а прежний канал удаляется в ensureChannels().
      */
-    const val CHANNEL_QUIET_ID = "mayak_messages_quiet"
+    const val CHANNEL_QUIET_ID = "mayak_messages_quiet_v2"
+
+    /** Прежний тихий канал (IMPORTANCE_LOW). Остаётся только затем, чтобы его удалить. */
+    private const val CHANNEL_QUIET_ID_OLD = "mayak_messages_quiet"
 
     private const val PREFS = "mayak_messages"
 
@@ -57,8 +87,11 @@ object MayakMessages {
     /** Когда последний раз ходили в ящик (настенные часы) — анти-дребезг тихих проверок. */
     private const val K_LAST_SYNC = "last_sync_ms"
 
-    /** Сколько сервер просит ждать до следующего захода (next_check_after_sec). */
-    private const val K_NEXT_AFTER_SEC = "next_check_after_sec"
+    /**
+     * Тег диаг-лога. В присланный человеком диаг-лог попадают только строки с тегом «AmneziaWG…» или
+     * «Mayak…» (фильтр DiagCollector), поэтому всё про доставку сообщений пишем именно под этим.
+     */
+    private const val TAG = "AmneziaWG/mayak-messages"
 
     /** База номеров уведомлений. 'MS' — рядом со статусным 0x4D41 ('MA'), но заведомо мимо него. */
     private const val NOTIF_BASE = 0x4D530000
@@ -67,10 +100,37 @@ object MayakMessages {
      *  и по бейджу: пачка из десяти уведомлений — это спам, а спам в Play разбирают по жалобе. */
     private const val MAX_NOTIFY_PER_SYNC = 3
 
-    /** Потолок тихой проверки при живом экране: сервер обычно просит 6 часов, но это про ФОН.
-     *  Сам экран «Сообщения» перечитывает ящик всегда и без ограничений — там человек и ждёт свежего. */
-    private const val FOREGROUND_MAX_INTERVAL_MS = 60L * 60 * 1000
-    private const val FOREGROUND_MIN_INTERVAL_MS = 5L * 60 * 1000
+    /**
+     * Поводы заглянуть в ящик. У каждого СВОЯ частота и своё право показывать уведомление — именно
+     * это разведение и есть починка 13-08 (см. шапку файла).
+     *
+     * @param minGapMs минимальный зазор с прошлого захода. Это защита от дребезга (пересоздание
+     *   Activity при смене темы/повороте — это не «человек открыл приложение» второй раз), а НЕ
+     *   экономия запросов: сам запрос крошечный, а человек в этот момент смотрит на экран.
+     * @param notify показывать ли уведомление о найденном. Экрану «Сообщения» это не нужно —
+     *   человек уже читает список; всем остальным нужно, иначе сообщение не покидает сервер.
+     */
+    enum class SyncTrigger(internal val minGapMs: Long, internal val notify: Boolean) {
+        /** Человек открыл приложение (или вернулся в него из фона). Пол — 10 секунд. */
+        OPEN(10_000L, true),
+
+        /** Туннель поднят: частая тихая проверка процесс-скоупным MayakMessagesPoll. */
+        TUNNEL(60_000L, true),
+
+        /** Расписание уже держит кто-то другой (WorkManager раз в 6 ч, толчок после выданного
+         *  разрешения на уведомления) — второй потолок поверх него означал бы пропущенные такты. */
+        ALWAYS(0L, true),
+    }
+
+    /**
+     * Итог проверки. `fresh` — то, что в ЭТОМ заходе оказалось новым: нужно не для бейджа, а чтобы
+     * открытое приложение показало сообщение явно (баннером), а не молча зажгло цифру.
+     */
+    data class SyncResult(val ok: Boolean, val fresh: List<UserMessage>) {
+        companion object {
+            val NONE = SyncResult(false, emptyList())
+        }
+    }
 
     // ===== Счётчик непрочитанного (бейдж) =====
 
@@ -101,31 +161,66 @@ object MayakMessages {
      * Молчит при ЛЮБОЙ беде — нет входа, нет сети, ручки на ядре ещё не завезли (404). Это не
      * снисходительность к ошибкам, а требование: серверная половина выкатывается отдельно, и
      * приложение обязано вести себя ровно как раньше, пока её нет.
-     *
-     * @param force не смотреть на анти-дребезг (экран «Сообщения», кнопка «Обновить»).
-     * @return true, если сервер ответил и данные обновились.
      */
-    suspend fun sync(context: Context, force: Boolean = false): Boolean {
+    suspend fun sync(context: Context, trigger: SyncTrigger): SyncResult {
         val app = context.applicationContext
-        if (!force && !dueForSync(app)) return false
+        val last = prefs(app).getLong(K_LAST_SYNC, 0L)
+        if (!due(last, System.currentTimeMillis(), trigger.minGapMs)) {
+            Log.i(TAG, "sync skip: trigger=$trigger gap=${trigger.minGapMs}ms since=${System.currentTimeMillis() - last}ms")
+            return SyncResult.NONE
+        }
+        // since_id — чтобы не тянуть заново всё, о чём уже уведомляли. Ноль (первый заход) отдаёт
+        // весь ящик за 90 дней: он же наполнит бейдж, но звенеть на всю пачку мы не станем (ниже).
+        val sinceId = prefs(app).getLong(K_LAST_NOTIFIED, 0L)
+        val resp = runCatching { pull(app, sinceId = sinceId, notify = trigger.notify) }.getOrNull()
+            ?: return SyncResult.NONE
+        return SyncResult(true, resp.messages.filter { !it.read }.sortedBy { it.id })
+    }
+
+    /**
+     * Забрать ящик ЦЕЛИКОМ для экрана «Сообщения» (since_id = 0 — экран для того и открыт, чтобы
+     * перечитать старое).
+     *
+     * Отличий от тихой проверки два, и оба намеренные: ошибки НЕ глотаем (экран обязан сказать
+     * причину словами — `failureText`), уведомлений не показываем (человек уже смотрит в список).
+     *
+     * 🔴 Но ЗАБРАТЬ — забираем, как и все: тот же `pull`, те же локальные отметки, тот же счётчик.
+     * До 13-08 экран ходил на сервер сам, в обход этого файла, и был единственным путём доставки —
+     * ровно тем, на котором показ запрещён (шапка файла).
+     */
+    suspend fun loadForScreen(context: Context): List<UserMessage> =
+        pull(context.applicationContext, sinceId = 0, notify = false).messages
+
+    /**
+     * Один заход в ящик: запрос, обновление локальных отметок, решение про показ. Ошибки НЕ глотает —
+     * это делают вызывающие, каждый по-своему.
+     */
+    private suspend fun pull(app: Context, sinceId: Long, notify: Boolean): MessagesResponse {
         val store = KeystoreSecureStore(app)
         val session = MayakSession(store, AwgKeyProvider(), AndroidHwidProvider(app, store))
-        if (!session.hasToken()) return false
+        check(session.hasToken()) { "нет входа" }
         val backend = MayakBackend(
             HostProvider(MayakHostList.effective(app, store.get(MayakActivity.KEY_SERVER))),
             bypassTunnel = OutsideTunnel.opener(app),
         )
-        val lastNotified = prefs(app).getLong(K_LAST_NOTIFIED, 0L)
-        // since_id — чтобы не тянуть заново всё, о чём уже уведомляли. Ноль (первый заход) отдаёт
-        // весь ящик за 90 дней: он же наполнит бейдж, но звенеть на всю пачку мы не станем (ниже).
-        val resp = runCatching { session.messages(backend, sinceId = lastNotified) }.getOrNull() ?: return false
+        val resp = session.messages(backend, sinceId = sinceId)
         prefs(app).edit()
             .putInt(K_UNREAD, resp.unread.coerceAtLeast(0))
             .putLong(K_LAST_SYNC, System.currentTimeMillis())
-            .putInt(K_NEXT_AFTER_SEC, resp.nextCheckAfterSec)
             .apply()
-        notifyAbout(app, resp.messages, firstSync = lastNotified == 0L)
-        return true
+        Log.i(
+            TAG,
+            "pull ok: since=$sinceId got=${resp.messages.size} unread=${resp.unread} " +
+                "serverAsks=${resp.nextCheckAfterSec}s notify=$notify",
+        )
+        if (notify) {
+            notifyAbout(app, resp.messages, firstSync = sinceId == 0L)
+        } else {
+            // Показывать не наше дело, но отметку «человек это видел» двигаем: иначе фоновая проверка
+            // потом зазвенит о том, что он только что прочитал на экране.
+            noteSeenUpTo(app, resp.messages.maxOfOrNull { it.id } ?: 0L, resp.unread)
+        }
+        return resp
     }
 
     /**
@@ -147,24 +242,23 @@ object MayakMessages {
         runCatching { session.markMessageRead(backend, id) }
     }
 
-    /** Запомнить, что до этого id всё уже показано (экран «Сообщения» прочитал ящик сам). */
-    fun noteSeenUpTo(context: Context, maxId: Long, unread: Int) {
+    /** Запомнить, что до этого id всё уже показано (ящик забирали там, где уведомление не нужно). */
+    private fun noteSeenUpTo(context: Context, maxId: Long, unread: Int) {
         val p = prefs(context)
         val edit = p.edit().putInt(K_UNREAD, unread.coerceAtLeast(0))
         if (maxId > p.getLong(K_LAST_NOTIFIED, 0L)) edit.putLong(K_LAST_NOTIFIED, maxId)
         edit.apply()
     }
 
-    /** Пора ли в тихую проверку: не чаще, чем просит сервер, и в любом случае не чаще раза в 5 минут. */
-    private fun dueForSync(context: Context): Boolean {
-        val p = prefs(context)
-        val last = p.getLong(K_LAST_SYNC, 0L)
-        if (last <= 0L) return true
-        val asked = p.getInt(K_NEXT_AFTER_SEC, 0).toLong() * 1000
-        val gap = asked.coerceIn(FOREGROUND_MIN_INTERVAL_MS, FOREGROUND_MAX_INTERVAL_MS)
-        val since = System.currentTimeMillis() - last
+    /**
+     * Пора ли идти: прошло ли `minGapMs` с прошлого захода. Чистая функция без Android — её и
+     * проверяет сторож (MayakMessagesTriggerTest), потому что ровно здесь 13-08 стоял час.
+     */
+    internal fun due(lastSyncMs: Long, nowMs: Long, minGapMs: Long): Boolean {
+        if (lastSyncMs <= 0L) return true // ни разу не ходили
+        val since = nowMs - lastSyncMs
         // Часы могли уехать назад (смена времени/пояса) — тогда since отрицательный: считаем, что пора.
-        return since < 0 || since >= gap
+        return since < 0 || since >= minGapMs
     }
 
     // ===== Уведомления =====
@@ -187,11 +281,19 @@ object MayakMessages {
         if (maxId > 0 && (fresh.isEmpty() || canPost)) {
             prefs(context).edit().putLong(K_LAST_NOTIFIED, maxId).apply()
         }
+        val quiet = quietNow(context)
+        // 🩺 ДИАГНОСТИЧЕСКАЯ ЗАПИСЬ О ПОПЫТКЕ ПОКАЗА (правка 13-08). Разбор «почему человек не увидел
+        // уведомление» до этого шёл рассуждениями: в логе не было ни строчки о том, пытались ли мы
+        // вообще. Теперь есть — и она попадает в присланный диаг-лог (тег ловит DiagCollector).
+        Log.i(
+            TAG,
+            "notify: fresh=${fresh.size} canPost=$canPost quiet=$quiet firstSync=$firstSync " +
+                "channel=${if (quiet) CHANNEL_QUIET_ID else CHANNEL_ID} ids=${fresh.map { it.id }}",
+        )
         if (fresh.isEmpty() || !canPost) return
         // Первый заход после установки/входа: в ящике может лежать всё за 90 дней, и разом звенеть на
         // всю пачку нельзя. Показываем ОДНО, самое свежее — остальное человек увидит по бейджу.
         val limit = if (firstSync) 1 else MAX_NOTIFY_PER_SYNC
-        val quiet = quietNow(context)
         for (m in fresh.takeLast(limit)) notifyOne(context, m, quiet)
     }
 
@@ -235,7 +337,11 @@ object MayakMessages {
             .setContentTitle(title(context, m))
             .setAutoCancel(true)
             .setContentIntent(pi)
-            .setPriority(if (quiet) NotificationCompat.PRIORITY_LOW else NotificationCompat.PRIORITY_DEFAULT)
+            // До Android 8 звук решает само уведомление: тихие часы = БЕЗ ЗВУКА, а не «пониже
+            // приоритетом». PRIORITY_LOW убирал уведомление из статус-бара — то есть глушил не звук,
+            // а видимость (правка 13-08, та же причина, что у нового id тихого канала).
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setSilent(quiet)
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
             // Оставляем и его: тем, кто «скрывать личное» включил, система спрячет и заголовок.
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
@@ -245,6 +351,12 @@ object MayakMessages {
     private fun ensureChannels(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val nm = context.getSystemService(NotificationManager::class.java) ?: return
+        // Прежний тихий канал (IMPORTANCE_LOW) убираем: важность у созданного канала уже не поменять,
+        // а оставленный он висел бы в системных настройках вторым «Сообщения без звука» — человек
+        // читает это как две разные настройки, из которых одна ничего не делает.
+        if (nm.getNotificationChannel(CHANNEL_QUIET_ID_OLD) != null) {
+            runCatching { nm.deleteNotificationChannel(CHANNEL_QUIET_ID_OLD) }
+        }
         if (nm.getNotificationChannel(CHANNEL_ID) == null) {
             nm.createNotificationChannel(
                 NotificationChannel(
@@ -264,7 +376,10 @@ object MayakMessages {
                 NotificationChannel(
                     CHANNEL_QUIET_ID,
                     context.getString(R.string.mayak_messages_channel_quiet_name),
-                    NotificationManager.IMPORTANCE_LOW, // важность LOW = без звука. Иначе тихие часы не тихие
+                    // DEFAULT со снятым звуком, а НЕ LOW: нам нужно «молча», но видно (значок в
+                    // статус-баре, обычная строка в шторке). LOW система с Android 11 прячет из
+                    // статус-бара, и вместе с «Не беспокоить» человека сообщение исчезало совсем.
+                    NotificationManager.IMPORTANCE_DEFAULT,
                 ).apply {
                     description = context.getString(R.string.mayak_messages_channel_quiet_desc)
                     setSound(null, null)

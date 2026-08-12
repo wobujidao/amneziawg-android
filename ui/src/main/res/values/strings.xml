@@ -691,6 +691,8 @@
     <string name="mayak_messages_action_devices">My devices</string>
     <string name="mayak_messages_action_connect">Go to main screen</string>
     <string name="mayak_messages_action_settings">Open settings</string>
+    <!-- Кнопка баннера «пришло новое сообщение», пока человек в приложении. -->
+    <string name="mayak_messages_banner_open">Open</string>
 
     <string name="mayak_msg_subscription_expiring">Your access is running out</string>
     <string name="mayak_msg_subscription_expiring_body">Days left: %1$s. Renew so that everything keeps working.</string>

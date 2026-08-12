@@ -174,7 +174,8 @@ class MayakActivity : AppCompatActivity() {
             // замерено на эмуляторе 12-08.
             if (granted) {
                 lifecycleScope.launch {
-                    if (MayakMessages.sync(this@MayakActivity, force = true)) updateMessagesBadge()
+                    val r = MayakMessages.sync(this@MayakActivity, MayakMessages.SyncTrigger.ALWAYS)
+                    if (r.ok) updateMessagesBadge()
                 }
             }
         }
@@ -460,6 +461,10 @@ class MayakActivity : AppCompatActivity() {
             // Вернулись с экрана «Сообщения» — там могли что-то прочитать: кружок обязан это отразить,
             // иначе он висит с прежним числом и читается как «прочтение не сработало».
             updateMessagesBadge()
+            // 🔴 И ЗАГЛЯНУТЬ В ЯЩИК. Раньше проверка стояла только в сборке главного экрана, то есть
+            // при СОЗДАНИИ Activity: человек, который открыл приложение из недавних (обычный случай —
+            // Activity жива), на сервер не ходил вовсе. Ровно так 13-08 сообщение и не доехало.
+            syncMessages()
         }
         // Пока экран открыт, надпись под кнопкой ходит за процесс-скоупным сторожем живости: сеть
         // может пропасть между тактами пинга, и человек не должен узнавать об этом позже шторки.
@@ -1279,18 +1284,48 @@ class MayakActivity : AppCompatActivity() {
     }
 
     /**
-     * Тихая проверка ящика (SPEC-0047). Зовётся при открытии приложения и после удачного подъёма
-     * туннеля — это два момента, когда мы и так в сети, а человек уже смотрит на экран.
+     * Проверка ящика (SPEC-0047). Зовётся при показе главного, при ВОЗВРАТЕ в приложение и после
+     * удачного подъёма туннеля — это моменты, когда мы и так в сети, а человек смотрит на экран.
+     * Отсюда и триггер OPEN: пол в 10 секунд (защита от пересоздания экрана), а не в час, как было
+     * до 13-08.
      *
-     * Сама себя ограничивает по частоте (MayakMessages.dueForSync) и молчит при любой беде: нет
-     * входа, нет сети, ручки на ядре ещё не завезли. Сообщение появится уведомлением, а число —
-     * кружком в шапке, который дорисовываем по факту ответа.
+     * Молчит при любой беде: нет входа, нет сети, ручки на ядре ещё не завезли. Число появится
+     * кружком в шапке, а НОВОЕ сообщение — баннером (см. showMessageBanner).
      */
     private fun syncMessages() {
         if (!session.hasToken()) return
         lifecycleScope.launch {
-            if (MayakMessages.sync(this@MayakActivity)) updateMessagesBadge()
+            val r = MayakMessages.sync(this@MayakActivity, MayakMessages.SyncTrigger.OPEN)
+            if (!r.ok) return@launch
+            updateMessagesBadge()
+            r.fresh.maxByOrNull { it.id }?.let { showMessageBanner(it) }
         }
+    }
+
+    /**
+     * Новое сообщение пришло, пока человек В ПРИЛОЖЕНИИ — сказать явно, а не зажечь цифру.
+     *
+     * Пункт 4 разбора 13-08: цифра на конверте — это про «пришло когда-то раньше», её замечают не
+     * сразу и не связывают с тем, что происходит сейчас. Уведомление в шторке при открытом приложении
+     * человек тоже не увидит — он смотрит не туда. Поэтому баннер поверх экрана, с заголовком и
+     * кнопкой «Открыть».
+     *
+     * Уведомление при этом всё равно показывается — оно останется в шторке, если баннер пропустили;
+     * открытие карточки его снимет (markRead гасит уведомление по id).
+     */
+    private fun showMessageBanner(m: org.amnezia.awg.mayak.core.UserMessage) {
+        if (!lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) return
+        val root = findViewById<View>(android.R.id.content) ?: return
+        com.google.android.material.snackbar.Snackbar
+            .make(root, MayakMessages.title(this, m), com.google.android.material.snackbar.Snackbar.LENGTH_LONG)
+            .setAction(R.string.mayak_messages_banner_open) {
+                startActivity(
+                    Intent(this, MayakMessagesActivity::class.java)
+                        .putExtra(MayakMessagesActivity.EXTRA_MESSAGE_ID, m.id)
+                )
+                MayakTransitions.applyAxis(this)
+            }
+            .show()
     }
 
     /** Лёгкий fade-through контента экрана (вместо мгновенной подмены setContentView). */
@@ -2900,9 +2935,18 @@ class MayakActivity : AppCompatActivity() {
      *  переживало уничтожение Activity (туннель живёт в процессе, а не в Activity). Идемпотентно. */
     // Сторож живости (MayakLiveness) заводится и гасится ровно там же: он тоже процесс-скоупный и
     // обязан жить, пока жив туннель, — иначе в шторке навсегда застынет последнее слово (аудит 07-31).
-    private fun startKeepalive() { LeaseKeepalive.start(this); SpeedNotifier.start(this); MayakLiveness.start(this) }
+    // Там же заводится и частая проверка ящика (MayakMessagesPoll): пока туннель поднят, процесс жив
+    // и сеть заведомо есть — это единственное окно, где мы можем доставлять сообщение минутами, а не
+    // часами, и без всякого Firebase (пункт 5а разбора 13-08).
+    private fun startKeepalive() {
+        LeaseKeepalive.start(this); SpeedNotifier.start(this); MayakLiveness.start(this)
+        MayakMessagesPoll.start(this)
+    }
 
-    private fun stopKeepalive() { LeaseKeepalive.stop(); SpeedNotifier.stop(); MayakLiveness.stop() }
+    private fun stopKeepalive() {
+        LeaseKeepalive.stop(); SpeedNotifier.stop(); MayakLiveness.stop()
+        MayakMessagesPoll.stop()
+    }
 
     private fun formatDuration(totalSec: Long): String {
         val h = totalSec / 3600

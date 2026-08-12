@@ -23,8 +23,6 @@ import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.launch
 import org.amnezia.awg.R
-import org.amnezia.awg.mayak.core.HostProvider
-import org.amnezia.awg.mayak.core.MayakBackend
 import org.amnezia.awg.mayak.core.MessageActions
 import org.amnezia.awg.mayak.core.UserMessage
 
@@ -47,12 +45,6 @@ class MayakMessagesActivity : AppCompatActivity() {
      * ушёл бы в минус на ровном месте.
      */
     private val markedRead = mutableSetOf<Long>()
-
-    private fun backend(): MayakBackend =
-        MayakBackend(
-            HostProvider(MayakHostList.effective(this, store.get(MayakActivity.KEY_SERVER))),
-            bypassTunnel = OutsideTunnel.opener(this),
-        )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         MayakPrefs.applyTheme(this)
@@ -107,19 +99,17 @@ class MayakMessagesActivity : AppCompatActivity() {
     /**
      * Читаем ВЕСЬ ящик (since_id = 0): экран для того и открыт, чтобы перечитать старое. Анти-дребезг
      * тихих проверок здесь не применяем — человек пришёл именно за свежим.
+     *
+     * 🔴 Ходим через `MayakMessages.loadForScreen`, а НЕ мимо него своим запросом (как было до 13-08).
+     * Причина не в красоте: пока этот экран забирал ящик сам, он был единственным путём, которым
+     * сообщение попадало в телефон, — и ровно тем, где показ уведомления намеренно выключен. Забор и
+     * показ разведены теперь в одном месте (шапка MayakMessages).
      */
     private fun load() {
         showState(getString(R.string.mayak_support_tickets_loading), retry = false)
         lifecycleScope.launch {
             try {
-                val resp = session.messages(backend(), sinceId = 0)
-                // Ящик прочитан целиком — фоновой проверке больше незачем звенеть об этих сообщениях.
-                MayakMessages.noteSeenUpTo(
-                    this@MayakMessagesActivity,
-                    resp.messages.maxOfOrNull { it.id } ?: 0L,
-                    resp.unread,
-                )
-                render(resp.messages)
+                render(MayakMessages.loadForScreen(this@MayakMessagesActivity))
             } catch (e: Exception) {
                 findViewById<LinearLayout>(R.id.mayak_messages_list).removeAllViews()
                 // «Не загрузилось» — это ОТДЕЛЬНОЕ состояние, с причиной словами. Причину берём у

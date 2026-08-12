@@ -714,6 +714,8 @@
     <string name="mayak_messages_action_devices">Мои устройства</string>
     <string name="mayak_messages_action_connect">На главный экран</string>
     <string name="mayak_messages_action_settings">Открыть настройки</string>
+    <!-- Кнопка баннера «пришло новое сообщение», пока человек в приложении. -->
+    <string name="mayak_messages_banner_open">Открыть</string>
 
     <!-- Поводы (kind): наш перевод. Незнакомый повод и «своё сообщение» показываются текстом сервера. -->
     <string name="mayak_msg_subscription_expiring">Доступ скоро закончится</string>

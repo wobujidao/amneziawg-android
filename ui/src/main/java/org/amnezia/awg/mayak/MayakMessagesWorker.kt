@@ -28,9 +28,9 @@ class MayakMessagesWorker(
 ) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result {
-        // force = true: анти-дребезг тихих проверок сделан для экрана, а здесь расписание и так
-        // держит WorkManager — второй потолок поверх него означал бы пропущенные такты.
-        runCatching { MayakMessages.sync(applicationContext, force = true) }
+        // ALWAYS: расписание здесь и так держит WorkManager — второй потолок поверх него означал бы
+        // пропущенные такты.
+        runCatching { MayakMessages.sync(applicationContext, MayakMessages.SyncTrigger.ALWAYS) }
         return Result.success()
     }
 

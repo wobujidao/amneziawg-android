@@ -16,6 +16,7 @@ class MayakNotificationReceiver : BroadcastReceiver() {
         Thread {
             try {
                 LeaseKeepalive.stop() // туннель гасим — прекращаем продление аренды (SPEC-0015)
+                MayakMessagesPoll.stop() // и частую проверку ящика: она живёт ровно при поднятом туннеле
                 runBlocking { GoTunnel(appCtx).down() }
             } catch (_: Throwable) {
                 // туннель мог быть уже опущен / процесс поднялся заново — не критично
