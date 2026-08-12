@@ -89,7 +89,12 @@
     <string name="mayak_reg_done_title">Your account number</string>
     <string name="mayak_reg_done_warning">Write down the number and the password. We show the number once: the account has no email, so without them there is nothing to restore access with. If you want recovery, add an email in the account cabinet.</string>
     <string name="mayak_reg_no_session">The account was created, but we could not sign you in automatically. Write down the number and the password — the sign-in screen opens next with the number already filled in.</string>
-    <string name="mayak_reg_trial">Trial access is already on: %1$d days.</string>
+    <!-- Число дней согласуется с существительным: «1 days» — брак, который видно на первом же
+         экране новичка (поймано живым прогоном 13-08). Поэтому plurals, а не строка с %d. -->
+    <plurals name="mayak_reg_trial_days">
+        <item quantity="one">Trial access is already on: %1$d day.</item>
+        <item quantity="other">Trial access is already on: %1$d days.</item>
+    </plurals>
     <string name="mayak_reg_continue">Continue</string>
     <string name="mayak_consent_note">By signing in you accept the Privacy Policy and Terms of Use.</string>
     <string name="mayak_err_email_not_verified">Please verify your email on the website.</string>

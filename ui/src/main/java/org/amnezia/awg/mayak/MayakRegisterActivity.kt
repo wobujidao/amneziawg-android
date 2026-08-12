@@ -192,7 +192,7 @@ class MayakRegisterActivity : AppCompatActivity() {
             findViewById<TextView>(R.id.mayak_reg_trial).let { view ->
                 // Молчим, если сервер вернул 0: своих «7 дней» приложение не придумывает.
                 view.visibility = if (trialDays > 0) View.VISIBLE else View.GONE
-                if (trialDays > 0) view.text = getString(R.string.mayak_reg_trial, trialDays)
+                if (trialDays > 0) view.text = resources.getQuantityString(R.plurals.mayak_reg_trial_days, trialDays, trialDays)
             }
             // Учётка есть, а сессии нет — говорим прямо и ведём на вход с подставленным номером.
             findViewById<TextView>(R.id.mayak_reg_done_warning).text = getString(

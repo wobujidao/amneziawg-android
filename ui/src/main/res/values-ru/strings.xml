@@ -297,7 +297,12 @@
     <string name="mayak_reg_done_title">Ваш номер аккаунта</string>
     <string name="mayak_reg_done_warning">Запишите номер и пароль. Показываем номер один раз: почты у аккаунта нет, и восстановить доступ без них будет нечем. Нужна возможность восстановления — привяжите почту в личном кабинете.</string>
     <string name="mayak_reg_no_session">Аккаунт создан, но войти автоматически не получилось. Запишите номер и пароль — сейчас откроется вход, номер уже подставлен.</string>
-    <string name="mayak_reg_trial">Пробный доступ уже включён: %1$d дн.</string>
+    <plurals name="mayak_reg_trial_days">
+        <item quantity="one">Пробный доступ уже включён: %1$d день.</item>
+        <item quantity="few">Пробный доступ уже включён: %1$d дня.</item>
+        <item quantity="many">Пробный доступ уже включён: %1$d дней.</item>
+        <item quantity="other">Пробный доступ уже включён: %1$d дня.</item>
+    </plurals>
     <string name="mayak_reg_continue">Продолжить</string>
     <string name="mayak_consent_note">Входя, вы принимаете Политику конфиденциальности и Условия использования.</string>
     <string name="mayak_err_email_not_verified">Подтвердите email на сайте.</string>

@@ -53,10 +53,18 @@ class MayakMessagesWordsTest {
 
     private fun strings(relative: String): Map<String, String> {
         val doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(moduleFile(relative))
-        val nodes = doc.getElementsByTagName("string")
         val out = LinkedHashMap<String, String>()
+        val nodes = doc.getElementsByTagName("string")
         for (i in 0 until nodes.length) {
             val e = nodes.item(i) as Element
+            out[e.getAttribute("name")] = e.textContent.orEmpty()
+        }
+        // И plurals: запрещённое слово прячется в них ровно так же, а сторож их не видел вовсе
+        // (замечено 13-08, когда «1 days» на экране новичка заставило завести первый plurals в
+        // наших строках). Все варианты склеиваем в одно значение — тексту сторожа этого достаточно.
+        val plurals = doc.getElementsByTagName("plurals")
+        for (i in 0 until plurals.length) {
+            val e = plurals.item(i) as Element
             out[e.getAttribute("name")] = e.textContent.orEmpty()
         }
         return out
