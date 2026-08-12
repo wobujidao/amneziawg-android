@@ -743,6 +743,10 @@ class MayakSettingsActivity : AppCompatActivity() {
                 val tunnel = GoTunnel(this)
                 lifecycleScope.launch {
                     runCatching { tunnel.down() }
+                    // Снять адрес доставки пуша ДО выхода: ядро узнаёт устройство по токену сессии,
+                    // после logout() снимать уже нечем — и телефон продолжил бы получать толчки по
+                    // чужой учётке. Локальную отметку функция стирает в любом случае.
+                    MayakPush.onLogout(this@MayakSettingsActivity)
                     session.logout()
                     // Пресеты сплит-туннеля принадлежат аккаунту: следующий вошедший на этом телефоне
                     // не должен ни видеть, ни применять чужие правила (разбор 2026-07-27).
@@ -818,6 +822,9 @@ class MayakSettingsActivity : AppCompatActivity() {
             runCatching { tunnel.down() }
             MayakPresets.clear(this@MayakSettingsActivity)
             MayakMessages.clear(this@MayakSettingsActivity)
+            // Аккаунта больше нет — снимать адрес доставки на ядре не у кого, но забыть отправленный
+            // адрес обязаны: иначе следующий вошедший на этом телефоне сочтёт его уже отправленным.
+            MayakPush.onLogout(this@MayakSettingsActivity)
             Toast.makeText(this@MayakSettingsActivity, R.string.mayak_delete_account_done, Toast.LENGTH_LONG).show()
             val intent = Intent(this@MayakSettingsActivity, MayakActivity::class.java)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)

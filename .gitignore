@@ -26,3 +26,9 @@ maint/
 # Байткод питона от scripts/play_publish.py — появляется при каждом запуске выкладки в Play.
 __pycache__/
 *.pyc
+
+# 🔑 Конфигурация Firebase для пуш-уведомлений. Генерируется scripts/firebase-res.sh из
+# ~/.mayak-secrets/firebase/google-services.json и содержит ключ вида AIzaSy… — а этот репозиторий
+# ПУБЛИЧНЫЙ, и такой коммит поднимет сканеры секретов. В git живёт только скрипт-генератор.
+/ui/src/prodRelease/res/values/firebase.xml
+google-services.json

@@ -5,6 +5,9 @@ agp = "8.3.0"
 # НЕ Tink и НЕ java.security (Ed25519 там только с API 33, у нас minSdk 24) —
 # ресёрч ядра docs/research/2026-07-11-android-ed25519-verify.md.
 bouncycastle = "1.81"
+# Push-уведомления (SPEC-0047, ускоритель ящика): версии Firebase берём ТОЛЬКО из BoM — она держит
+# согласованными messaging/common/installations, которые между собой версиями расходятся.
+firebase-bom = "34.17.0"
 kotlin = "1.9.20"
 kotlinx-serialization = "1.6.0"
 kotlinx-coroutines = "1.7.3"
@@ -26,7 +29,15 @@ androidx-security-crypto = "androidx.security:security-crypto:1.1.0-alpha06"
 androidx-work-runtime-ktx = "androidx.work:work-runtime-ktx:2.9.1"
 bouncycastle-prov = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncycastle" }
 desugarJdkLibs = "com.android.tools:desugar_jdk_libs:2.0.4"
+firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebase-bom" }
+# Версии НЕТ намеренно: её задаёт BoM выше (platform(...) в ui/build.gradle.kts).
+firebase-messaging = { module = "com.google.firebase:firebase-messaging" }
 google-material = "com.google.android.material:material:1.11.0"
+# Проверка «есть ли на телефоне сервисы Google» (GoogleApiAvailability) — телефоны без GMS есть у части
+# людей, и для них push просто не заводится. Артефакт и так приезжает с firebase-messaging, но ТОЛЬКО
+# в runtime-зависимостях (в его gradle-метаданных он не api) — на classpath компиляции его нет, поэтому
+# объявлен явно. Версию держим ту же, что тянет BoM, иначе получим два разных play-services-base.
+google-play-services-base = "com.google.android.gms:play-services-base:18.9.0"
 jsr305 = "com.google.code.findbugs:jsr305:3.0.2"
 junit = "junit:junit:4.13.2"
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinx-coroutines" }

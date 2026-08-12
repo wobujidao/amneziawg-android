@@ -318,6 +318,20 @@
                 android:value="true" />
         </service>
 
+        <!-- Приём пуша (ускоритель ящика SPEC-0047). Пуш приходит ТОЛЬКО с данными и БЕЗ текста —
+             «загляни в ящик»; уведомление рисует приложение из ящика (MayakPushService).
+             exported="false" — снаружи будить эту службу не должен никто, кроме транспорта, который
+             ходит по своему разрешению. Работает лишь в боевой сборке: конфигурация Firebase лежит
+             строковыми ресурсами только в варианте prodRelease, без них FirebaseApp не поднимается и
+             служба просто никогда не вызывается (см. MayakPush.available). -->
+        <service
+            android:name="org.amnezia.awg.mayak.MayakPushService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
         <meta-data
             android:name="android.content.APP_RESTRICTIONS"
             android:resource="@xml/app_restrictions" />

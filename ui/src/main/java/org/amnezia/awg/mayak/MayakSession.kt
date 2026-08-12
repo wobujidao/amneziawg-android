@@ -451,6 +451,17 @@ class MayakSession(
         prefs: org.amnezia.awg.mayak.core.NotificationPrefs,
     ) = backend.updateNotificationPrefs(requireToken(), prefs)
 
+    /**
+     * Адрес доставки пуша (ускоритель ящика). Версию сборки подставляем здесь, а не у вызывающего:
+     * у нас уже был случай, когда версия в двух местах разъезжалась молча.
+     */
+    suspend fun registerPush(backend: MayakBackend, pushToken: String) =
+        backend.registerPush(requireToken(), pushToken, BuildConfig.VERSION_NAME)
+
+    /** Снять адрес доставки. Нет токена — снимать нечем: ядро узнаёт устройство по сессии. */
+    suspend fun unregisterPush(backend: MayakBackend, pushToken: String) =
+        backend.unregisterPush(requireToken(), pushToken)
+
     /** id устройства из хранилища (0 — ещё не зарегистрировано); для контекста диаг-лога. */
     fun deviceId(): Long = store.get(K_DEVICE)?.toLongOrNull() ?: 0L
 

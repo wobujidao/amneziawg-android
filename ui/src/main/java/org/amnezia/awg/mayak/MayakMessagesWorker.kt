@@ -16,7 +16,10 @@ import android.content.Context
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.OutOfQuotaPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
@@ -37,6 +40,9 @@ class MayakMessagesWorker(
     companion object {
         private const val UNIQUE_WORK = "mayak-messages-6h"
 
+        /** Разовая догоняющая проверка (после пуша, если тот не успел уложиться в своё окно). */
+        private const val UNIQUE_ONCE = "mayak-messages-once"
+
         /** Период проверки. Совпадает с `next_check_after_sec`, который ядро отдаёт по умолчанию
          *  (21600 с): два разных числа в двух местах разъехались бы молча. */
         const val PERIOD_HOURS = 6L
@@ -53,6 +59,28 @@ class MayakMessagesWorker(
                 .build()
             WorkManager.getInstance(context.applicationContext)
                 .enqueueUniquePeriodicWork(UNIQUE_WORK, ExistingPeriodicWorkPolicy.KEEP, request)
+        }
+
+        /**
+         * Проверить ящик ОДИН РАЗ и как можно скорее. Нужна ровно одному вызывающему — пришедшему
+         * пушу, который не успел забрать ящик в своё короткое окно (MayakPushService).
+         *
+         * `setExpedited` — просьба выполнить немедленно; с Android 12 у неё есть квота, поэтому
+         * RUN_AS_NON_EXPEDITED_WORK_REQUEST: кончилась квота — работа выполнится обычным порядком, а
+         * не потеряется. REPLACE, а не KEEP: два толчка подряд означают «сходи ещё раз», и старая
+         * стоящая в очереди работа тут не ценность.
+         */
+        fun enqueueOnce(context: Context) {
+            val request = OneTimeWorkRequestBuilder<MayakMessagesWorker>()
+                .setConstraints(
+                    Constraints.Builder()
+                        .setRequiredNetworkType(NetworkType.CONNECTED)
+                        .build(),
+                )
+                .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+                .build()
+            WorkManager.getInstance(context.applicationContext)
+                .enqueueUniqueWork(UNIQUE_ONCE, ExistingWorkPolicy.REPLACE, request)
         }
     }
 }

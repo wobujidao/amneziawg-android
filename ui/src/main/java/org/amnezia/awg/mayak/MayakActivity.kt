@@ -177,6 +177,10 @@ class MayakActivity : AppCompatActivity() {
                     val r = MayakMessages.sync(this@MayakActivity, MayakMessages.SyncTrigger.ALWAYS)
                     if (r.ok) updateMessagesBadge()
                 }
+                // Показывать стало можно — значит и будить нас есть смысл. До этого момента адрес
+                // доставки не регистрировался вовсе (MayakPush.refresh): пуш, из которого нельзя
+                // сделать уведомление, Google считает поводом понизить приоритет ВСЕМ нашим пушам.
+                MayakPush.refresh(this)
             }
         }
 
@@ -1177,6 +1181,9 @@ class MayakActivity : AppCompatActivity() {
         }
         updateMessagesBadge()
         syncMessages() // тихая проверка ящика при открытии приложения (сама себя ограничивает по частоте)
+        // Адрес доставки пуша — ускоритель того же ящика. Идемпотентно: уже отправленный адрес
+        // второй раз на ядро не уходит. Нет сервисов Google или сборка не боевая — одна строка в лог.
+        MayakPush.refresh(this)
 
         setupPresetSelector() // селектор пресета split-туннеля над кнопкой VPN (SPEC-0028)
 

@@ -174,6 +174,23 @@ dependencies {
     implementation(libs.google.material)
     implementation(libs.zxing.android.embedded)
     implementation(libs.kotlinx.coroutines.android)
+    // Push-уведомления (ускоритель ящика SPEC-0047): пуш БЕЗ ТЕКСТА, только «загляни в ящик».
+    //
+    // ⛔ ПЛАГИН `com.google.gms.google-services` НЕ ПОДКЛЮЧЁН, и это решение, а не забывчивость:
+    //   (1) он сверяет applicationId с package_name из google-services.json и падает «No matching
+    //       client found» на любом варианте, которого в файле нет, — а у нас debug живёт под
+    //       mayaknetworks.app.debug;
+    //   (2) сам google-services.json несёт ключ вида AIzaSy… , а форк — ПУБЛИЧНЫЙ репозиторий:
+    //       коммит с таким ключом поднимает сканеры секретов (у нас это уже было, см. память
+    //       fake-passwords-in-tests-naming).
+    // Плагин ничего волшебного не делает — он кладёт значения из json в строковые ресурсы, откуда их
+    // читает FirebaseOptions.fromResource(). Ровно это делает scripts/firebase-res.sh, генерируя
+    // ui/src/prodRelease/res/values/firebase.xml (файл в .gitignore) из ~/.mayak-secrets/firebase/.
+    // Значит Firebase жив ТОЛЬКО в боевой сборке; в debug/release ресурсов нет → FirebaseApp не
+    // инициализируется (FirebaseInitProvider это лишь ЛОГИРУЕТ, не роняет), и MayakPush молчит.
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.messaging)
+    implementation(libs.google.play.services.base) // GoogleApiAvailability: есть ли GMS на телефоне
     coreLibraryDesugaring(libs.desugarJdkLibs)
     // JVM-юнит-тесты :ui (первый — сторож пиннинга в network_security_config прод-варианта).
     testImplementation(libs.junit)
@@ -221,5 +238,13 @@ tasks.withType<Test>().configureEach {
     inputs.files(
         fileTree("src/main/res") { include("values*/strings.xml") },
         fileTree("src/prodRelease/res") { include("xml/*.xml") },
+        // Манифест, этот файл сборки, .gitignore и скрипт конфигурации Firebase — их читает
+        // MayakPushContractTest (служба приёма пуша объявлена? плагин google-services не вернулся?
+        // ключ закрыт от git?). Инпутами Gradle их тоже не считает: правка .gitignore не меняет ни
+        // одного .class, задача осталась бы «up-to-date», и сторож просто не запустился бы.
+        file("src/main/AndroidManifest.xml"),
+        file("build.gradle.kts"),
+        rootProject.file(".gitignore"),
+        rootProject.file("scripts/firebase-res.sh"),
     ).withPathSensitivity(PathSensitivity.RELATIVE).withPropertyName("mayakGuardedResources")
 }

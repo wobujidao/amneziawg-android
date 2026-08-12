@@ -407,6 +407,33 @@ class MayakBackend(
         call("PUT", "/v1/client/notification-prefs", token = token, body = body)
     }
 
+    // ===== Push: адрес доставки у транспорта (ускоритель ящика) =====
+
+    /**
+     * Сказать ядру, куда будить это устройство: POST /v1/client/push/register {token,platform,app_version}.
+     *
+     * `pushToken` — адрес у транспорта (FCM), `token` — наш токен сессии (уходит заголовком). Ответ
+     * ({"ok":true}) не разбираем: у ручки нет данных, которые нам нужны, а лишний разбор — лишний
+     * способ упасть на поле, которое сервер завтра добавит.
+     */
+    suspend fun registerPush(token: String, pushToken: String, appVersion: String) {
+        val body = json.encodeToString(
+            PushRegisterRequest.serializer(),
+            PushRegisterRequest(token = pushToken, appVersion = appVersion),
+        )
+        call("POST", "/v1/client/push/register", token = token, body = body)
+    }
+
+    /** Снять адрес доставки: POST /v1/client/push/unregister {token}. Зовётся при выходе из аккаунта
+     *  и когда будить стало нечем (человек запретил уведомления). */
+    suspend fun unregisterPush(token: String, pushToken: String) {
+        val body = json.encodeToString(
+            PushUnregisterRequest.serializer(),
+            PushUnregisterRequest(token = pushToken),
+        )
+        call("POST", "/v1/client/push/unregister", token = token, body = body)
+    }
+
     /**
      * Один HTTP-вызов с фейловером по доменам. На сетевой ошибке (домен недоступен/заблокирован)
      * крутим HostProvider и повторяем; на HTTP-ответе (в т.ч. 4xx/5xx) — НЕ переключаемся, а
