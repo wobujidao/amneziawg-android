@@ -28,6 +28,55 @@ data class LoginResponse(
     val token: String,
 )
 
+/**
+ * Нужна ли проверка «не робот» и с каким ключом сайта (GET /v1/public/captcha, БЕЗ авторизации).
+ *
+ * Ключ НЕ вшит в приложение осознанно: выключатель капчи в панели обязан срабатывать мгновенно, а
+ * ключ — меняться без релиза. `enabled=false` → шага капчи нет вовсе, приложение шлёт пустой токен.
+ * Ключ публичен по устройству Turnstile (он виден в разметке любой страницы с виджетом); секрет
+ * живёт только на сервере.
+ */
+@Serializable
+data class CaptchaInfo(
+    val enabled: Boolean = false,
+    val sitekey: String = "",
+)
+
+/**
+ * Регистрация БЕЗ почты (POST /v1/auth/register-anon, SPEC-0046). Имена полей — 1:1 с
+ * `registerAnonReq` в `internal/clientapi/authhandlers.go`; сверяет их таблица-тест
+ * `RegisterAnonContractTest` (разъехавшиеся имена не падают, а молча теряют смысл: сервер прочтёт
+ * согласие как «не дано»).
+ *
+ * `captchaToken` пустой — законное состояние: капча выключена в панели. Поле уходит всегда
+ * (encodeDefaults), старое ядро его игнорирует.
+ */
+@Serializable
+data class RegisterAnonRequest(
+    val password: String,
+    val consent: Boolean,
+    @SerialName("captcha_token") val captchaToken: String = "",
+)
+
+/**
+ * Ответ 201 на регистрацию без почты.
+ *
+ * 🔴 `token` МОЖЕТ БЫТЬ ПУСТЫМ, и это НЕ ошибка: у сервера есть ветка «учётка создана, а сессию
+ * выдать не смогли» — тогда приходят только `account_number` и `message`. Аккаунт уже существует,
+ * поэтому экран обязан показать номер и увести на вход, а не изобразить неудачу и предложить
+ * повторить (повтор завёл бы второй аккаунт).
+ *
+ * `trial_days` — настройка сервера (`registration.anon_trial_days`). Приложение НЕ пишет «7 дней»
+ * словами: показывает то, что пришло, и молчит про пробный срок, если это 0.
+ */
+@Serializable
+data class RegisterAnonResponse(
+    @SerialName("account_number") val accountNumber: String = "",
+    val token: String = "",
+    @SerialName("trial_days") val trialDays: Int = 0,
+    val message: String = "",
+)
+
 // Сброс пароля по email-коду (POST /v1/auth/password/forgot → код на почту; /reset — код+новый пароль).
 @Serializable
 data class ForgotPasswordRequest(

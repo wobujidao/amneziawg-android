@@ -136,6 +136,37 @@ class MayakBackend(
         return json.decodeFromString(LoginResponse.serializer(), resp)
     }
 
+    /**
+     * Нужна ли проверка «не робот» и с каким ключом сайта: GET /v1/public/captcha, БЕЗ токена
+     * (спрашивает экран регистрации, а у него учётки по определению нет).
+     *
+     * Ошибку НЕ глотаем (в отличие от [appVersion] и [ruDirect]): промолчать здесь значит решить за
+     * человека, что капча выключена, и пойти регистрироваться заведомо в отказ `captcha_required`.
+     * Экран покажет причину словами и предложит вторую дорогу — браузер.
+     */
+    suspend fun publicCaptcha(): CaptchaInfo {
+        val resp = call("GET", "/v1/public/captcha", token = null, body = null)
+        return json.decodeFromString(CaptchaInfo.serializer(), resp)
+    }
+
+    /**
+     * Регистрация БЕЗ почты: POST /v1/auth/register-anon → 201 {account_number, token?, trial_days}.
+     *
+     * Отказы приходят MayakApiException с полем `code` (`consent_required`, `weak_password`,
+     * `captcha_required`, `captcha_failed`, `captcha_unavailable`, `overloaded`) — ветвиться надо по
+     * НЕМУ: под 400 у ядра живут три разные беды, под 503 — две.
+     *
+     * ⚠️ Повторять этот запрос «на всякий случай» НЕЛЬЗЯ: каждый успешный вызов создаёт живую учётку.
+     */
+    suspend fun registerAnon(password: String, consent: Boolean, captchaToken: String): RegisterAnonResponse {
+        val body = json.encodeToString(
+            RegisterAnonRequest.serializer(),
+            RegisterAnonRequest(password = password, consent = consent, captchaToken = captchaToken),
+        )
+        val resp = call("POST", "/v1/auth/register-anon", token = null, body = body)
+        return json.decodeFromString(RegisterAnonResponse.serializer(), resp)
+    }
+
     /** Запрос сброса пароля: POST /v1/auth/password/forgot {email} → код на почту (ответ всегда 202, анти-энум). */
     suspend fun forgotPassword(email: String) {
         val body = json.encodeToString(ForgotPasswordRequest.serializer(), ForgotPasswordRequest(email))
