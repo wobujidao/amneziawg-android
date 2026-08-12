@@ -167,6 +167,16 @@ class MayakActivity : AppCompatActivity() {
     private val notifPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             if (granted && tunnel.isUp()) MayakNotification.show(this, GoTunnel.connectedLabel, GoTunnel.connectedPingMs)
+            // 🔔 Разрешение только что появилось — сразу сходить за ящиком. Первая сверка происходит
+            // РАНЬШЕ этого диалога (человек вошёл, экран собрался, ящик проверен), и показать
+            // сообщение тогда было нечем. Без этого толчка новичок увидел бы первое уведомление
+            // в шторке только через час (столько ждёт следующая проверка на переднем плане) —
+            // замерено на эмуляторе 12-08.
+            if (granted) {
+                lifecycleScope.launch {
+                    if (MayakMessages.sync(this@MayakActivity, force = true)) updateMessagesBadge()
+                }
+            }
         }
 
     /**
