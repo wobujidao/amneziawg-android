@@ -39,6 +39,15 @@ class MayakMessagesActivity : AppCompatActivity() {
     /** Карточку какого сообщения открыть сразу (пришли из уведомления). 0 — просто открыть список. */
     private var openId: Long = 0
 
+    /**
+     * Что уже отметили прочитанным в ЭТОМ показе списка.
+     *
+     * Строка списка держит объект сообщения таким, каким он приехал с сервера (`read = false`), и
+     * второй тап по той же строке отправил бы вторую отметку и второй раз убавил счётчик — бейдж
+     * ушёл бы в минус на ровном месте.
+     */
+    private val markedRead = mutableSetOf<Long>()
+
     private fun backend(): MayakBackend =
         MayakBackend(
             HostProvider(MayakHostList.effective(this, store.get(MayakActivity.KEY_SERVER))),
@@ -126,6 +135,7 @@ class MayakMessagesActivity : AppCompatActivity() {
 
     private fun render(messages: List<UserMessage>) {
         shown = messages
+        markedRead.clear() // список перечитан заново — отметки этого показа больше ни при чём
         val list = findViewById<LinearLayout>(R.id.mayak_messages_list)
         list.removeAllViews()
         if (messages.isEmpty()) {
@@ -214,7 +224,7 @@ class MayakMessagesActivity : AppCompatActivity() {
         view.findViewById<MaterialButton>(R.id.mayak_message_close).setOnClickListener { sheet.dismiss() }
         sheet.show()
 
-        if (!m.read) {
+        if (!m.read && markedRead.add(m.id)) {
             lifecycleScope.launch { MayakMessages.markRead(this@MayakMessagesActivity, m.id) }
             shown = shown.map { if (it.id == m.id) it.copy(read = true) else it }
         }
