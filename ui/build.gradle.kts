@@ -117,6 +117,33 @@ android {
             versionNameSuffix = "-debug"
             signingConfig = signingConfigs.getByName("mayakdebug")
         }
+        // БОЕВОЙ КОНТУР, но debug-подписью и под своим пакетом. Появился 13-08 вместе с регистрацией
+        // в приложении (SPEC-0048): проверить её живьём иначе НЕЧЕМ. Обычный `debug`/`release`
+        // собираются под ДЕВ-контур mayakvpn.ru, снятый 07-08 (мёртвый домен, чужой CA) — то есть
+        // любой сетевой шаг в них падает «ни один домен ядра недоступен»; а собрать prodRelease
+        // значит перезаписать боевую сборку `mayaknetworks.app`, установленную у людей и на эмуляторе.
+        //
+        // Людям не уходит НИКОГДА и уйти не может: подпись — публичный debug-ключ (mayak-debug.p12
+        // утёк в GitGuardian и для релиза не используется), пакет — `mayaknetworks.app.debug`,
+        // которого нет ни в Play, ни на сайте.
+        //
+        // ⚠️ Туннель этой сборкой НЕ поднимается, и это ожидаемо: имя версии с хвостом
+        // («0.4.12-prod-debug») серверный порог `app.min_version_name` не разбирает вовсе
+        // (internal/appver.Parse) и отвечает `app_too_old`. Хвост оставлен НАМЕРЕННО: диаг-лог и
+        // телеметрия от такой сборки не должны выглядеть как от боевой. Проверять транспорт —
+        // только prodRelease.
+        // ⚠️ Прод-CA (ui/src/prodRelease/res) сюда НЕ подмешан: по домену api.mayaknetworks.com
+        // серт публичный (Let's Encrypt, системные корни), а IP-фолбэк 2.26.77.243 в этой сборке
+        // не сработает. Для проверки экранов этого достаточно.
+        create("prodDebug") {
+            initWith(getByName("debug"))
+            matchingFallbacks += "debug"
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-prod-debug"
+            signingConfig = signingConfigs.getByName("mayakdebug")
+            buildConfigField("boolean", "MAYAK_PROD_TARGET", "true")
+            buildConfigField("String", "MAYAK_SUPPORT_EMAIL", "\"support@mayaknetworks.com\"")
+        }
         // 🔴 buildType `googleplay` СНЯТ 08-08. Он наследовал `release` и НЕ ставил
         // MAYAK_PROD_TARGET=true — то есть под именем «для Google Play» собирал сборку под ДЕВ-контур,
         // снятый 07-08 (мёртвый домен, чужой CA). Никто его не звал: и APK для сайта, и AAB для Play
