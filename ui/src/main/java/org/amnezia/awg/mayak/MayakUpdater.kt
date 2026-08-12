@@ -9,6 +9,7 @@ import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
+import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.FileProvider
@@ -121,18 +122,43 @@ object MayakUpdater {
         }
 
     /** Подпись скачанного APK совпадает с нашей И это то же приложение (пакет), не даунгрейд? */
-    fun isTrusted(context: Context, apk: File): Boolean = runCatching {
+    fun isTrusted(context: Context, apk: File): Boolean = checkTrust(context, apk) == null
+
+    /**
+     * Та же проверка, но с ПРИЧИНОЙ отказа: null — можно ставить, иначе короткая строка «что не
+     * сошлось».
+     *
+     * Зачем причина. 12-08 на Galaxy S8+ (Android 9) обновление с сайта упиралось в «Проверка подписи
+     * не пройдена — установка отменена», и по этой надписи нельзя было понять НИЧЕГО: ключ тот же,
+     * пакет тот же, версия новее. Разбирать пришлось по чужим машинам, а приложение молчало даже в
+     * диагностике, которую само же и присылает. Проверка, которая умеет только «нет», — это проверка,
+     * которую нечем чинить.
+     */
+    fun checkTrust(context: Context, apk: File): String? = runCatching {
         val pm = context.packageManager
-        val dl = pm.getPackageArchiveInfo(apk.path, sigFlag()) ?: return false
-        if (dl.packageName != context.packageName) return false // чужой пакет — не ставим
+        val dl = pm.getPackageArchiveInfo(apk.path, sigFlag())
+            ?: return "система не смогла прочитать скачанный файл как приложение"
+        if (dl.packageName != context.packageName) return "это другое приложение (${dl.packageName})"
         val me = pm.getPackageInfo(context.packageName, sigFlag())
         // «не даунгрейд» обещал KDoc, а проверялись только пакет и подпись (ревью #4). Android сам
         // режет откат при той же подписи, но полагаться на это — значит держать обещание чужими
         // руками: подсунутый старый (наш же, подписанный) APK проходил бы наш гейт.
-        if (versionCode(dl) < versionCode(me)) return false
-        val a = certHashes(dl); val b = certHashes(me)
-        a.isNotEmpty() && a == b
-    }.getOrDefault(false)
+        if (versionCode(dl) < versionCode(me)) {
+            return "скачана версия старее установленной (${versionCode(dl)} < ${versionCode(me)})"
+        }
+        val a = certHashes(dl)
+        val b = certHashes(me)
+        when {
+            // 🔴 Пустой набор — НЕ «подпись чужая». Это «мы не смогли её прочитать», и до 12-08 два
+            // этих случая были для нас одним: обе ветки давали одинаковый отказ, а причина у них
+            // разная и лечение тоже. Разделяем явно, иначе следующий такой случай снова уйдёт в
+            // «наверное, ключ не тот».
+            a.isEmpty() -> "не удалось прочитать подпись скачанного файла на этой версии Android"
+            b.isEmpty() -> "не удалось прочитать подпись установленного приложения"
+            a != b -> "файл подписан другим ключом"
+            else -> null
+        }
+    }.getOrElse { e -> "проверка сорвалась: ${e.javaClass.simpleName}" }
 
     /**
      * Один ли домен второго уровня у ссылки на APK и у ядра. Сравниваем ровно две последние метки
@@ -204,9 +230,17 @@ object MayakUpdater {
                 Toast.makeText(activity, R.string.mayak_update_download_failed, Toast.LENGTH_LONG).show()
                 return@launch
             }
-            if (!isTrusted(activity, apk)) {
-                apk.delete() // чужая подпись/пакет — не ставим
-                Toast.makeText(activity, R.string.mayak_update_untrusted, Toast.LENGTH_LONG).show()
+            val why = checkTrust(activity, apk)
+            if (why != null) {
+                apk.delete() // чужая подпись/пакет/нечитаемый файл — не ставим
+                // Причину говорим ВСЛУХ. Раньше здесь была одна строка на все случаи, и человек с
+                // рабочим файлом и верным ключом видел ровно то же, что человек с подделкой.
+                Toast.makeText(activity,
+                    activity.getString(R.string.mayak_update_untrusted) + ": " + why,
+                    Toast.LENGTH_LONG).show()
+                // В лог — тем же тегом, что и остальная наша диагностика: он уезжает к нам
+                // авто-заливкой, и в следующий раз причина будет видна без телефона в руках.
+                Log.w("mayak", "самообновление: файл отклонён — $why")
                 return@launch
             }
             runCatching { install(activity, apk) }
@@ -223,17 +257,32 @@ object MayakUpdater {
         context.startActivity(intent)
     }
 
+    /**
+     * Флаги запроса подписи. С Android 9 просим ОБА, и это не «на всякий случай».
+     *
+     * `GET_SIGNING_CERTIFICATES` — правильный современный флаг, но заполняет он поле `signingInfo`,
+     * а его для СКАЧАННОГО ФАЙЛА (getPackageArchiveInfo, а не установленного пакета) отдают не все
+     * прошивки: на части девяток оно приходит пустым, и тогда единственный источник — старое поле
+     * `signatures`, которое живёт под `GET_SIGNATURES`. Одного флага мало: с новым остаёмся без
+     * ответа на старых прошивках, со старым — теряем историю ротации ключа на новых.
+     */
     @Suppress("DEPRECATION")
     private fun sigFlag(): Int =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) PackageManager.GET_SIGNING_CERTIFICATES
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P)
+            PackageManager.GET_SIGNING_CERTIFICATES or PackageManager.GET_SIGNATURES
         else PackageManager.GET_SIGNATURES
 
+    /**
+     * Отпечатки сертификатов, которыми подписан пакет. Берём `signingInfo`, если он есть, иначе
+     * откатываемся на `signatures` — см. sigFlag(): пустой `signingInfo` у скачанного файла на
+     * Android 9 и есть та самая поломка, из-за которой самообновление молча отказывало.
+     */
     @Suppress("DEPRECATION")
     private fun certHashes(pi: PackageInfo): Set<String> {
-        val sigs = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P)
-            pi.signingInfo?.apkContentsSigners
-        else pi.signatures
-        return sigs?.map { sha256(it.toByteArray()) }?.toSet() ?: emptySet()
+        val modern = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P)
+            pi.signingInfo?.apkContentsSigners else null
+        val sigs = if (!modern.isNullOrEmpty()) modern else pi.signatures
+        return sigs?.filterNotNull()?.map { sha256(it.toByteArray()) }?.toSet() ?: emptySet()
     }
 
     private fun sha256(b: ByteArray): String =
