@@ -1332,6 +1332,12 @@ class MayakActivity : AppCompatActivity() {
                 )
                 MayakTransitions.applyAxis(this)
             }
+            // Своя палитра, а не материаловская по умолчанию: та берёт «инверсную» поверхность и на
+            // тёмной теме выкатывает БЕЛУЮ плашку поперёк экрана (видно на замере 13-08). Цвета
+            // ресурсами — у них есть ночной вариант, значит на светлой теме останется светлым.
+            .setBackgroundTint(ContextCompat.getColor(this, R.color.mayak_card))
+            .setTextColor(ContextCompat.getColor(this, R.color.mayak_on_bg))
+            .setActionTextColor(ContextCompat.getColor(this, R.color.mayak_accent))
             .show()
     }
 

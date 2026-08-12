@@ -169,6 +169,24 @@ object MayakMessages {
             Log.i(TAG, "sync skip: trigger=$trigger gap=${trigger.minGapMs}ms since=${System.currentTimeMillis() - last}ms")
             return SyncResult.NONE
         }
+        // Один заход за раз. Пол по времени этого не даёт: onCreate и onResume идут ВСТЫК (замерено на
+        // эмуляторе 13-08 — два запроса в одну миллисекунду), и оба успевают спросить «пора?» раньше,
+        // чем первый успел записать «сходил».
+        if (inFlight) {
+            Log.i(TAG, "sync skip: trigger=$trigger — заход уже идёт")
+            return SyncResult.NONE
+        }
+        inFlight = true
+        try {
+            return syncOnce(app, trigger)
+        } finally {
+            inFlight = false
+        }
+    }
+
+    @Volatile private var inFlight = false
+
+    private suspend fun syncOnce(app: Context, trigger: SyncTrigger): SyncResult {
         // since_id — чтобы не тянуть заново всё, о чём уже уведомляли. Ноль (первый заход) отдаёт
         // весь ящик за 90 дней: он же наполнит бейдж, но звенеть на всю пачку мы не станем (ниже).
         val sinceId = prefs(app).getLong(K_LAST_NOTIFIED, 0L)
