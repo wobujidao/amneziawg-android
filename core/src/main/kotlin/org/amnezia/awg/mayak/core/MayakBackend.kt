@@ -10,6 +10,7 @@ import kotlinx.serialization.json.Json
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.Locale
 
 /**
  * Ошибка вызова API: HTTP-код + сообщение (из тела {"error":...}, если ядро его прислало).
@@ -501,6 +502,17 @@ class MayakBackend(
             )
         }
 
+    /**
+     * BCP-47 языка телефона для заголовка Accept-Language, напр. «ru-RU» или «en-US».
+     *
+     * Отдаём тег как есть, без q-весов: сервер разбирает и первичный субтег, и вес, а одинокий тег —
+     * это ровно «мой язык такой». «und» (язык неизвестен) и пустое НЕ шлём: заголовок с мусором хуже
+     * его отсутствия — сервер обязан в этом случае вести себя как со старой сборкой.
+     */
+    private fun acceptLanguage(): String? =
+        runCatching { Locale.getDefault().toLanguageTag() }
+            .getOrNull()?.takeIf { it.isNotBlank() && it != "und" }
+
     private fun doRequest(
         url: String,
         method: String,
@@ -516,6 +528,13 @@ class MayakBackend(
             conn.connectTimeout = connectTimeoutMs
             conn.readTimeout = readTimeoutMs
             conn.setRequestProperty("Accept", "application/json")
+            // Язык телефона. Ядро отдаёт по нему НАЗВАНИЯ СТРАН на нужном языке (миграция 0133):
+            // они приходят с сервера, и без этого заголовка человек с английским телефоном видел на
+            // главном экране «Нидерланды» и «Польша» — при том что весь остальной интерфейс уже
+            // переведён. HttpURLConnection сам Accept-Language НЕ добавляет, поэтому ставим руками.
+            // Ядро без заголовка ведёт себя как раньше (русские имена), так что старые сборки эта
+            // правка не трогает — и наоборот: новая сборка со старым ядром просто не получит перевод.
+            acceptLanguage()?.let { conn.setRequestProperty("Accept-Language", it) }
             token?.let { conn.setRequestProperty("Authorization", "Bearer $it") }
             if (body != null) {
                 conn.doOutput = true

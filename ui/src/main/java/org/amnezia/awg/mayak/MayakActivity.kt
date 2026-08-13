@@ -1096,7 +1096,7 @@ class MayakActivity : AppCompatActivity() {
         val active = MayakPresets.activePreset(this) ?: return
         if (!active.owned) return // системный удалить нельзя
         com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
-            .setMessage("Удалить пресет «${active.name}»?")
+            .setMessage(getString(R.string.mayak_preset_delete_confirm, active.name))
             .setPositiveButton(android.R.string.ok) { _, _ -> deletePresetById(active.id) }
             .setNegativeButton(android.R.string.cancel, null)
             .show()

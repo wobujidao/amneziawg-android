@@ -697,6 +697,7 @@
 
     <!-- Диалог выбора пресета: раньше эти строки жили прямо в коде и были русскими для всех языков. -->
     <string name="mayak_preset_chooser_new">＋ Новый пресет</string>
+    <string name="mayak_preset_delete_confirm">Удалить пресет «%1$s»?</string>
     <string name="mayak_preset_chooser_select">Выбрать</string>
     <string name="mayak_preset_chooser_edit">Изменить</string>
     <string name="mayak_preset_chooser_system_suffix">"  (базовый)"</string>

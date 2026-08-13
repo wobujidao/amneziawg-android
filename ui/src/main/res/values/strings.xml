@@ -682,6 +682,10 @@
          (MayakActivity.showPresetChooser): там они стояли по-русски и не переводились НИ НА ОДИН
          язык — человек с английским телефоном видел русские кнопки. -->
     <string name="mayak_preset_chooser_new">＋ New preset</string>
+    <!-- Подтверждение удаления своего набора приложений. До 14-08 текст был вшит в MayakActivity
+         строкой по-русски и не переводился НИКОГДА — на английском телефоне это выглядело как
+         недоделанный перевод ровно в том месте, где человек что-то удаляет. -->
+    <string name="mayak_preset_delete_confirm">Delete preset “%1$s”?</string>
     <string name="mayak_preset_chooser_select">Select</string>
     <string name="mayak_preset_chooser_edit">Edit</string>
     <string name="mayak_preset_chooser_system_suffix">"  (default)"</string>
