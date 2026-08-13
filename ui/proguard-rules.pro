@@ -82,3 +82,12 @@
 -keepclassmembers class * {
     @android.webkit.JavascriptInterface <methods>;
 }
+
+# ── Room / WorkManager, найдено 13-08 при подъёме AGP до 9.3.1 ────────────────────────────────────
+# Новый R8 агрессивнее и выбрасывал сгенерированный WorkDatabase_Impl. Room ищет его ПО ИМЕНИ
+# класса, поэтому вместо ошибки сборки получается падение на старте, ещё до первого экрана:
+# «Failed to create an instance of class androidx.work.impl.WorkDatabase» (поймано на эмуляторе —
+# сборка при этом была успешной, тесты бы этого не увидели).
+-keep class * extends androidx.room.RoomDatabase { <init>(); }
+-keep class **_Impl { <init>(...); *; }
+-keepclassmembers class * extends androidx.room.RoomDatabase { public <init>(); }

@@ -1,6 +1,6 @@
 # Modified 2026 by Mayak Networks. SPDX-License-Identifier: Apache-2.0
 [versions]
-agp = "8.3.0"
+agp = "9.3.1"
 # Ed25519-проверка подписанного delivery-документа (F-T8): BouncyCastle lightweight API.
 # НЕ Tink и НЕ java.security (Ed25519 там только с API 33, у нас minSdk 24) —
 # ресёрч ядра docs/research/2026-07-11-android-ed25519-verify.md.
@@ -8,7 +8,7 @@ bouncycastle = "1.81"
 # Push-уведомления (SPEC-0047, ускоритель ящика): версии Firebase берём ТОЛЬКО из BoM — она держит
 # согласованными messaging/common/installations, которые между собой версиями расходятся.
 firebase-bom = "34.17.0"
-kotlin = "1.9.20"
+kotlin = "2.4.10"
 kotlinx-serialization = "1.6.0"
 kotlinx-coroutines = "1.7.3"
 

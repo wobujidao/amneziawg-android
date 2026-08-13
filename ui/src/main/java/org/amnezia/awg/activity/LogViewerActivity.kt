@@ -353,7 +353,9 @@ class LogViewerActivity : AppCompatActivity() {
         override fun query(uri: Uri, projection: Array<out String>?, selection: String?, selectionArgs: Array<out String>?, sortOrder: String?): Cursor? =
             logForUri(uri)?.let {
                 val m = MatrixCursor(arrayOf(android.provider.OpenableColumns.DISPLAY_NAME, android.provider.OpenableColumns.SIZE), 1)
-                m.addRow(arrayOf("amneziawg-log.txt", it.size.toLong()))
+                // Явный тип массива: Kotlin 2.4 запрещает выводить тип для reified-параметра как пересечение
+                // (String и Long дают Comparable&Serializable) — без него сборка не идёт.
+                m.addRow(arrayOf<Any>("amneziawg-log.txt", it.size.toLong()))
                 m
             }
 

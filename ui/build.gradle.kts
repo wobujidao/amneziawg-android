@@ -9,6 +9,7 @@ val pkg: String = providers.gradleProperty("amneziawgPackageName").get()
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+
     alias(libs.plugins.kotlin.kapt)
     // kotlinx-serialization: нужен, т.к. в :ui есть @Serializable-классы (Paths/PersistedEntry для
     // offline-кэша конфига). Без плагина serializer НЕ генерится → runtime SerializationException на
