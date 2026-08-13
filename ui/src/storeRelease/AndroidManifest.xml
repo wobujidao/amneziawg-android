@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Манифест сборки для Google Play. Единственное отличие от общего — снятое разрешение на установку
+  приложений.
+
+  Google запрещает REQUEST_INSTALL_PACKAGES ровно для нашего случая: «may not be used to perform
+  self updates» (Play Console Help, ответ 12085295). Разрешённые случаи — браузеры, мессенджеры с
+  вложениями, файловые менеджеры, управление устройствами, бэкап и перенос. Сети там нет.
+
+  Выпуск с этим разрешением не проходит проверку («в этом выпуске есть разрешения, не заявленные в
+  Play Console»), а заявить его = отказ, который остаётся в истории аккаунта.
+
+  В сборке для САЙТА разрешение остаётся: там самообновление — единственный способ доставить людям
+  новую версию.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission
+        android:name="android.permission.REQUEST_INSTALL_PACKAGES"
+        tools:node="remove" />
+</manifest>

@@ -171,6 +171,32 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
         }
+        // 🔴 СБОРКА ДЛЯ GOOGLE PLAY. Отличается от prodRelease ровно одним: в ней НЕТ разрешения
+        // REQUEST_INSTALL_PACKAGES (снимается в ui/src/storeRelease/AndroidManifest.xml).
+        //
+        // Зачем: Google запрещает это разрешение именно для самообновления — «may not be used to
+        // perform self updates» (support.google.com/googleplay/android-developer/answer/12085295).
+        // С ним в манифесте выпуск не проходит проверку разрешений, а заявить его = отказ, который
+        // остаётся в истории аккаунта. Нашли 13-08 на первой же попытке выложиться.
+        //
+        // Почему это безопасно для кода: путь самообновления и так не зовётся у тех, кто поставил из
+        // Play — MayakActivity проверяет installedFromPlay() и ведёт в Play вместо скачивания APK
+        // (иначе установка падала бы на несовпадении подписи — подписи каналов РАЗНЫЕ).
+        // На сайте всё остаётся как было: там самообновление — единственная дорога до людей.
+        //
+        // Ресурсы боевого контура (прод-CA, network_security_config, firebase.xml) НЕ дублируем —
+        // источник тот же, что у prodRelease, подключён ниже в sourceSets.
+        create("storeRelease") {
+            initWith(getByName("prodRelease"))
+            matchingFallbacks += listOf("prodRelease", "release")
+        }
+    }
+    sourceSets {
+        // storeRelease берёт ресурсы прод-контура прямо из prodRelease: копия этих файлов означала бы
+        // два разных CA у двух каналов и молчаливую поломку доверия в одном из них.
+        getByName("storeRelease") {
+            res.srcDir("src/prodRelease/res")
+        }
     }
     androidResources {
         generateLocaleConfig = true

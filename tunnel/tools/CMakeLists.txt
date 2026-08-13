@@ -6,6 +6,11 @@ cmake_minimum_required(VERSION 3.4.1)
 project("AmneziaWG")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}")
 add_link_options(LINKER:--build-id=none)
+# Страницы памяти 16 КБ (требование Google Play, найдено 13-08 на выкладке 0.5.0: «Ваше приложение
+# не поддерживает страницы памяти размером 16 КБ»). NDK 26 по умолчанию выравнивает сегменты по
+# 4 КБ — на устройствах с 16-килобайтными страницами такие библиотеки не загружаются. NDK 27+ делает
+# это сам, пока обходимся флагом. Проверять llvm-readelf -l: у LOAD должно стоять 0x4000.
+add_link_options(LINKER:-z,max-page-size=16384)
 add_compile_options(-Wall -Werror)
 
 add_executable(libwg-quick.so amneziawg-tools/src/wg-quick/android.c ndk-compat/compat.c)
