@@ -1032,18 +1032,24 @@ class MayakActivity : AppCompatActivity() {
         if (presets.isEmpty()) { openPresetEditor(null); return }
         // Пункт 0 — создание нового; далее сами пресеты. Системный подписываем «(базовый)» — его нельзя
         // удалить, а имя может совпадать со своим форком (владелец путался, где системный, где свой).
-        val items = (listOf("＋ Новый пресет") + presets.map { it.name + if (it.source == "system") "  (базовый)" else "" }).toTypedArray()
+        // ⚠️ Подписи берём из ресурсов, а НЕ пишем строкой здесь: до 13-08 они были русскими и
+        // оставались русскими при любом языке приложения — на английском телефоне это выглядело
+        // как «половина приложения не переведена» (нашлось при съёмке английских скриншотов).
+        val items = (listOf(getString(R.string.mayak_preset_chooser_new)) +
+            presets.map {
+                it.name + if (it.source == "system") getString(R.string.mayak_preset_chooser_system_suffix) else ""
+            }).toTypedArray()
         val activeId = MayakPrefs.activePresetId(this)
         var sel = presets.indexOfFirst { it.id == activeId }.let { if (it < 0) 0 else it } + 1
         com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
             .setTitle(getString(R.string.mayak_settings_split))
             .setSingleChoiceItems(items, sel) { _, which -> sel = which }
-            .setPositiveButton("Выбрать") { _, _ ->
+            .setPositiveButton(R.string.mayak_preset_chooser_select) { _, _ ->
                 if (sel == 0) { openPresetEditor(null); return@setPositiveButton }
                 MayakPrefs.setActivePresetId(this, presets[sel - 1].id)
                 updatePresetSelector()
             }
-            .setNeutralButton("Изменить") { _, _ ->
+            .setNeutralButton(R.string.mayak_preset_chooser_edit) { _, _ ->
                 openPresetEditor(if (sel == 0) null else presets[sel - 1])
             }
             .setNegativeButton(android.R.string.cancel, null)

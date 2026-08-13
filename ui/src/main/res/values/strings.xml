@@ -678,6 +678,14 @@
     <string name="tunnel_status_connected">Connected</string>
     <string name="tunnel_status_connecting">Connecting…</string>
 
+    <!-- Диалог выбора пресета. ⚠️ 13-08 эти четыре строки перенесены СЮДА из кода
+         (MayakActivity.showPresetChooser): там они стояли по-русски и не переводились НИ НА ОДИН
+         язык — человек с английским телефоном видел русские кнопки. -->
+    <string name="mayak_preset_chooser_new">＋ New preset</string>
+    <string name="mayak_preset_chooser_select">Select</string>
+    <string name="mayak_preset_chooser_edit">Edit</string>
+    <string name="mayak_preset_chooser_system_suffix">"  (default)"</string>
+
     <!-- SPEC-0028: редактор пресета сплит-туннеля (полноэкранный) -->
     <string name="mayak_preset_editor_title">App VPN mode</string>
     <string name="mayak_preset_editor_name_hint">Preset name</string>

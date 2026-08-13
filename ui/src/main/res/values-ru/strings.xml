@@ -695,6 +695,12 @@
     <string name="mayak_terms">Условия использования</string>
     <string name="mayak_soon">Скоро</string>
 
+    <!-- Диалог выбора пресета: раньше эти строки жили прямо в коде и были русскими для всех языков. -->
+    <string name="mayak_preset_chooser_new">＋ Новый пресет</string>
+    <string name="mayak_preset_chooser_select">Выбрать</string>
+    <string name="mayak_preset_chooser_edit">Изменить</string>
+    <string name="mayak_preset_chooser_system_suffix">"  (базовый)"</string>
+
     <!-- SPEC-0028: редактор пресета сплит-туннеля (полноэкранный) -->
     <string name="mayak_preset_editor_title">Какие приложения идут через «Маяк»</string>
     <string name="mayak_preset_editor_name_hint">Название пресета</string>
