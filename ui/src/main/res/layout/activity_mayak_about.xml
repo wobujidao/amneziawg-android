@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- «О приложении»: версия, на чём основано (AmneziaWG / amneziawg-go / протокол 2.0),
+<!-- «О приложении»: версия, на чём основано (AmneziaWG / amneziawg-go / протокол 3.0),
      лицензия, открытый код, стабы политики/условий. Брендовый Material 3, DayNight. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"

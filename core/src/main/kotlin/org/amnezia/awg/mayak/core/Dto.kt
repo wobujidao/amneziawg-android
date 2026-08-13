@@ -246,7 +246,14 @@ data class Fallback(
     fun usable(): Boolean = kind == "wss" && url.startsWith("wss://") && token.isNotEmpty()
 }
 
-/** Профиль обфускации AmneziaWG 2.0 (desiredstate.Obfuscation). Поля 1:1 ложатся на парсер Interface форка. */
+/**
+ * Профиль обфускации AmneziaWG 3.0 (desiredstate.Obfuscation). Поля 1:1 ложатся на парсер Interface форка.
+ *
+ * Раньше в этой строке значилось «2.0» — от линии, на которой писался класс. Сам НАБОР полей с тех пор
+ * не менялся: Jc/Jmin/Jmax, S1–S4, H1–H4, I1–I5 перешли из 2.0 как есть, и из нового в 3.0 здесь ровно
+ * одно поле — `header_protection_key` в конце. Имена полей и JSON-ключи — контракт с ядром: правится
+ * только по обе стороны сразу, иначе профиль молча приедет пустым.
+ */
 @Serializable
 data class Obfuscation(
     val jc: Int = 0,

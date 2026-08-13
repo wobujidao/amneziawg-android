@@ -1,6 +1,8 @@
-// Android-реализация Tunnel (:core) поверх GoBackend форка (движок amneziawg-go).
-// up(confText): парсим наш .conf штатным парсером форка (он же знает поля AWG 2.0) и поднимаем
-// туннель. Согласие на VPN (GoBackend.VpnService.prepare) запрашивается в Activity ДО up().
+// Android-реализация Tunnel (:core) поверх GoBackend форка (движок amneziawg-go, линия 3.0).
+// up(confText): парсим наш .conf штатным парсером форка — он знает все поля обфускации AWG:
+// Jc/Jmin/Jmax, S1–S4, H1–H4, I1–I5 достались от линии 2.0 без изменений, а HeaderProtectionKey
+// добавился в 3.0 (парсер форка его умеет, см. config/Interface.java) — и поднимаем туннель.
+// Согласие на VPN (GoBackend.VpnService.prepare) запрашивается в Activity ДО up().
 package org.amnezia.awg.mayak
 
 import android.content.Context

@@ -1,4 +1,4 @@
-// «О приложении»: версия (BuildConfig), на чём основано (AmneziaWG / amneziawg-go / протокол 2.0),
+// «О приложении»: версия (BuildConfig), на чём основано (AmneziaWG / amneziawg-go / протокол 3.0),
 // лицензия, открытый код и стабы правовых разделов. Брендовый, DayNight.
 package org.amnezia.awg.mayak
 
