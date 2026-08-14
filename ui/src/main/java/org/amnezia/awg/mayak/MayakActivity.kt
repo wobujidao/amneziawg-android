@@ -274,11 +274,15 @@ class MayakActivity : AppCompatActivity() {
      *  коннекта (DPI палит домен рядом с хендшейком — см. MayakSession), а на старте/после логина.
      *  После синхрона обновляем селектор пресетов на главном (если показан). */
     private fun refreshRuDirect() {
-        if (ruDirectRefreshedThisProcess) return
-        ruDirectRefreshedThisProcess = true
+        // Раз на процесс — И ещё раз, если сменился язык: имя системного набора приходит с сервера
+        // и переводится там же, где названия стран (миграция 0134). Кэш на диске подписан языком,
+        // поэтому «уже синхронизировали» проверяем по языку, а не флагом (дефект 0.5.2).
+        val lang = MayakBackend.namesLanguageBucket()
+        if (presetsSyncedLang == lang && MayakPresets.cachedLang(this) == lang) return
         val b = backend ?: return
         lifecycleScope.launch {
             runCatching { session.syncPresets(this@MayakActivity, b) }
+                .onSuccess { presetsSyncedLang = lang } // только на успех: иначе следующий заход повторит
             MayakPresets.invalidate()
             runCatching { updatePresetSelector() }
         }
@@ -777,7 +781,7 @@ class MayakActivity : AppCompatActivity() {
                 // а первое подключение идёт без предзагрузки (запрос к api рядом с хендшейком, чего
                 // специально избегаем). Перезапуск Activity эти флаги НЕ сбрасывает: они статические.
                 sessionExpiredHandled = false // новый вход — следующий отзыв снова должен сработать
-                ruDirectRefreshedThisProcess = false
+                presetsSyncedLang = null
                 ruAutoCheckedThisProcess = false
                 homeWarmedThisProcess = false
                 hideTotpField()
@@ -1400,9 +1404,10 @@ class MayakActivity : AppCompatActivity() {
                 // 2) свежий список с сервера (обновляет кэш) — раз на процесс ИЛИ по явному рефрешу/логину.
                 // Пересоздание Activity (смена темы) в живом процессе → флаг уже true → в сеть НЕ идём (смена
                 // темы молчит полностью). Перезапуск процесса или кнопка «Обновить» подтянут новые направления.
-                if (forceRefresh || !directionsFetchedThisProcess) {
+                if (forceRefresh || directionsFetchedLang != MayakBackend.namesLanguageBucket()) {
                     val fresh = session.directions(b, true)
-                    directionsFetchedThisProcess = true // только на успех: ошибка сети оставит флаг false → повтор
+                    // Только на успех: ошибка сети оставит прежнее значение → следующий заход повторит.
+                    directionsFetchedLang = MayakBackend.namesLanguageBucket()
                     // «Изменился» — это ВСЁ содержимое, а не только набор id (равенство data-класса
                     // против СЫРОГО серверного порядка). Сравнение по id молча съедало смену полей на
                     // тех же направлениях: кэш на диске пишется сериализатором ТЕКУЩЕЙ схемы, у
@@ -3238,7 +3243,10 @@ class MayakActivity : AppCompatActivity() {
 
         // Проверку обновления делаем раз на запуск процесса (пересоздание Activity — смена темы — не дёргает).
         @Volatile private var updateCheckedThisProcess = false
-        @Volatile private var ruDirectRefreshedThisProcess = false // OTA-подтяжка РФ-списка split-туннеля — раз на процесс
+        // OTA-подтяжка списка split-туннеля: на каком языке пресеты уже синхронизированы в этом
+        // процессе. null = ещё не синхронизировали. Язык, а не Boolean, — потому что имя системного
+        // набора серверное и переводится (см. refreshRuDirect).
+        @Volatile private var presetsSyncedLang: String? = null
         @Volatile private var hostsRefreshedThisProcess = false    // реестр доменов (ядро + кабинет) — раз на процесс
         @Volatile private var ruAutoCheckedThisProcess = false // авто-РФ-пресет (2026-08-03) — раз на процесс, не спамим egress-check
         @Volatile private var notifAskedThisProcess = false // запрос POST_NOTIFICATIONS — раз на процесс (поворот не переспрашивает)
@@ -3248,11 +3256,17 @@ class MayakActivity : AppCompatActivity() {
         @Volatile private var homeWarmedThisProcess = false
 
         // Свежий список направлений тянем из сети РАЗ на запуск процесса (при первом успешном показе главного).
-        // Пересоздание Activity (смена темы/языка) НЕ рефетчит — показываем процесс-скоупный кэш, сеть молчит
+        // Пересоздание Activity (смена ТЕМЫ) НЕ рефетчит — показываем процесс-скоупный кэш, сеть молчит
         // (баг владельца 2026-07-06: смена темы после TTL всё равно дёргала GET /directions). Новые направления
         // подхватываются перезапуском приложения ИЛИ кнопкой «Обновить» (forceRefresh) — она для этого и есть.
-        // Флаг ставим только на УСПЕХ: если холодный старт не достучался — следующий вход/пересоздание повторит.
-        @Volatile private var directionsFetchedThisProcess = false
+        //
+        // Здесь ЯЗЫК, а не голое «уже тянули»: имена стран приходят с сервера и зависят от языка телефона.
+        // Пока это был флаг Boolean, смена языка на живом процессе оставляла список на прежнем языке —
+        // 14-08 владелец переключил приложение на английский и увидел английский интерфейс с русскими
+        // «Нидерланды/Польша/Россия» (дефект 0.5.2). Теперь помним, на каком языке список получен:
+        // разошлось с текущим — идём в сеть, даже если в этом процессе уже ходили.
+        // null = ещё не тянули; ставим только на УСПЕХ (ошибка сети → следующий вход повторит).
+        @Volatile private var directionsFetchedLang: String? = null
 
         /** Точку входа перезапустили из-за отозванного входа — на экране логина объясним, почему. */
         private const val EXTRA_SESSION_EXPIRED = "mayak_session_expired"

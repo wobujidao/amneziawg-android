@@ -18,11 +18,24 @@ import java.io.File
 object MayakPresets {
     private const val TAG = "AmneziaWG/Presets"
     private const val CACHE = "presets_cache.json"
+
+    // На каком языке получены ИМЕНА пресетов в кэше («ru»/«en»). Имя системного набора приходит
+    // с сервера (миграция 0134) и зависит от языка телефона, поэтому кэш надо подписывать: без
+    // подписи человек, переключивший язык, продолжал видеть «RU Приложения» рядом с английским
+    // интерфейсом (тот же дефект, что со странами, 0.5.2).
+    private const val CACHE_LANG = "presets_cache.lang"
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 
     @Volatile private var memCache: List<Preset>? = null
 
     private fun cacheFile(ctx: Context) = MayakNoBackup.file(ctx, CACHE)
+
+    private fun langFile(ctx: Context) = MayakNoBackup.file(ctx, CACHE_LANG)
+
+    /** Язык имён в кэше пресетов; null — кэша нет или подписи нет (кэш от сборки без подписи). */
+    fun cachedLang(ctx: Context): String? =
+        runCatching { langFile(ctx).takeIf { it.exists() }?.readText()?.trim()?.takeIf { it.isNotEmpty() } }
+            .getOrNull()
 
     /** Синхронизация с сервером: тянет пресеты (системные+свои), кэширует. Best-effort (ошибка → тихо). */
     suspend fun sync(ctx: Context, backend: MayakBackend, token: String) {
@@ -33,6 +46,7 @@ object MayakPresets {
             tmp.writeText(json.encodeToString(ListSerializer(Preset.serializer()), list))
             if (!tmp.renameTo(cacheFile(ctx))) { tmp.copyTo(cacheFile(ctx), overwrite = true); tmp.delete() }
             memCache = list
+            runCatching { langFile(ctx).writeText(MayakBackend.namesLanguageBucket()) }
             Log.i(TAG, "пресеты синхронизированы: ${list.size}")
         }.onFailure { Log.w(TAG, "не смог записать кэш пресетов: ${it.message}") }
     }
@@ -48,7 +62,7 @@ object MayakPresets {
      */
     fun clear(ctx: Context) {
         memCache = null
-        runCatching { cacheFile(ctx).delete() }
+        runCatching { cacheFile(ctx).delete(); langFile(ctx).delete() }
             .onFailure { Log.w(TAG, "не смог удалить кэш пресетов: ${it.message}") }
     }
 

@@ -117,6 +117,30 @@ class MayakBackend(
             ignoreUnknownKeys = true
             encodeDefaults = true
         }
+
+        /**
+         * BCP-47 языка телефона, ровно как он уходит в `Accept-Language` («ru-RU», «en-US»).
+         * null — языка нет или он «und»: заголовок в этом случае НЕ отправляется.
+         */
+        fun languageTag(): String? =
+            runCatching { Locale.getDefault().toLanguageTag() }
+                .getOrNull()?.takeIf { it.isNotBlank() && it != "und" }
+
+        /**
+         * «Корзина» языка НАЗВАНИЙ, приходящих с сервера: `ru` или `en`.
+         *
+         * Зачем корзина, а не сам тег. Сервер знает два набора имён: русский — тем, кто просит
+         * русский, английский — всем остальным (`internal/clientapi/lang.go`). Значит для КЭША важно
+         * не «сменился ли тег», а «сменился ли набор имён»: переезд de-DE → fr-FR не меняет ничего,
+         * а ru-RU → en-US меняет всё. Заголовка нет → сервер отдаёт русские, поэтому null это «ru».
+         *
+         * Кэш направлений и пресетов подписан этим значением: смена языка телефона делает старый
+         * кэш чужим и заставляет перезапросить. Без этого 14-08 у владельца интерфейс переключился
+         * на английский, а список стран остался русским — список тянется раз на процесс, и никто
+         * его не перезапрашивал (дефект жил ровно один выпуск, 0.5.2).
+         */
+        fun namesLanguageBucket(): String =
+            if (languageTag()?.substringBefore('-')?.lowercase() == "ru") "ru" else "en"
     }
 
     /**
@@ -509,9 +533,7 @@ class MayakBackend(
      * это ровно «мой язык такой». «und» (язык неизвестен) и пустое НЕ шлём: заголовок с мусором хуже
      * его отсутствия — сервер обязан в этом случае вести себя как со старой сборкой.
      */
-    private fun acceptLanguage(): String? =
-        runCatching { Locale.getDefault().toLanguageTag() }
-            .getOrNull()?.takeIf { it.isNotBlank() && it != "und" }
+    private fun acceptLanguage(): String? = languageTag()
 
     private fun doRequest(
         url: String,

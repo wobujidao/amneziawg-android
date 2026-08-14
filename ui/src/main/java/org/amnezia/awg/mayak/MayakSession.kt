@@ -67,6 +67,11 @@ class MayakSession(
         private const val K_DEVICE = "device_id"
         private const val K_DIRS_CACHE = "dirs_cache"
 
+        // На каком языке получены имена в K_DIRS_CACHE («ru»/«en»). Человек переключил язык →
+        // подпись разошлась → кэш считается чужим и список тянется заново (дефект 0.5.2: интерфейс
+        // стал английским, а страны остались русскими).
+        private const val K_DIRS_LANG = "dirs_cache_lang"
+
         // Последний УСПЕШНО подключившийся конфиг на диск (offline-фоллбэк): если ядро недоступно
         // (NoReachableHostException — инцидент SPOF ядра 2026-07-05), поднимаем сохранённый конфиг
         // ВМЕСТО «Ядро недоступно». Работает, т.к. туннель идёт устройство→ЭКЗИТ, а ядро — лишь выдаёт
@@ -91,6 +96,9 @@ class MayakSession(
         // смена темы происходит в пределах TTL → сеть молчит; переоткрытие спустя TTL → рефетч (новые
         // направления появляются сами, без перелогина — примиряет оба бага владельца 06-27/06-28).
         @Volatile private var memDirectionsAt: Long = 0L
+
+        // Языковая подпись того, что лежит в memDirections (см. K_DIRS_LANG).
+        @Volatile private var memDirectionsLang: String? = null
 
         // Процесс-скоупный кэш предзагруженных /connect-конфигов (переживает пересоздание Activity →
         // смена темы не дёргает /connect повторно). Одноразовый (take удаляет). Содержит приватный ключ
@@ -191,6 +199,8 @@ class MayakSession(
      */
     fun directionsFresh(ttlMs: Long): Boolean {
         val at = memDirectionsAt
+        // Язык в подписи ≠ текущему → кэш «свежим» не считаем ни при каком TTL: имена в нём чужие.
+        if (memDirectionsLang != MayakBackend.namesLanguageBucket()) return false
         return at != 0L && memDirections != null && (SystemClock.elapsedRealtime() - at) < ttlMs
     }
 
@@ -198,22 +208,44 @@ class MayakSession(
     fun invalidateDirections() {
         memDirections = null
         memDirectionsAt = 0L
+        memDirectionsLang = null
         connectCache.clear() // предзагруженные конфиги прошлой топологии/пользователя тоже неактуальны
         store.remove(K_DIRS_CACHE)
+        store.remove(K_DIRS_LANG)
     }
 
-    /** Кэш направлений: in-memory → зашифрованное хранилище. null — кэша нет или он битый. */
+    /**
+     * Кэш направлений: in-memory → зашифрованное хранилище. null — кэша нет, он битый ИЛИ он на
+     * чужом языке.
+     *
+     * Про язык. Названия стран приходят С СЕРВЕРА и зависят от языка телефона (`Accept-Language`).
+     * Человек переключил язык — прежний кэш стал чужим: показывать «Нидерланды» при английском
+     * интерфейсе нельзя. Поэтому кэш подписан «корзиной» языка, и при несовпадении мы отвечаем
+     * «кэша нет» — вызывающий сходит в сеть и получит имена на нужном языке.
+     */
     private fun cachedDirections(): List<Direction>? {
-        memDirections?.let { return it }
+        val lang = MayakBackend.namesLanguageBucket()
+        if (memDirections != null && memDirectionsLang == lang) return memDirections
+        if (memDirections != null && memDirectionsLang != lang) {
+            // Язык сменился на живом процессе: и память, и диск теперь про другой набор имён.
+            memDirections = null
+            memDirectionsAt = 0L
+        }
+        if (store.get(K_DIRS_LANG) != lang) return null
         val raw = store.get(K_DIRS_CACHE) ?: return null
         return runCatching { json.decodeFromString(dirsSerializer, raw) }
-            .getOrNull()?.takeIf { it.isNotEmpty() }?.also { memDirections = it }
+            .getOrNull()?.takeIf { it.isNotEmpty() }
+            ?.also { memDirections = it; memDirectionsLang = lang }
     }
 
     /** Положить направления в кэш (in-memory + зашифрованное хранилище через SecureStore). */
     private fun cacheDirections(dirs: List<Direction>) {
         memDirections = dirs
         memDirectionsAt = SystemClock.elapsedRealtime() // отметка «свежо из сети» → смена темы не рефетчит
+        // Подпись языком: на каком языке эти имена получены. Сменится язык телефона — кэш станет
+        // чужим (см. cachedDirections) и список перезапросится сам.
+        memDirectionsLang = MayakBackend.namesLanguageBucket()
+        runCatching { store.put(K_DIRS_LANG, memDirectionsLang!!) }
         // SecureStore (KeystoreSecureStore) уже шифрует at-rest → кэш зашифрован переиспользованием.
         // TODO(tech-debt): KeystoreSecureStore на депрекейтнутом androidx.security.crypto — мигрировать
         //   на Android Keystore напрямую / datastore-tink (отдельная задача, см. docs/research 2026-06-27).
