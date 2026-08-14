@@ -1533,6 +1533,25 @@ class MayakActivity : AppCompatActivity() {
         // бы живую страну за «другую» и, будь он userInitiated, дёрнул бы switchTo.
         if (connState == ConnState.CONNECTED && connectedDir == null)
             connectedDir = GoTunnel.connectedDirectionId?.let { id -> dirs.firstOrNull { it.id == id } } ?: initial
+        // МЕТКА НАПРАВЛЕНИЯ ПЕРЕЖИВАЕТ СМЕНУ ЯЗЫКА (жалоба владельца 14-08: в шторке
+        // «🇳🇱 Netherlands · Защищено» — половина строки на одном языке, половина на другом).
+        //
+        // Название страны приходит С СЕРВЕРА на языке телефона, а метку мы пишем ОДИН раз, в
+        // onConnected, и держим процесс-скоупно (GoTunnel.connectedLabel). Смена языка на живом
+        // туннеле пересоздаёт Activity и перетягивает список на новом языке, но метку не трогает
+        // никто: onConnected больше не случится до переподключения. В шторке, в «Подробностях» и на
+        // плитке оставалось имя на СТАРОМ языке — рядом с уже переведённым «Защищено».
+        //
+        // Здесь список уже нового языка, а подключённое направление известно строкой выше — значит
+        // это единственное место, где метку можно починить, ничего не спрашивая у сети.
+        if (connState == ConnState.CONNECTED) connectedDir?.let { d ->
+            val fresh = MayakNotification.labelFor(this, d)
+            if (fresh != GoTunnel.connectedLabel) {
+                GoTunnel.connectedLabel = fresh
+                MayakPrefs.setLastConnLabel(this, fresh) // и на диск: шторка читает оттуда без Activity
+                MayakNotification.show(this, fresh, GoTunnel.connectedPingMs)
+            }
+        }
         selectDir(initial, userInitiated = false) // пассивно: без сети, без переподключения (тема молчит)
         if (connState == ConnState.DISCONNECTED) {
             setStatus(getString(R.string.mayak_status_disconnected))
