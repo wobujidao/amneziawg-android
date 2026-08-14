@@ -511,6 +511,7 @@ class MayakActivity : AppCompatActivity() {
     private fun showLogin() {
         isHomeShown = false
         setContentView(R.layout.activity_mayak_login)
+        MayakSystemBars.padForBars(findViewById(R.id.mayak_login_content))
         dirsContainer = null
         status = findViewById(R.id.mayak_status)
 
@@ -1131,6 +1132,9 @@ class MayakActivity : AppCompatActivity() {
     private fun showHome() {
         isHomeShown = true
         setContentView(R.layout.activity_mayak_home)
+        // Низ НЕ отступаем: над жестовой полосой контент поднимает штамп версии (ниже), сложились бы
+        // два отступа. Верх и бока — здесь.
+        MayakSystemBars.padForBars(findViewById(R.id.mayak_home_content), bottom = false)
         status = findViewById(R.id.mayak_status)
         dirsContainer = findViewById(R.id.mayak_dirs_container)
         // Бледный штамп версии внизу экрана (просьба владельца 2026-08-03): на присланном скриншоте

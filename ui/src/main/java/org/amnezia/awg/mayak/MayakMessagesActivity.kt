@@ -16,9 +16,6 @@ import android.view.View
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.updatePadding
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.launch
@@ -83,16 +80,7 @@ class MayakMessagesActivity : AppCompatActivity() {
         if (session.hasToken()) load()
     }
 
-    private fun applyInsets() {
-        val content = findViewById<View>(R.id.mayak_messages_content)
-        val baseTop = content.paddingTop
-        val baseBottom = content.paddingBottom
-        ViewCompat.setOnApplyWindowInsetsListener(content) { v, insets ->
-            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.updatePadding(top = baseTop + bars.top, bottom = baseBottom + bars.bottom)
-            insets
-        }
-    }
+    private fun applyInsets() = MayakSystemBars.padForBars(findViewById(R.id.mayak_messages_content))
 
     // ===== Загрузка =====
 

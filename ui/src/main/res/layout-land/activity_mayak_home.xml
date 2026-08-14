@@ -25,13 +25,14 @@
         android:importantForAccessibility="no" />
 
     <LinearLayout
+        android:id="@+id/mayak_home_content"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
         android:clipChildren="false"
         android:paddingStart="20dp"
         android:paddingEnd="20dp"
-        android:paddingTop="16dp"
+        android:paddingTop="8dp"
         android:paddingBottom="10dp">
 
         <!-- Шапка тянется во всю ширину над обеими колонками: тема, пресет и настройки относятся

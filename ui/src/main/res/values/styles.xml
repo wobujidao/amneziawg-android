@@ -60,8 +60,15 @@
         <item name="colorOnSurface">@color/mayak_on_surface</item>
         <item name="colorPrimary">@color/mayak_primary</item>
         <item name="colorOnPrimary">@color/mayak_on_primary</item>
-        <item name="android:statusBarColor">@color/mayak_statusbar</item>
-        <item name="android:navigationBarColor">@color/mayak_statusbar</item>
+        <!-- Панели ПРОЗРАЧНЫЕ, под ними наш собственный фон (градиент/шапка экрана). Так во всех
+             версиях Android одно и то же поведение: окно рисуется от края до края, а отступы под
+             панели считает код (MayakSystemBars). Раньше здесь стоял непрозрачный mayak_statusbar —
+             но с targetSdk 35 Android 15 эти два свойства ИГНОРИРУЕТ (окно всё равно от края до
+             края), и получалось два разных экрана: на новых телефонах контент под панелями, на
+             старых — под цветной полосой. Цвет и так совпадал с верхом градиента, так что глазами
+             разницы нет. -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
         <!-- цвет текста/иконок в диалогах (язык/тема) тоже следует режиму -->
         <item name="android:textColorPrimary">@color/mayak_on_surface</item>
         <item name="android:textColorSecondary">@color/mayak_on_surface_muted</item>

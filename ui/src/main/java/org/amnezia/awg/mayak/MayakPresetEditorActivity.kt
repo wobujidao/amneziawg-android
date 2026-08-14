@@ -28,9 +28,6 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.updatePadding
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -88,14 +85,7 @@ class MayakPresetEditorActivity : AppCompatActivity() {
         MayakSystemBars.apply(this) // контраст иконок статус-бара/навбара под тему
 
         // Edge-to-edge: отступаем контент на высоту статус-бара сверху и навбара снизу (как в настройках).
-        val content = findViewById<View>(R.id.mayak_preset_content)
-        val baseTop = content.paddingTop
-        val baseBottom = content.paddingBottom
-        ViewCompat.setOnApplyWindowInsetsListener(content) { v, insets ->
-            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.updatePadding(top = baseTop + bars.top, bottom = baseBottom + bars.bottom)
-            insets
-        }
+        MayakSystemBars.padForBars(findViewById(R.id.mayak_preset_content))
 
         // Считываем входные экстры.
         val startName = intent.getStringExtra(EXTRA_NAME) ?: ""

@@ -17,6 +17,7 @@ class MayakLockActivity : AppCompatActivity() {
         window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
         setContentView(R.layout.activity_mayak_lock)
         MayakSystemBars.apply(this)
+        MayakSystemBars.padForBars(findViewById(R.id.mayak_lock_root))
         MayakLock.lockShowing = true
         findViewById<MaterialButton>(R.id.mayak_lock_unlock).setOnClickListener { prompt() }
         findViewById<MaterialButton>(R.id.mayak_lock_exit).setOnClickListener { moveTaskToBack(true) }

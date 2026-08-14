@@ -29,9 +29,6 @@ import android.webkit.WebViewClient
 import android.widget.TextView
 import androidx.activity.addCallback
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.updatePadding
 import androidx.core.widget.doAfterTextChanged
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
@@ -164,14 +161,7 @@ class MayakRegisterActivity : AppCompatActivity() {
 
     private fun applyInsets() {
         for (id in listOf(R.id.mayak_reg_content, R.id.mayak_reg_step_captcha)) {
-            val v = findViewById<View>(id)
-            val baseTop = v.paddingTop
-            val baseBottom = v.paddingBottom
-            ViewCompat.setOnApplyWindowInsetsListener(v) { view, insets ->
-                val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-                view.updatePadding(top = baseTop + bars.top, bottom = baseBottom + bars.bottom)
-                insets
-            }
+            MayakSystemBars.padForBars(findViewById(id))
         }
     }
 

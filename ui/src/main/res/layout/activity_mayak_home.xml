@@ -32,7 +32,13 @@
         android:scrollbars="none"
         android:clipChildren="false">
 
+        <!-- paddingTop тут — ТОЛЬКО зазор под статус-баром, а не «отступ от края экрана»: высоту
+             самого бара добавляет код (MayakSystemBars.padForBars в showHome). Раньше здесь стояло
+             28dp «на глаз» — этого хватало телефонам со старым тонким баром, а на нынешних (вырез
+             камеры, бар 44–49dp) шапка заезжала под часы; с targetSdk 35 Android 15 рисует окно
+             от края до края всегда, так что зазор обязан считаться, а не угадываться. -->
         <LinearLayout
+            android:id="@+id/mayak_home_content"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:orientation="vertical"
@@ -40,7 +46,7 @@
             android:clipChildren="false"
             android:paddingStart="20dp"
             android:paddingEnd="20dp"
-            android:paddingTop="28dp"
+            android:paddingTop="8dp"
             android:paddingBottom="20dp">
 
             <include layout="@layout/mayak_home_header" />

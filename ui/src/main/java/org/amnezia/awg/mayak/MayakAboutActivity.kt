@@ -5,9 +5,13 @@ package org.amnezia.awg.mayak
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.view.View
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
 import com.google.android.material.button.MaterialButton
 import org.amnezia.awg.BuildConfig
 import org.amnezia.awg.R
@@ -19,6 +23,25 @@ class MayakAboutActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_mayak_about)
         MayakSystemBars.apply(this) // контраст иконок статус-бара/навбара под тему
+
+        // Отступы под системные панели — тот же приём, что в «Настройках». Статус-бар отдан
+        // ЗАКРЕПЛЁННОЙ шапке, контент отступает на её высоту (высота зависит от инсета телефона,
+        // поэтому меряем после разметки), снизу — на высоту навигационной панели.
+        // 🔴 Почему это стало обязательным: с targetSdk 35 Android 15 рисует окно от края до края
+        // ВСЕГДА, отказаться нельзя. Без отступов заголовок экрана оказывался под часами, а нижняя
+        // карточка — под жестовой полосой (замер на эмуляторе API 35, 15-08).
+        val content = findViewById<View>(R.id.mayak_about_content)
+        val header = findViewById<View>(R.id.mayak_about_header)
+        val baseTop = content.paddingTop
+        val baseBottom = content.paddingBottom
+        val headerBaseTop = header.paddingTop
+        ViewCompat.setOnApplyWindowInsetsListener(content) { v, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            header.updatePadding(top = headerBaseTop + bars.top)
+            header.post { v.updatePadding(top = baseTop + header.height, bottom = baseBottom + bars.bottom) }
+            insets
+        }
+        ViewCompat.requestApplyInsets(content)
 
         findViewById<MaterialButton>(R.id.mayak_about_back).setOnClickListener {
             finish(); MayakTransitions.applyAxisReverse(this)

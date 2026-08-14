@@ -12,14 +12,17 @@
         android:fillViewport="true"
         android:clipToPadding="false">
 
+        <!-- paddingTop — зазор ПОД статус-баром; его высоту добавляет код (MayakSystemBars.padForBars
+             в showLogin), иначе на телефонах с высоким баром переключатель темы уезжает под часы. -->
         <LinearLayout
+            android:id="@+id/mayak_login_content"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:gravity="center_horizontal"
             android:paddingStart="@dimen/mayak_space_6"
             android:paddingEnd="@dimen/mayak_space_6"
-            android:paddingTop="@dimen/mayak_space_5"
+            android:paddingTop="@dimen/mayak_space_2"
             android:paddingBottom="@dimen/mayak_space_7">
 
             <!-- Шапка: слева — переключатель темы (солнце/луна/авто), справа — язык.

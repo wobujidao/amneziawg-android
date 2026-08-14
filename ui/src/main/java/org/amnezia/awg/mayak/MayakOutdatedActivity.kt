@@ -41,6 +41,7 @@ class MayakOutdatedActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_mayak_outdated)
         MayakSystemBars.apply(this)
+        MayakSystemBars.padForBars(findViewById(R.id.mayak_outdated_root))
         showing = true
 
         // «Назад» = свернуть приложение. Внутрь не пускаем: сборка отрезана, «Позже» тут не бывает.

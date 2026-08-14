@@ -15,6 +15,7 @@
         android:clipToPadding="false">
 
         <LinearLayout
+            android:id="@+id/mayak_about_content"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
@@ -22,37 +23,6 @@
             android:paddingEnd="20dp"
             android:paddingTop="16dp"
             android:paddingBottom="32dp">
-
-            <!-- Шапка: назад + заголовок -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="start|center_vertical">
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/mayak_about_back"
-                    style="@style/Mayak.Button.Text"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:minWidth="0dp"
-                    android:minHeight="0dp"
-                    android:paddingStart="6dp"
-                    android:paddingEnd="6dp"
-                    android:contentDescription="@string/mayak_back"
-                    app:icon="@drawable/ic_arrow_back"
-                    app:iconTint="@color/mayak_on_bg"
-                    app:iconSize="24dp"
-                    android:text="" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:text="@string/mayak_about"
-                    android:textAppearance="@style/Mayak.Title"
-                    android:textSize="24sp" />
-            </LinearLayout>
 
             <!-- Логотип + название + версия -->
             <com.google.android.material.card.MaterialCardView
@@ -211,4 +181,46 @@
             </com.google.android.material.card.MaterialCardView>
         </LinearLayout>
     </ScrollView>
+
+    <!-- Шапка ЗАКРЕПЛЕНА поверх прокрутки — тем же приёмом, что в «Настройках» (аудит 2026-07-31,
+         п. 8). Здесь она ехала вместе с контентом, и на Android 15 это стало видно в упор: система
+         с targetSdk 35 рисует экран ОТ КРАЯ ДО КРАЯ, статус-бар прозрачен — заголовок «О приложении»
+         оказывался ровно под часами (замер на эмуляторе 15-08). Фон непрозрачный и равен ВЕРХНЕМУ
+         цвету градиента, поэтому стыка не видно, а уезжающий текст прячется под шапкой. -->
+    <LinearLayout
+        android:id="@+id/mayak_about_header"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="start|center_vertical"
+        android:background="@color/mayak_bg_grad_top"
+        android:elevation="4dp"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="8dp">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/mayak_about_back"
+            style="@style/Mayak.Button.Text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp"
+            android:contentDescription="@string/mayak_back"
+            app:icon="@drawable/ic_arrow_back"
+            app:iconTint="@color/mayak_on_bg"
+            app:iconSize="24dp"
+            android:text="" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="@string/mayak_about"
+            android:textAppearance="@style/Mayak.Title"
+            android:textSize="24sp" />
+    </LinearLayout>
 </FrameLayout>
