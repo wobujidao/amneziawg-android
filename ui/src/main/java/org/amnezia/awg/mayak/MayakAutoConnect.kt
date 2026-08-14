@@ -96,14 +96,24 @@ object MayakAutoConnect {
             tunnel.up(prepareConf(ctx, confToUp))
             // Метки для уведомления «Подключено» (процесс-скоупны в GoTunnel): на headless-подъёме
             // Activity нет, поэтому проставляем здесь, чтобы шторка/повторное открытие показали страну.
-            GoTunnel.connectedLabel = paths.directionName
-            MayakPrefs.setLastConnLabel(ctx, paths.directionName) // запасной источник для шторки (см. MayakPrefs)
+            //
+            // ⚠️ `paths.directionName` — это КОД направления («nl»), как его отдаёт /connect, а НЕ имя
+            // страны: в шторке так и висело голое «nl» вместо «🇳🇱 Нидерланды» (проверено плиткой на
+            // эмуляторе 14-08), и этот код ещё и затирал на диске нормальное имя от ручного коннекта.
+            // Имя страны здесь взять неоткуда — список стран за сетью, которой при подъёме по
+            // Always-On может не быть, — поэтому берём готовую метку прошлого коннекта ЭТОГО же
+            // направления. Нет её (сюда попали, ни разу не подключившись вручную) — код: непонятно,
+            // но честно.
+            val label = MayakPrefs.connLabelFor(ctx, dirId) ?: paths.directionName
+            GoTunnel.connectedLabel = label
+            MayakPrefs.setLastConnLabel(ctx, label, dirId) // запасной источник для шторки (см. MayakPrefs)
             GoTunnel.connectedServerHost = MayakPing.hostOf(endpoint)
             // Пробы выхода тут нет (Activity нет, сеть может быть ещё не готова) → в шторке честное
             // «Проверяем соединение…», а не «Защищено». Сторож живости подтвердит или опровергнет сам,
             // как только пойдёт трафик или устареет рукопожатие (аудит 2026-07-31).
             MayakLiveness.start(ctx)
-            runCatching { MayakNotification.show(ctx, paths.directionName, null) }
+            runCatching { MayakNotification.show(ctx, label, null) }
+            // В лог — КОД: он не зависит от языка телефона и одинаков во всех диаг-логах.
             Log.i(TAG, "туннель поднят автоподключением: ${paths.directionName}")
             true
         } catch (e: Exception) {

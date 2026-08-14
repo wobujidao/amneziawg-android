@@ -1548,7 +1548,7 @@ class MayakActivity : AppCompatActivity() {
             val fresh = MayakNotification.labelFor(this, d)
             if (fresh != GoTunnel.connectedLabel) {
                 GoTunnel.connectedLabel = fresh
-                MayakPrefs.setLastConnLabel(this, fresh) // и на диск: шторка читает оттуда без Activity
+                MayakPrefs.setLastConnLabel(this, fresh, d.id) // и на диск: шторка читает оттуда без Activity
                 MayakNotification.show(this, fresh, GoTunnel.connectedPingMs)
             }
         }
@@ -1905,7 +1905,7 @@ class MayakActivity : AppCompatActivity() {
         // Метку направления кладём на диск СРАЗУ, до подъёма туннеля: подъём обнуляет процесс-скоупную
         // (см. MayakPrefs.lastConnLabel), и если коннект не дойдёт до onConnected, шторке будет из чего
         // взять страну. Пишем цель ЭТОГО подключения — тогда даже при смене страны она не отстаёт.
-        MayakPrefs.setLastConnLabel(this, MayakNotification.labelFor(this, d))
+        MayakPrefs.setLastConnLabel(this, MayakNotification.labelFor(this, d), d.id)
         statusShownAt = SystemClock.elapsedRealtime() // отсюда считается читаемость следующей надписи
         errorShownAt = 0L // прошлая ошибка ушла с экрана — ей больше нечего протухать
         connGeneration++ // новое подключение → результаты фоновых проб от прошлого больше не наши
@@ -2417,7 +2417,9 @@ class MayakActivity : AppCompatActivity() {
         // РАЗНЫЕ моменты — поэтому дёргаем оба раза.
         refreshConnectedDots()
         GoTunnel.connectedLabel = MayakNotification.labelFor(this, d)
-        MayakPrefs.setLastConnLabel(this, GoTunnel.connectedLabel) // запасной источник для шторки (см. MayakPrefs)
+        // id — чтобы безголовый подъём (плитка/Always-On) мог взять ГОТОВОЕ имя, а не код (см. MayakPrefs).
+        // Направление тут может быть неизвестно (d == null) — тогда −1: метка есть, переиспользовать её нельзя.
+        MayakPrefs.setLastConnLabel(this, GoTunnel.connectedLabel, d?.id ?: -1L)
         MayakNotification.show(this, GoTunnel.connectedLabel, GoTunnel.connectedPingMs)
         Toast.makeText(this, getString(R.string.mayak_connected), Toast.LENGTH_SHORT).show()
         // Туннель поднялся — значит связь ЕСТЬ. Второй из трёх поводов заглянуть в ящик (SPEC-0047):

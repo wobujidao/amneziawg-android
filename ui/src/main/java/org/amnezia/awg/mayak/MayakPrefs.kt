@@ -17,6 +17,7 @@ object MayakPrefs {
     private const val KEY_THEME = "theme_mode"
     private const val KEY_LAST_DIR = "last_direction_id"
     private const val KEY_LAST_CONN_LABEL = "last_conn_label" // метка направления для шторки (переживает всё)
+    private const val KEY_LAST_CONN_LABEL_DIR = "last_conn_label_dir" // чьё это имя (id направления)
     private const val KEY_UPDATE_DISMISSED = "update_dismissed_code" // versionCode, для которого нажали «Позже» (историческое, см. ниже)
     // Ступенчатые напоминания об обновлении (core.UpdateNudge): за какой версией следим, когда
     // впервые её увидели и какую ступень уже показали. Пришло на смену вечному молчанию после
@@ -348,8 +349,25 @@ object MayakPrefs {
     fun lastConnLabel(context: Context): String? =
         prefs(context).getString(KEY_LAST_CONN_LABEL, null)?.takeIf { it.isNotBlank() }
 
-    fun setLastConnLabel(context: Context, label: String?) {
-        prefs(context).edit().putString(KEY_LAST_CONN_LABEL, label).apply()
+    /**
+     * Та же метка, но ТОЛЬКО если она про ЭТО направление.
+     *
+     * Нужна безголовому подъёму (плитка в шторке, Always-On, BOOT_COMPLETED): там имени страны взять
+     * неоткуда — /connect отдаёт КОД («nl»), а список стран лежит за сетью, которой в этот момент
+     * может не быть. Метка на диске подходит, но не всегда: человек мог ВЫБРАТЬ другую страну и не
+     * подключиться (id выбора пишется на тап, метка — на подключение). Подписать чужую страну именем
+     * прежней хуже, чем показать код: код непонятен, а неверное имя — враньё.
+     */
+    fun connLabelFor(context: Context, directionId: Long): String? =
+        if (prefs(context).getLong(KEY_LAST_CONN_LABEL_DIR, -1L) == directionId) lastConnLabel(context) else null
+
+    /** directionId — чьё это имя. Без него метку нельзя переиспользовать (см. connLabelFor), поэтому
+     *  параметр обязателен: у каждого места записи направление под рукой есть. */
+    fun setLastConnLabel(context: Context, label: String?, directionId: Long) {
+        prefs(context).edit()
+            .putString(KEY_LAST_CONN_LABEL, label)
+            .putLong(KEY_LAST_CONN_LABEL_DIR, directionId)
+            .apply()
     }
 
     /** Всего успешных подключений (кумулятивно) — для телеметри-бикона. */
