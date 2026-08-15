@@ -236,7 +236,7 @@
     <string name="mayak_status_disconnected">Unprotected</string>
     <string name="mayak_status_cancelled">Connection cancelled</string>
     <string name="mayak_connected">Protected</string>
-    <string name="mayak_notif_channel_name">VPN status</string>
+    <string name="mayak_notif_channel_name">Connection status</string>
     <string name="mayak_notif_channel_desc">Shows the active connection</string>
     <string name="mayak_notif_connected_title">Mayak — connected</string>
     <string name="mayak_notif_disconnect">Disconnect</string>
@@ -288,7 +288,7 @@
     <string name="mayak_a11y_disconnect">Disconnect</string>
     <string name="mayak_err_fill_login">Enter your login and password</string>
     <string name="mayak_err_bad_link">Link not recognized</string>
-    <string name="mayak_err_no_vpn_perm">VPN permission denied</string>
+    <string name="mayak_err_no_vpn_perm">The system did not allow the protected connection</string>
     <string name="mayak_err_empty_dirs">Core returned no countries</string>
     <!-- Пустой список стран и отказ загрузки — ДВА РАЗНЫХ состояния (правило проекта: одна
          формулировка на две причины запрещена). Первое: сервер ответил, но стран в ответе нет.
@@ -320,10 +320,10 @@
     <string name="mayak_settings_split">Split tunneling</string>
     <string name="mayak_preset_switch_desc">Apply this preset\'s split tunneling</string>
     <string name="mayak_settings_split_count">Split tunneling (%1$d)</string>
-    <string name="mayak_settings_split_hint">Choose apps that go around the VPN over your real IP (e.g. banking, government apps that block foreign IPs). Everything else stays protected. Selected apps are intentionally outside the tunnel — add only what you need.</string>
+    <string name="mayak_settings_split_hint">Choose apps that go around the tunnel over your real IP (e.g. banking, government apps that block foreign IPs). Everything else stays protected. Selected apps are intentionally outside the tunnel — add only what you need.</string>
     <string name="mayak_settings_split_applied">Applies on the next connection</string>
-    <string name="mayak_settings_rudirect">Russian services direct (no VPN)</string>
-    <string name="mayak_settings_rudirect_hint">One tap: Russian apps (banks, government services, marketplaces, streaming) go directly over your real IP, so they work as if you were at home. Everything else stays protected by the VPN. Applies on the next connection.</string>
+    <string name="mayak_settings_rudirect">Open Russian services directly</string>
+    <string name="mayak_settings_rudirect_hint">One tap: Russian apps (banks, government services, marketplaces, streaming) go directly over your real IP, so they work as if you were at home. Everything else stays protected. Applies on the next connection.</string>
     <string name="mayak_settings_rudirect_applied">Russian services will go direct on the next connection</string>
     <!-- Auto-enabled the RU preset on first launch (2026-08-03): the person didn't touch the toggle
          themselves, we turned it on based on the detected exit country — explain what happened and how to undo it. -->
@@ -332,7 +332,7 @@
     <string name="mayak_settings_show_presets_hint">The preset selector and toggle appear above the connect button. Turn off if you don\'t use split-tunnel presets.</string>
     <!-- Short caption under the home-screen preset bar (2026-08-03): a first-time user sees a
          name and a switch with no explanation of what it does. -->
-    <string name="mayak_home_preset_hint">Split tunnel: with it on, selected services (Russian ones by default) go direct, bypassing the VPN</string>
+    <string name="mayak_home_preset_hint">Split tunnel: with it on, selected services (Russian ones by default) go direct, bypassing the protected connection</string>
     <string name="mayak_settings_filtering">Filtering</string>
     <string name="mayak_settings_dns_hint">The DNS profile is shared by every device on the account (phone, router, dashboard). Change it here; it applies on the next connection.</string>
     <string name="mayak_settings_dns_loading">Loading…</string>
@@ -393,12 +393,12 @@
     <string name="mayak_settings_reset_done">Settings reset</string>
     <string name="mayak_settings_protection">Protection</string>
     <string name="mayak_settings_autoconnect">Auto-connect</string>
-    <string name="mayak_settings_autoconnect_hint">Automatically brings up your last working connection when the phone starts or the system launches the VPN — from the config saved on the device, no network needed. Connect once manually first so there is something to restore.</string>
-    <string name="mayak_settings_killswitch">Kill-switch (block internet without VPN)</string>
-    <string name="mayak_settings_killswitch_hint">Blocking the internet when the VPN is off is a system setting. Opens Android VPN settings — enable “Always-on VPN” and “Block connections without VPN” for Mayak. Together with Auto-connect above, your traffic never leaves unprotected.</string>
-    <string name="mayak_settings_killswitch_unavailable">Couldn\'t open system VPN settings on this device. Open Settings → Network → VPN manually.</string>
+    <string name="mayak_settings_autoconnect_hint">Automatically brings up your last working connection when the phone starts or the system starts the protected connection itself — from the config saved on the device, no network needed. Connect once manually first so there is something to restore.</string>
+    <string name="mayak_settings_killswitch">Kill switch (no internet without protection)</string>
+    <string name="mayak_settings_killswitch_hint">Blocking the internet while protection is off is a system setting. This opens the right section of the Android settings — turn on “Always-on VPN” and “Block connections without VPN” for Mayak. Together with Auto-connect above, your traffic never leaves unprotected.</string>
+    <string name="mayak_settings_killswitch_unavailable">Couldn\'t open the system settings on this device. Open them manually: Settings → Network &amp; internet → VPN.</string>
     <string name="mayak_settings_applock">Lock the app</string>
-    <string name="mayak_settings_applock_hint">Ask for your fingerprint, face or device PIN when opening the app. Protects your account, settings and config if the phone is unlocked in someone else\'s hands. Doesn\'t affect the VPN. Applies from the next time you open the app.</string>
+    <string name="mayak_settings_applock_hint">Ask for your fingerprint, face or device PIN when opening the app. Protects your account, settings and config if the phone is unlocked in someone else\'s hands. Doesn\'t affect the connection itself. Applies from the next time you open the app.</string>
     <string name="mayak_settings_applock_no_credential">Set up a screen lock (PIN/fingerprint) in your phone settings — otherwise there is nothing to check and the lock won\'t work.</string>
     <string name="mayak_lock_title">Mayak is locked</string>
     <string name="mayak_lock_subtitle">Confirm it\'s you to continue</string>
@@ -410,7 +410,7 @@
     <string name="mayak_disguise_weather">Weather</string>
     <string name="mayak_disguise_notes">Notes</string>
     <string name="mayak_disguise_calc">Calculator</string>
-    <string name="mayak_disguise_applied">The icon and name change in a few seconds. If not, restart the phone. Your VPN connection is not affected.</string>
+    <string name="mayak_disguise_applied">The icon and name change in a few seconds. If not, restart the phone. Your connection is not affected.</string>
     <string name="mayak_settings_account">Email: %1$s</string>
     <string name="mayak_settings_account_none">not signed in</string>
     <!-- У учётки почты нет вовсе (анонимная регистрация, подарочная, из бота) — говорим прямо и
@@ -752,20 +752,20 @@
     <string name="mayak_preset_chooser_system_suffix">"  (default)"</string>
 
     <!-- SPEC-0028: редактор пресета сплит-туннеля (полноэкранный) -->
-    <string name="mayak_preset_editor_title">App VPN mode</string>
+    <string name="mayak_preset_editor_title">Which apps go through Mayak</string>
     <string name="mayak_preset_editor_name_hint">Preset name</string>
-    <string name="mayak_preset_editor_mode_label">VPN mode</string>
+    <string name="mayak_preset_editor_mode_label">Mode</string>
     <string name="mayak_preset_editor_delete">Delete</string>
     <string name="mayak_preset_editor_delete_confirm">Delete preset “%1$s”?</string>
     <string name="mayak_preset_editor_mode_all">All apps</string>
-    <string name="mayak_preset_editor_mode_all_sub">VPN works for every app</string>
+    <string name="mayak_preset_editor_mode_all_sub">Every app goes through Mayak</string>
     <string name="mayak_preset_editor_mode_exclude">All except selected</string>
-    <string name="mayak_preset_editor_mode_exclude_sub">VPN is off for the selected apps</string>
+    <string name="mayak_preset_editor_mode_exclude_sub">The selected apps go around Mayak</string>
     <string name="mayak_preset_editor_mode_include">Only selected</string>
-    <string name="mayak_preset_editor_mode_include_sub">VPN works only for the selected apps</string>
+    <string name="mayak_preset_editor_mode_include_sub">Only the selected apps go through Mayak</string>
     <string name="mayak_preset_editor_counter">Selected %1$d of %2$d</string>
     <string name="mayak_preset_editor_search_hint">Search</string>
-    <string name="mayak_preset_editor_all_hint">All apps go through the VPN — nothing to select.</string>
+    <string name="mayak_preset_editor_all_hint">Every app goes through Mayak — nothing to select.</string>
     <string name="mayak_preset_editor_save">Save</string>
     <string name="mayak_preset_editor_save_copy">Save as my copy</string>
     <string name="mayak_update_via_play">A new version is available. This app was installed from Google Play — update it there.</string>
