@@ -417,8 +417,16 @@
     <string name="mayak_onboarding_2_title">Change country any time</string>
     <!-- ⚠️ Тут было «рядом со страной — задержка»: цифры пинга убраны 15-08, фраза пережила правку. -->
     <string name="mayak_onboarding_2_text">Pick a country from the list below: if protection is on, the app switches over by itself. In “Auto” mode the countries you connect to fastest come first.</string>
-    <string name="mayak_onboarding_3_title">Local services bypass the tunnel</string>
-    <string name="mayak_onboarding_3_text">The switch at the top keeps banks and government sites on your normal connection, where a foreign address only gets in the way.</string>
+    <!-- ⚠️ 16-08, ревизия текстов: было «Local services bypass the tunnel» и «banks and government
+         sites» без страны. Обещание шире того, что приложение делает: мимо туннеля идут РОССИЙСКИЕ
+         приложения из нашего списка (MayakRuDirect собирает их по ассету/OTA-списку, системный
+         пресет так и называется — «РФ напрямую»), а не «местные» сервисы страны человека. У
+         англичанина в Польше от этого переключателя не изменится ничего. Соседние английские строки
+         страну называют честно — mayak_settings_rudirect («Russian services direct») и
+         mayak_home_preset_hint («Russian ones by default»), то есть знакомство спорило с настройками
+         в том же приложении. -->
+    <string name="mayak_onboarding_3_title">Russian services bypass the tunnel</string>
+    <string name="mayak_onboarding_3_text">The switch at the top keeps Russian banks and government sites on your normal connection, where a foreign address only gets in the way.</string>
     <string name="mayak_onboarding_done">Got it</string>
     <string name="mayak_settings_haptics">Haptic feedback</string>
     <string name="mayak_settings_haptics_hint">A short vibration on taps and when protection turns on or off.</string>
