@@ -295,7 +295,12 @@
     <string name="mayak_reg_err_captcha">Проверка «вы человек» не пройдена. Попробуйте ещё раз или создайте аккаунт в браузере.</string>
     <string name="mayak_reg_err_captcha_unavailable">Проверка «вы человек» сейчас не открывается. Попробуйте позже или создайте аккаунт в браузере.</string>
     <string name="mayak_reg_done_title">Ваш номер аккаунта</string>
-    <string name="mayak_reg_done_warning">Запишите номер и пароль. Показываем номер один раз: почты у аккаунта нет, и восстановить доступ без них будет нечем. Нужна возможность восстановления — привяжите почту в личном кабинете.</string>
+    <!-- ⚠️ 16-08, ревизия текстов: здесь стояло «Показываем номер один раз». Это неправда, и она
+         пугает зря: номер лежит в «Настройках» постоянно, пока человек не вышел из аккаунта
+         (MayakSettingsActivity.showAccountNumber, строка mayak_settings_acctnum_row; значение
+         держится в зашифрованном хранилище — MayakAccountNumber). Один раз показывается ПАРОЛЬ:
+         его мы нигде больше не покажем, и именно он теряется безвозвратно. -->
+    <string name="mayak_reg_done_warning">Запишите номер и пароль. Пароль больше нигде не покажем: почты у аккаунта нет, и восстановить доступ без него будет нечем. Номер всегда лежит в «Настройках». Нужна возможность восстановления — привяжите почту в личном кабинете.</string>
     <string name="mayak_reg_no_session">Аккаунт создан, но войти автоматически не получилось. Запишите номер и пароль — сейчас откроется вход, номер уже подставлен.</string>
     <plurals name="mayak_reg_trial_days">
         <item quantity="one">Пробный доступ уже включён: %1$d день.</item>
@@ -307,7 +312,14 @@
     <!-- Приглашения (SPEC-0049). Суммы НЕ называем на регистрации: их задаёт сервер и меняет
          владелец из панели, а сессии для запроса у нас на этом экране ещё нет. -->
     <string name="mayak_reg_invite_hint">Код приглашения (если есть)</string>
-    <string name="mayak_reg_invite_helper">Вас пригласили? Введите код — награда придёт обоим после вашей первой оплаты.</string>
+    <!-- ⚠️ 16-08, ревизия текстов приложения: здесь стояло «награда придёт обоим после вашей первой
+         оплаты». Неправда: оплата — только ПЕРВОЕ из двух условий, деньги приходят после неё И
+         выдержки (сегодня 31 день) — internal/clientapi/referral.go, комментарий к
+         handleReferralApply: «деньги обеим сторонам приходят, когда приглашённый оплатил И прожил
+         выдержку». Ровно это обещание правили на сайте 15-08 (web/index.html, блок #refInvite).
+         Число дней тут НЕ называем: его правит владелец в панели, а сессии, чтобы спросить у ядра,
+         на экране регистрации ещё нет — точные условия человек увидит в «Настройках» после входа. -->
+    <string name="mayak_reg_invite_helper">Вас пригласили? Введите код — награда придёт обоим после вашей первой оплаты и срока выдержки. Условия — в «Настройках».</string>
     <string name="mayak_reg_invite_paste">Вставить код</string>
     <string name="mayak_reg_invite_bad">Это не похоже на код приглашения: 8 символов, буквы и цифры. Кода нет — оставьте поле пустым.</string>
     <string name="mayak_reg_invite_ok">Код приглашения принят.</string>
@@ -350,7 +362,13 @@
     <string name="mayak_referral_apply_ok">Код принят: %1$s придут после вашей оплаты и выдержки.</string>
     <string name="mayak_referral_apply_failed">Код не применился: %1$s</string>
     <string name="mayak_consent_note">Входя, вы принимаете Политику конфиденциальности и Условия использования.</string>
-    <string name="mayak_err_email_not_verified">Подтвердите email на сайте.</string>
+    <!-- ⚠️ 16-08, ревизия текстов: было «Подтвердите email на сайте». Подтверждение живёт не на
+         сайте, а в ЛИЧНОМ КАБИНЕТЕ (cabinet/app.js, маршрут `verify` → #/verify) — и кнопка этого
+         же диалога открывает именно кабинет (MayakActivity.showEmailNotVerified →
+         MayakHostList.cabinetUrl). Человек, закрывший диалог и пошедший «на сайт», искал бы там
+         страницу, которой нет. Без указания «кнопка ниже»: та же строка стоит и подписью под
+         кнопкой подключения, где никакой кнопки рядом уже нет. -->
+    <string name="mayak_err_email_not_verified">Подтвердите почту в личном кабинете.</string>
     <string name="mayak_err_bad_creds">Неверная почта (или номер аккаунта) либо пароль.</string>
     <string name="mayak_totp_hint">Код двухфакторной аутентификации</string>
     <!-- Поле кода показывается ТОЛЬКО после ответа ядра «нужен код», поэтому подпись под ним отвечает
@@ -806,17 +824,27 @@
     <string name="mayak_msg_subscription_expired_body_plain">Продлите доступ, чтобы всё продолжало работать.</string>
     <string name="mayak_msg_access_revoked">Доступ отключён</string>
     <string name="mayak_msg_access_revoked_body">Продлите доступ или напишите нам — разберёмся.</string>
+    <!-- ⚠️ 16-08, ревизия текстов. Две беды на этих строках сразу.
+         (1) Знак рубля. Сервер кладёт в params голое число («500» — internal/usermsg/usermsg.go,
+             функция rub()), поэтому «Зачислено: 500.» выходило без единицы измерения. У соседних
+             поводов про приглашения «₽» стоит прямо в строке — ставим и здесь.
+         (2) Возврат. «Вернули: 500» читается как «деньги уже у вас». Их у человека ещё нет: касса
+             отправляет возврат тем же способом, которым он платил, и идёт он до нескольких рабочих
+             дней (internal/usermsg/usermsg.go, PaymentRefund; порядок возврата —
+             internal/admin/refunds.go, шапка файла: «КНОПКА ЗДЕСЬ НЕ ВОЗВРАЩАЕТ ДЕНЬГИ»).
+             Сервер именно так и пишет, но приложение подменяет его текст своим (MayakMessages.body:
+             localBody выигрывает у m.body), то есть теряло правду, которую сервер уже сказал. -->
     <string name="mayak_msg_payment_receipt">Оплата прошла</string>
-    <string name="mayak_msg_payment_receipt_body">Зачислено: %1$s. Спасибо!</string>
+    <string name="mayak_msg_payment_receipt_body">Зачислено: %1$s ₽. Спасибо!</string>
     <string name="mayak_msg_payment_receipt_body_plain">Спасибо! Оплата зачислена.</string>
     <string name="mayak_msg_payment_refund">Возврат оформлен</string>
-    <string name="mayak_msg_payment_refund_body">Вернули: %1$s.</string>
-    <string name="mayak_msg_payment_refund_body_plain">Деньги вернутся тем же способом, которым вы платили.</string>
+    <string name="mayak_msg_payment_refund_body">Возврат %1$s ₽ отправлен тем же способом, которым вы платили. Деньги идут до нескольких рабочих дней.</string>
+    <string name="mayak_msg_payment_refund_body_plain">Возврат отправлен тем же способом, которым вы платили. Деньги идут до нескольких рабочих дней.</string>
     <string name="mayak_msg_balance_topup">Счёт пополнен</string>
-    <string name="mayak_msg_balance_topup_body">Зачислено: %1$s.</string>
+    <string name="mayak_msg_balance_topup_body">Зачислено: %1$s ₽.</string>
     <string name="mayak_msg_balance_topup_body_plain">Средства зачислены на ваш счёт.</string>
     <string name="mayak_msg_balance_charge">Списание со счёта</string>
-    <string name="mayak_msg_balance_charge_body">Списано: %1$s.</string>
+    <string name="mayak_msg_balance_charge_body">Списано: %1$s ₽.</string>
     <string name="mayak_msg_balance_charge_body_plain">Средства списаны со счёта.</string>
     <string name="mayak_msg_autorenew_ok">Продление прошло</string>
     <string name="mayak_msg_autorenew_ok_body">Доступ продлён автоматически — делать ничего не нужно.</string>
@@ -830,8 +858,16 @@
     <string name="mayak_msg_group_invite_accepted_body">Ваше приглашение приняли — место занято.</string>
     <string name="mayak_msg_group_slot_revoked">Место в общем доступе отозвано</string>
     <string name="mayak_msg_group_slot_revoked_body">Ваше место больше не действует. Оформите свой доступ, чтобы всё продолжало работать.</string>
-    <string name="mayak_msg_group_root_expiring">У владельца общего доступа заканчивается срок</string>
-    <string name="mayak_msg_group_root_expiring_body">Когда его срок закончится, ваше место перестанет действовать.</string>
+    <!-- ⚠️ 16-08, ревизия текстов: строки были написаны для УЧАСТНИКА («у владельца заканчивается
+         срок… ваше место перестанет действовать»), а повод сервер шлёт САМОМУ ВЛАДЕЛЬЦУ — тому,
+         кто открыл доступ другим. Смотри internal/usermsg/usermsg.go, GroupRootExpiring: получатель
+         userID, а текст «Ваш доступ действует до %s. Вместе с ним закроется доступ у %d участников,
+         которым вы его открыли». Приложение подменяет серверный текст своим (MayakMessages.body),
+         то есть владелец прочитал бы про какого-то «владельца» в третьем лице и решил, что письмо
+         не ему. Повод сейчас ниоткуда не отправляется (в коде ядра он только в тестах) — правим
+         на будущее, чтобы включение повода не стоило человеку недоумения. -->
+    <string name="mayak_msg_group_root_expiring">Доступ группы скоро закончится</string>
+    <string name="mayak_msg_group_root_expiring_body">Когда ваш доступ закончится, он закроется и у участников, которым вы его открыли.</string>
     <string name="mayak_msg_new_device_login">Вход с нового устройства</string>
     <string name="mayak_msg_new_device_login_body">Устройство: %1$s. Если это были не вы — смените пароль.</string>
     <string name="mayak_msg_new_device_login_body_plain">Если это были не вы — смените пароль.</string>
