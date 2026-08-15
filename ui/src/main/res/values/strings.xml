@@ -814,8 +814,10 @@
     <string name="mayak_msg_group_invite_accepted_body">Your invitation was accepted — the place is taken.</string>
     <string name="mayak_msg_group_slot_revoked">Your shared place was revoked</string>
     <string name="mayak_msg_group_slot_revoked_body">Your place no longer works. Get your own access so that everything keeps working.</string>
-    <string name="mayak_msg_group_root_expiring">The owner\'s access is running out</string>
-    <string name="mayak_msg_group_root_expiring_body">When it ends, your place will stop working too.</string>
+    <!-- ⚠️ 16-08: строки говорили с УЧАСТНИКОМ, а повод адресован ВЛАДЕЛЬЦУ доступа
+         (internal/usermsg/usermsg.go, GroupRootExpiring). Подробности — в русской версии. -->
+    <string name="mayak_msg_group_root_expiring">Your shared access is running out</string>
+    <string name="mayak_msg_group_root_expiring_body">When your access ends, it also ends for the members you opened it to.</string>
     <string name="mayak_msg_new_device_login">Sign-in from a new device</string>
     <string name="mayak_msg_new_device_login_body">Device: %1$s. If this was not you — change your password.</string>
     <string name="mayak_msg_new_device_login_body_plain">If this was not you — change your password.</string>

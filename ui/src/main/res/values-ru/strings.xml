@@ -850,8 +850,16 @@
     <string name="mayak_msg_group_invite_accepted_body">Ваше приглашение приняли — место занято.</string>
     <string name="mayak_msg_group_slot_revoked">Место в общем доступе отозвано</string>
     <string name="mayak_msg_group_slot_revoked_body">Ваше место больше не действует. Оформите свой доступ, чтобы всё продолжало работать.</string>
-    <string name="mayak_msg_group_root_expiring">У владельца общего доступа заканчивается срок</string>
-    <string name="mayak_msg_group_root_expiring_body">Когда его срок закончится, ваше место перестанет действовать.</string>
+    <!-- ⚠️ 16-08, ревизия текстов: строки были написаны для УЧАСТНИКА («у владельца заканчивается
+         срок… ваше место перестанет действовать»), а повод сервер шлёт САМОМУ ВЛАДЕЛЬЦУ — тому,
+         кто открыл доступ другим. Смотри internal/usermsg/usermsg.go, GroupRootExpiring: получатель
+         userID, а текст «Ваш доступ действует до %s. Вместе с ним закроется доступ у %d участников,
+         которым вы его открыли». Приложение подменяет серверный текст своим (MayakMessages.body),
+         то есть владелец прочитал бы про какого-то «владельца» в третьем лице и решил, что письмо
+         не ему. Повод сейчас ниоткуда не отправляется (в коде ядра он только в тестах) — правим
+         на будущее, чтобы включение повода не стоило человеку недоумения. -->
+    <string name="mayak_msg_group_root_expiring">Доступ группы скоро закончится</string>
+    <string name="mayak_msg_group_root_expiring_body">Когда ваш доступ закончится, он закроется и у участников, которым вы его открыли.</string>
     <string name="mayak_msg_new_device_login">Вход с нового устройства</string>
     <string name="mayak_msg_new_device_login_body">Устройство: %1$s. Если это были не вы — смените пароль.</string>
     <string name="mayak_msg_new_device_login_body_plain">Если это были не вы — смените пароль.</string>
