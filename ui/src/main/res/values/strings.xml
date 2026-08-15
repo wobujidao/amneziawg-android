@@ -814,6 +814,14 @@
     <string name="mayak_msg_inactive_warning_body_plain">Open the app so that we do not delete it.</string>
     <string name="mayak_msg_never_connected">You have not connected yet</string>
     <string name="mayak_msg_never_connected_body">Open the app and press the big round button — that is all it takes.</string>
+    <!-- Приглашения (SPEC-0049). Суммы и срок подставляются из params сообщения: числа программы
+         правит владелец в панели, зашивать их сюда нельзя. -->
+    <string name="mayak_msg_referral_friend_joined">Someone signed up with your link</string>
+    <string name="mayak_msg_referral_friend_joined_body">Someone used your invitation. The %1$s ₽ reward arrives once they pay and stay with us for %2$s days.</string>
+    <string name="mayak_msg_referral_reward">Reward for an invitation</string>
+    <string name="mayak_msg_referral_reward_body">We credited %1$s ₽ for the friend you invited. Your balance is %2$s ₽ — you can spend it on a subscription.</string>
+    <string name="mayak_msg_referral_bonus">Reward for an invitation</string>
+    <string name="mayak_msg_referral_bonus_body">We credited %1$s ₽ because you joined with an invitation. Your balance is %2$s ₽ — you can spend it on a subscription.</string>
     <string name="mayak_msg_maintenance">Scheduled maintenance</string>
 
     <string name="mayak_settings_notify">Notifications</string>

@@ -490,6 +490,9 @@ object MayakMessages {
             MessageKinds.INACTIVE_WARNING -> R.string.mayak_msg_inactive_warning
             MessageKinds.NEVER_CONNECTED -> R.string.mayak_msg_never_connected
             MessageKinds.MAINTENANCE -> R.string.mayak_msg_maintenance
+            MessageKinds.REFERRAL_FRIEND_JOINED -> R.string.mayak_msg_referral_friend_joined
+            MessageKinds.REFERRAL_REWARD -> R.string.mayak_msg_referral_reward
+            MessageKinds.REFERRAL_BONUS -> R.string.mayak_msg_referral_bonus
             else -> return null // `custom` и всё незнакомое — текстом сервера
         }
         return context.getString(res)
@@ -553,6 +556,39 @@ object MayakMessages {
                 ?: context.getString(R.string.mayak_msg_inactive_warning_body_plain)
 
         MessageKinds.NEVER_CONNECTED -> context.getString(R.string.mayak_msg_never_connected_body)
+
+        // Приглашения (SPEC-0049). Суммы и срок берём ИЗ params, а не пересчитываем: числа программы
+        // правит владелец в панели, и между начислением и показом они могли смениться — сервер
+        // положил в сообщение ту сумму, которую реально начислил. Нет параметра → серверный текст.
+        MessageKinds.REFERRAL_FRIEND_JOINED -> {
+            val amount = m.param("amount")
+            val hold = m.param("hold_days")
+            if (amount != null && hold != null) {
+                context.getString(R.string.mayak_msg_referral_friend_joined_body, amount, hold)
+            } else {
+                null
+            }
+        }
+
+        MessageKinds.REFERRAL_REWARD -> {
+            val amount = m.param("amount")
+            val balance = m.param("balance")
+            if (amount != null && balance != null) {
+                context.getString(R.string.mayak_msg_referral_reward_body, amount, balance)
+            } else {
+                null
+            }
+        }
+
+        MessageKinds.REFERRAL_BONUS -> {
+            val amount = m.param("amount")
+            val balance = m.param("balance")
+            if (amount != null && balance != null) {
+                context.getString(R.string.mayak_msg_referral_bonus_body, amount, balance)
+            } else {
+                null
+            }
+        }
 
         // Плановые работы: даты знает только сервер — своего текста тут быть не может.
         else -> null

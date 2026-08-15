@@ -833,6 +833,14 @@
     <string name="mayak_msg_inactive_warning_body_plain">Зайдите в приложение, чтобы её не удалили.</string>
     <string name="mayak_msg_never_connected">Вы ещё ни разу не подключались</string>
     <string name="mayak_msg_never_connected_body">Откройте приложение и нажмите большую круглую кнопку — этого достаточно.</string>
+    <!-- Приглашения (SPEC-0049). Суммы и срок подставляются из params сообщения: числа программы
+         правит владелец в панели, зашивать их сюда нельзя. -->
+    <string name="mayak_msg_referral_friend_joined">По вашей ссылке зарегистрировались</string>
+    <string name="mayak_msg_referral_friend_joined_body">Кто-то воспользовался вашим приглашением. Награда %1$s ₽ придёт на счёт, когда он оплатит и пробудет с нами %2$s дн.</string>
+    <string name="mayak_msg_referral_reward">Награда за приглашение</string>
+    <string name="mayak_msg_referral_reward_body">Начислили %1$s ₽ за приглашённого друга. На счету %2$s ₽ — их можно потратить на оплату тарифа.</string>
+    <string name="mayak_msg_referral_bonus">Награда за приглашение</string>
+    <string name="mayak_msg_referral_bonus_body">Начислили %1$s ₽ за то, что вы пришли по приглашению. На счету %2$s ₽ — их можно потратить на оплату тарифа.</string>
     <string name="mayak_msg_maintenance">Плановые работы</string>
 
     <!-- Настройки → Уведомления -->

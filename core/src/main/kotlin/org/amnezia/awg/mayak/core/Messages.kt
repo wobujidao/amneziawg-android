@@ -59,6 +59,13 @@ object MessageKinds {
     const val NEVER_CONNECTED = "never_connected"
     const val MAINTENANCE = "maintenance"
 
+    // Приглашения (SPEC-0049). Три РАЗНЫХ повода намеренно: «пришёл друг» — это ожидание, а две
+    // награды — деньги на счету, и путать «за друга» с «за то, что ты сам пришёл по приглашению»
+    // нельзя, иначе приглашённый пойдёт искать, кого же он позвал.
+    const val REFERRAL_FRIEND_JOINED = "referral_friend_joined"
+    const val REFERRAL_REWARD = "referral_reward"
+    const val REFERRAL_BONUS = "referral_bonus"
+
     /** Ручное сообщение или массовая рассылка: текст ВСЕГДА серверный, перевода у нас нет. */
     const val CUSTOM = "custom"
 }
