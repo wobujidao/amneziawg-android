@@ -96,6 +96,43 @@
         <item quantity="other">Trial access is already on: %1$d days.</item>
     </plurals>
     <string name="mayak_reg_continue">Continue</string>
+    <!-- Приглашения (SPEC-0049). Суммы НЕ называем на регистрации: их задаёт сервер и меняет
+         владелец из панели, а сессии для запроса у нас на этом экране ещё нет. -->
+    <string name="mayak_reg_invite_hint">Invitation code (optional)</string>
+    <string name="mayak_reg_invite_helper">Have you been invited? Enter the code — the reward goes to both of you after your first payment.</string>
+    <string name="mayak_reg_invite_paste">Paste code</string>
+    <string name="mayak_reg_invite_bad">This does not look like an invitation code: 8 characters, letters and digits. Leave it empty if you do not have one.</string>
+    <string name="mayak_reg_invite_ok">Invitation code accepted.</string>
+    <string name="mayak_reg_invite_later">The account is created, but the invitation code did not apply: %1$s You can enter it in Settings within the first days.</string>
+    <string name="mayak_reg_invite_empty_clipboard">There is no invitation code in the clipboard.</string>
+    <!-- Причины отказа в применении кода. Каждая — своя строка: под одним HTTP-кодом у сервера
+         четыре разные беды, и «не получилось» не подсказывает человеку следующий шаг. -->
+    <string name="mayak_referral_err_disabled">the invitation programme is off right now.</string>
+    <string name="mayak_referral_err_not_found">there is no such code — check the spelling.</string>
+    <string name="mayak_referral_err_own">this is your own code.</string>
+    <string name="mayak_referral_err_already">this account has already used an invitation code.</string>
+    <string name="mayak_referral_err_window">the window for entering a code has closed.</string>
+    <string name="mayak_referral_err_bad">the code is incomplete — it is 8 characters.</string>
+    <string name="mayak_referral_err_login">please sign in again.</string>
+    <string name="mayak_referral_err_rate">too many attempts, try later.</string>
+    <string name="mayak_referral_err_network">there is no connection.</string>
+    <string name="mayak_referral_err_retry">the server could not do it right now, try later.</string>
+    <string name="mayak_referral_err_unknown">the reason is unknown.</string>
+    <!-- Раздел «Пригласить друга» в настройках. Суммы и срок выдержки приходят С СЕРВЕРА
+         (GET /v1/client/referral) — в строках только форма фразы. -->
+    <string name="mayak_referral_title">Invite a friend</string>
+    <string name="mayak_referral_terms">Your friend pays for a subscription and stays with us for %1$d days — they get %2$s and you get %3$s on your balance.</string>
+    <string name="mayak_referral_your_code">Your code</string>
+    <string name="mayak_referral_copy_code">Copy the invitation code</string>
+    <string name="mayak_referral_copied">The invitation link is copied.</string>
+    <string name="mayak_referral_share">Share the invitation link</string>
+    <string name="mayak_referral_share_text">Try Mayak Networks — a fast connection without blocks. My invitation link: %1$s</string>
+    <string name="mayak_referral_stats">Invited: %1$d · paid: %2$d · earned: %3$s</string>
+    <string name="mayak_referral_apply_hint">Were you invited? Enter the code</string>
+    <string name="mayak_referral_apply">Apply the code</string>
+    <string name="mayak_referral_apply_window">A code can be applied within %1$d days of registration.</string>
+    <string name="mayak_referral_apply_ok">The code is accepted: %1$s will arrive after your payment and the waiting period.</string>
+    <string name="mayak_referral_apply_failed">The code did not apply: %1$s</string>
     <string name="mayak_consent_note">By signing in you accept the Privacy Policy and Terms of Use.</string>
     <string name="mayak_err_email_not_verified">Please verify your email on the website.</string>
     <string name="mayak_err_bad_creds">Wrong email/account number or password.</string>

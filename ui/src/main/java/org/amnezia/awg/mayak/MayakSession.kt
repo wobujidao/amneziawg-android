@@ -497,6 +497,19 @@ class MayakSession(
     suspend fun notificationPrefs(backend: MayakBackend): org.amnezia.awg.mayak.core.NotificationPrefs =
         backend.notificationPrefs(requireToken())
 
+    /**
+     * Карточка приглашений (SPEC-0049). Спрашивается КАЖДЫЙ раз при открытии экрана: программу
+     * включают и выключают из панели, и запомненное «включена» пережило бы её выключение.
+     */
+    suspend fun referral(backend: MayakBackend): org.amnezia.awg.mayak.core.ReferralInfo =
+        backend.referral(requireToken())
+
+    /** Применить чужой код приглашения. Успех тут значит «связали учётки», а не «начислили деньги». */
+    suspend fun applyReferral(
+        backend: MayakBackend,
+        code: String,
+    ): org.amnezia.awg.mayak.core.ReferralApplied = backend.applyReferral(requireToken(), code)
+
     /** Сменить выключатели. Время согласия на новости проставляет СЕРВЕР, не мы. */
     suspend fun updateNotificationPrefs(
         backend: MayakBackend,

@@ -164,6 +164,37 @@
                             android:textColor="@color/mayak_outline"
                             android:text="@string/mayak_privacy_policy" />
 
+                        <!-- Код приглашения. Стоит ВНИЗУ формы (директива владельца 15-08) и
+                             необязателен: у большинства людей кода нет, и поле не должно выглядеть
+                             как ещё один шаг регистрации. Если ставили из Play по ссылке-приглашению,
+                             код уже подставлен (MayakInstallReferrer); при установке APK с сайта
+                             такого канала нет — лендинг кладёт код в буфер, отсюда «Вставить». -->
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/mayak_reg_invite_layout"
+                            style="@style/Mayak.TextInput"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/mayak_space_4"
+                            android:hint="@string/mayak_reg_invite_hint"
+                            app:helperText="@string/mayak_reg_invite_helper"
+                            app:helperTextEnabled="true">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/mayak_reg_invite"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="textCapCharacters"
+                                android:maxLines="1" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/mayak_reg_invite_paste"
+                            style="@style/Mayak.Button.Text"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textColor="@color/mayak_outline"
+                            android:text="@string/mayak_reg_invite_paste" />
+
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/mayak_reg_submit"
                             style="@style/Mayak.Button.Primary"
@@ -236,6 +267,20 @@
                             android:textColor="@color/mayak_on_surface"
                             android:visibility="gone"
                             tools:text="Пробный доступ уже включён: 7 дн."
+                            tools:visibility="visible" />
+
+                        <!-- Судьба кода приглашения. Показывается ТОЛЬКО если код вводили: молчание
+                             здесь правильнее строки «код не применялся» — человек, который кода не
+                             вводил, не должен читать про чужую механику. -->
+                        <TextView
+                            android:id="@+id/mayak_reg_invite_result"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/mayak_space_3"
+                            android:textAppearance="@style/Mayak.Tagline"
+                            android:textColor="@color/mayak_on_surface"
+                            android:visibility="gone"
+                            tools:text="Код приглашения принят."
                             tools:visibility="visible" />
 
                         <TextView

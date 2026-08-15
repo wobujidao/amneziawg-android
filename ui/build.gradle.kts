@@ -245,6 +245,7 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging)
     implementation(libs.google.play.services.base) // GoogleApiAvailability: есть ли GMS на телефоне
+    implementation(libs.google.install.referrer) // код приглашения из ссылки, когда ставили из Play
     coreLibraryDesugaring(libs.desugarJdkLibs)
     // JVM-юнит-тесты :ui (первый — сторож пиннинга в network_security_config прод-варианта).
     testImplementation(libs.junit)

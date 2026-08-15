@@ -697,6 +697,122 @@
                 android:textAppearance="@style/Mayak.Tagline"
                 android:text="@string/mayak_account_number_hint" />
 
+            <!-- ===== Пригласить друга (SPEC-0049) =====
+                 Карточка целиком прячется, пока не пришёл ответ ядра или программа выключена в
+                 панели: её включают и выключают без выката приложения, и раздел обязан исчезать
+                 у людей вслед за настройкой, а не жить на экране пустым. -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/mayak_settings_referral_card"
+                style="@style/Mayak.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/mayak_referral_title"
+                        android:textAppearance="@style/Mayak.CardTitle" />
+
+                    <!-- Условия словами и с СЕРВЕРНЫМИ суммами: их меняет владелец из панели, и
+                         зашитые в приложение цифры соврали бы при первой же правке. -->
+                    <TextView
+                        android:id="@+id/mayak_settings_referral_terms"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:textAppearance="@style/Mayak.Tagline"
+                        android:textColor="@color/mayak_on_surface_muted"
+                        tools:text="Друг оплатит подписку и пробудет с нами 31 день — ему 50 ₽, вам 100 ₽ на баланс." />
+
+                    <!-- Свой код: моноширинно и крупно — его диктуют голосом, как номер аккаунта. -->
+                    <LinearLayout
+                        android:id="@+id/mayak_settings_referral_code_row"
+                        style="@style/Mayak.DetailRow"
+                        android:layout_marginTop="10dp"
+                        android:background="?attr/selectableItemBackground">
+
+                        <LinearLayout style="@style/Mayak.DetailRow.TextCol">
+                            <TextView
+                                style="@style/Mayak.DetailRow.Label"
+                                android:text="@string/mayak_referral_your_code" />
+                            <TextView
+                                android:id="@+id/mayak_settings_referral_code"
+                                style="@style/Mayak.DetailRow.Value.Mono"
+                                android:textSize="24sp"
+                                android:textStyle="bold"
+                                android:letterSpacing="0.04"
+                                tools:text="NP5EM3D2" />
+                        </LinearLayout>
+
+                        <ImageView
+                            android:id="@+id/mayak_settings_referral_copy"
+                            style="@style/Mayak.DetailRow.Copy"
+                            android:contentDescription="@string/mayak_referral_copy_code" />
+                    </LinearLayout>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/mayak_settings_referral_share"
+                        style="@style/Mayak.Button.Outlined"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:text="@string/mayak_referral_share" />
+
+                    <TextView
+                        android:id="@+id/mayak_settings_referral_stats"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:textAppearance="@style/Mayak.Tagline"
+                        android:textColor="@color/mayak_on_surface"
+                        tools:text="Приглашено: 2 · оплатили: 1 · заработано: 100 ₽" />
+
+                    <!-- Ввод ЧУЖОГО кода. Прячется, если код уже применяли или окно закрылось:
+                         поле, которое заведомо ответит отказом, — это ловушка, а не возможность. -->
+                    <LinearLayout
+                        android:id="@+id/mayak_settings_referral_apply_box"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:orientation="vertical"
+                        android:visibility="gone"
+                        tools:visibility="visible">
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/mayak_settings_referral_input_layout"
+                            style="@style/Mayak.TextInput"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:hint="@string/mayak_referral_apply_hint"
+                            app:helperTextEnabled="true">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/mayak_settings_referral_input"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="textCapCharacters"
+                                android:maxLines="1" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/mayak_settings_referral_apply"
+                            style="@style/Mayak.Button.Outlined"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:text="@string/mayak_referral_apply" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
             <!-- Мои устройства: список и отключение ЗДЕСЬ ЖЕ. До 07-08 освободить место можно было
                  только в кабинете (внешний браузер + отдельный вход), и человек, сменивший телефон,
                  упирался в тупик ровно тогда, когда подключение и не работает. -->

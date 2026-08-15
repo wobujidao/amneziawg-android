@@ -702,3 +702,48 @@ data class NotificationPrefs(
     val news: Boolean = false,
     @SerialName("quiet_hours") val quietHours: Boolean = true,
 )
+
+/**
+ * «Пригласи друга» (SPEC-0049), ответ GET /v1/client/referral.
+ *
+ * `enabled=false` — раздел не рисовать ВОВСЕ (программу выключают из панели, и тогда её нет).
+ * Суммы приходят в КОПЕЙКАХ: деньги везде в проекте целые копейки, чтобы не ловить дробную
+ * арифметику; делить на 100 — работа экрана, а не транспорта.
+ *
+ * `appliedCode=true` значит «этой учётке код уже применён» — поле ввода чужого кода прятать:
+ * пригласить учётку можно ОДИН раз в жизни. `applyWindowDays` — сколько дней после регистрации код
+ * вообще принимается (сейчас 14); показываем это человеку до того, как он попробует и получит отказ.
+ */
+@Serializable
+data class ReferralInfo(
+    val enabled: Boolean = false,
+    val code: String = "",
+    val link: String = "",
+    val invited: Int = 0,
+    val rewarded: Int = 0,
+    @SerialName("earned_kopecks") val earnedKopecks: Long = 0,
+    @SerialName("inviter_kopecks") val inviterKopecks: Long = 0,
+    @SerialName("invitee_kopecks") val inviteeKopecks: Long = 0,
+    @SerialName("hold_days") val holdDays: Int = 0,
+    @SerialName("applied_code") val appliedCode: Boolean = false,
+    @SerialName("apply_window_days") val applyWindowDays: Int = 0,
+)
+
+/**
+ * Ответ POST /v1/client/referral/apply.
+ *
+ * 🔴 `promisedKopecks` — сколько придёт ПОСЛЕ оплаты и выдержки, а НЕ начислено сейчас. Экран обязан
+ * говорить об этом будущим временем: решение владельца 15-08 — награда только за оплату друга,
+ * и обещать деньги «уже на балансе» значит соврать человеку в первую же минуту.
+ */
+@Serializable
+data class ReferralApplied(
+    val applied: Boolean = false,
+    @SerialName("promised_kopecks") val promisedKopecks: Long = 0,
+)
+
+/** Тело POST /v1/client/referral/apply. Код уходит уже приведённым к канону. */
+@Serializable
+data class ReferralApplyRequest(
+    val code: String,
+)

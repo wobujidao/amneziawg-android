@@ -463,6 +463,33 @@ class MayakBackend(
         call("PUT", "/v1/client/notification-prefs", token = token, body = body)
     }
 
+    // ===== «Пригласи друга» (SPEC-0049) =====
+
+    /**
+     * Своя карточка приглашений: GET /v1/client/referral.
+     *
+     * Программу включают и выключают из панели, поэтому спрашивать её состояние надо КАЖДЫЙ раз,
+     * когда экран открывается, а не запоминать в настройках: выключенная программа обязана исчезать
+     * у людей без выката приложения.
+     */
+    suspend fun referral(token: String): ReferralInfo {
+        val resp = call("GET", "/v1/client/referral", token = token, body = null)
+        return json.decodeFromString(ReferralInfo.serializer(), resp)
+    }
+
+    /**
+     * Применить чужой код: POST /v1/client/referral/apply {code}.
+     *
+     * Код чистится и здесь, и на ядре (регистр, пробелы, дефисы): его диктуют голосом и
+     * перепечатывают с чужого экрана. Отказы приходят [MayakApiException] с полем `code` —
+     * разбирать через [referralFailure], а не по HTTP-статусу: под 409 у ядра четыре разные причины.
+     */
+    suspend fun applyReferral(token: String, code: String): ReferralApplied {
+        val body = json.encodeToString(ReferralApplyRequest.serializer(), ReferralApplyRequest(normalizeReferralCode(code)))
+        val resp = call("POST", "/v1/client/referral/apply", token = token, body = body)
+        return json.decodeFromString(ReferralApplied.serializer(), resp)
+    }
+
     // ===== Push: адрес доставки у транспорта (ускоритель ящика) =====
 
     /**

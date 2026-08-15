@@ -13,9 +13,12 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
+import androidx.core.widget.doAfterTextChanged
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.button.MaterialButtonToggleGroup
+import com.google.android.material.textfield.TextInputEditText
+import com.google.android.material.textfield.TextInputLayout
 import kotlinx.coroutines.launch
 import org.amnezia.awg.BuildConfig
 import org.amnezia.awg.R
@@ -24,6 +27,8 @@ import org.amnezia.awg.mayak.core.AccountSettings
 import org.amnezia.awg.mayak.core.HostProvider
 import org.amnezia.awg.mayak.core.MayakApiException
 import org.amnezia.awg.mayak.core.MayakBackend
+import org.amnezia.awg.mayak.core.looksLikeReferralCode
+import org.amnezia.awg.mayak.core.referralFailure
 
 class MayakSettingsActivity : AppCompatActivity() {
 
@@ -140,6 +145,7 @@ class MayakSettingsActivity : AppCompatActivity() {
             loadSubscription()
             loadAccountCard()
             loadNotificationPrefs()
+            loadReferral()
         } else {
             // Не вошли — карточка фильтрации бесполезна (менять нечего) и только путала бы.
             findViewById<View>(R.id.mayak_settings_filtering_card).visibility = View.GONE
@@ -474,6 +480,99 @@ class MayakSettingsActivity : AppCompatActivity() {
             notifyPrefs = prefs
             renderNotificationPrefs(prefs)
             findViewById<View>(R.id.mayak_settings_notify_card).visibility = View.VISIBLE
+        }
+    }
+
+    // ===== Пригласить друга (SPEC-0049) =====
+
+    /**
+     * Подтянуть карточку приглашений. Не получилось или программа выключена — карточку НЕ показываем:
+     * её включают из панели без выката, и раздел обязан исчезать у людей вслед за настройкой.
+     */
+    private fun loadReferral() {
+        lifecycleScope.launch {
+            val info = runCatching { session.referral(backend()) }.getOrNull() ?: return@launch
+            if (!info.enabled) return@launch
+            renderReferral(info)
+            findViewById<View>(R.id.mayak_settings_referral_card).visibility = View.VISIBLE
+        }
+    }
+
+    /** Разложить карточку по данным сервера. Суммы и сроки — ТОЛЬКО оттуда, своих цифр не рисуем. */
+    private fun renderReferral(info: org.amnezia.awg.mayak.core.ReferralInfo) {
+        findViewById<TextView>(R.id.mayak_settings_referral_terms).text = getString(
+            R.string.mayak_referral_terms,
+            info.holdDays,
+            MayakReferral.money(info.inviteeKopecks),
+            MayakReferral.money(info.inviterKopecks),
+        )
+        findViewById<TextView>(R.id.mayak_settings_referral_code).text = info.code
+        findViewById<TextView>(R.id.mayak_settings_referral_stats).text = getString(
+            R.string.mayak_referral_stats,
+            info.invited,
+            info.rewarded,
+            MayakReferral.money(info.earnedKopecks),
+        )
+        // Копируем ССЫЛКУ, а не голый код: человек отправляет её в мессенджер, и по ссылке друг
+        // попадёт куда надо, а код ему пришлось бы объяснять словами.
+        val copyLink = View.OnClickListener {
+            MayakReferral.copy(this, getString(R.string.mayak_referral_title), info.link)
+            android.widget.Toast.makeText(this, R.string.mayak_referral_copied, android.widget.Toast.LENGTH_SHORT).show()
+        }
+        findViewById<View>(R.id.mayak_settings_referral_code_row).setOnClickListener(copyLink)
+        findViewById<View>(R.id.mayak_settings_referral_copy).setOnClickListener(copyLink)
+        findViewById<MaterialButton>(R.id.mayak_settings_referral_share).setOnClickListener {
+            val text = getString(R.string.mayak_referral_share_text, info.link)
+            val send = android.content.Intent(android.content.Intent.ACTION_SEND)
+                .setType("text/plain")
+                .putExtra(android.content.Intent.EXTRA_TEXT, text)
+            runCatching { startActivity(android.content.Intent.createChooser(send, getString(R.string.mayak_referral_share))) }
+        }
+
+        // Поле чужого кода — только пока его есть смысл вводить: применяли уже / окно закрылось =
+        // поле, которое заведомо ответит отказом. Окно считает СЕРВЕР, здесь только показываем срок.
+        val box = findViewById<View>(R.id.mayak_settings_referral_apply_box)
+        box.visibility = if (info.appliedCode) View.GONE else View.VISIBLE
+        if (info.appliedCode) return
+        val layout = findViewById<TextInputLayout>(R.id.mayak_settings_referral_input_layout)
+        val field = findViewById<TextInputEditText>(R.id.mayak_settings_referral_input)
+        layout.helperText =
+            if (info.applyWindowDays > 0) getString(R.string.mayak_referral_apply_window, info.applyWindowDays) else null
+        field.doAfterTextChanged { layout.error = null }
+        findViewById<MaterialButton>(R.id.mayak_settings_referral_apply).setOnClickListener {
+            applyReferralCode(field.text?.toString().orEmpty(), layout, info)
+        }
+    }
+
+    /** Отправить чужой код. Отказ называем причиной, а не «не получилось»: см. ReferralOutcome. */
+    private fun applyReferralCode(
+        raw: String,
+        layout: TextInputLayout,
+        info: org.amnezia.awg.mayak.core.ReferralInfo,
+    ) {
+        if (!looksLikeReferralCode(raw)) {
+            layout.error = getString(R.string.mayak_reg_invite_bad)
+            return
+        }
+        lifecycleScope.launch {
+            try {
+                session.applyReferral(backend(), raw)
+                android.widget.Toast.makeText(
+                    this@MayakSettingsActivity,
+                    getString(R.string.mayak_referral_apply_ok, MayakReferral.money(info.inviteeKopecks)),
+                    android.widget.Toast.LENGTH_LONG,
+                ).show()
+                MayakInstallReferrer.clear(this@MayakSettingsActivity)
+                // Перечитываем с сервера, а не дорисовываем сами: после применения меняются и
+                // счётчики, и признак «код уже применён», и правда о них у ядра.
+                loadReferral()
+                findViewById<View>(R.id.mayak_settings_referral_apply_box).visibility = View.GONE
+            } catch (e: Exception) {
+                layout.error = getString(
+                    R.string.mayak_referral_apply_failed,
+                    MayakReferral.reason(this@MayakSettingsActivity, referralFailure(e)),
+                )
+            }
         }
     }
 

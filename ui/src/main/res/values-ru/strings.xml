@@ -304,6 +304,43 @@
         <item quantity="other">Пробный доступ уже включён: %1$d дня.</item>
     </plurals>
     <string name="mayak_reg_continue">Продолжить</string>
+    <!-- Приглашения (SPEC-0049). Суммы НЕ называем на регистрации: их задаёт сервер и меняет
+         владелец из панели, а сессии для запроса у нас на этом экране ещё нет. -->
+    <string name="mayak_reg_invite_hint">Код приглашения (если есть)</string>
+    <string name="mayak_reg_invite_helper">Вас пригласили? Введите код — награда придёт обоим после вашей первой оплаты.</string>
+    <string name="mayak_reg_invite_paste">Вставить код</string>
+    <string name="mayak_reg_invite_bad">Это не похоже на код приглашения: 8 символов, буквы и цифры. Кода нет — оставьте поле пустым.</string>
+    <string name="mayak_reg_invite_ok">Код приглашения принят.</string>
+    <string name="mayak_reg_invite_later">Аккаунт создан, но код приглашения не применился: %1$s Его можно ввести в «Настройках» в первые дни.</string>
+    <string name="mayak_reg_invite_empty_clipboard">В буфере обмена нет кода приглашения.</string>
+    <!-- Причины отказа в применении кода. Каждая — своя строка: под одним HTTP-кодом у сервера
+         четыре разные беды, и «не получилось» не подсказывает человеку следующий шаг. -->
+    <string name="mayak_referral_err_disabled">программа приглашений сейчас выключена.</string>
+    <string name="mayak_referral_err_not_found">такого кода нет — проверьте написание.</string>
+    <string name="mayak_referral_err_own">это ваш собственный код.</string>
+    <string name="mayak_referral_err_already">к этой учётке приглашение уже применяли.</string>
+    <string name="mayak_referral_err_window">окно для ввода кода уже закрылось.</string>
+    <string name="mayak_referral_err_bad">код введён не полностью — в нём 8 символов.</string>
+    <string name="mayak_referral_err_login">нужно войти заново.</string>
+    <string name="mayak_referral_err_rate">слишком много попыток, попробуйте позже.</string>
+    <string name="mayak_referral_err_network">нет связи.</string>
+    <string name="mayak_referral_err_retry">сервер сейчас не смог, попробуйте позже.</string>
+    <string name="mayak_referral_err_unknown">причина неизвестна.</string>
+    <!-- Раздел «Пригласить друга» в настройках. Суммы и срок выдержки приходят С СЕРВЕРА
+         (GET /v1/client/referral) — в строках только форма фразы. -->
+    <string name="mayak_referral_title">Пригласить друга</string>
+    <string name="mayak_referral_terms">Друг оплатит подписку и пробудет с нами %1$d дн. — ему придёт %2$s, а вам %3$s на баланс.</string>
+    <string name="mayak_referral_your_code">Ваш код</string>
+    <string name="mayak_referral_copy_code">Скопировать код приглашения</string>
+    <string name="mayak_referral_copied">Ссылка-приглашение скопирована.</string>
+    <string name="mayak_referral_share">Поделиться ссылкой</string>
+    <string name="mayak_referral_share_text">Попробуй Mayak Networks — быстрое соединение без блокировок. Моя ссылка-приглашение: %1$s</string>
+    <string name="mayak_referral_stats">Приглашено: %1$d · оплатили: %2$d · заработано: %3$s</string>
+    <string name="mayak_referral_apply_hint">Вас пригласили? Введите код</string>
+    <string name="mayak_referral_apply">Применить код</string>
+    <string name="mayak_referral_apply_window">Код можно применить в первые %1$d дн. после регистрации.</string>
+    <string name="mayak_referral_apply_ok">Код принят: %1$s придут после вашей оплаты и выдержки.</string>
+    <string name="mayak_referral_apply_failed">Код не применился: %1$s</string>
     <string name="mayak_consent_note">Входя, вы принимаете Политику конфиденциальности и Условия использования.</string>
     <string name="mayak_err_email_not_verified">Подтвердите email на сайте.</string>
     <string name="mayak_err_bad_creds">Неверная почта (или номер аккаунта) либо пароль.</string>

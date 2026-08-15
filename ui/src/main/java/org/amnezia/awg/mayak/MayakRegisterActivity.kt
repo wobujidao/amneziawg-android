@@ -45,6 +45,8 @@ import org.amnezia.awg.mayak.core.MayakApiException
 import org.amnezia.awg.mayak.core.MayakBackend
 import org.amnezia.awg.mayak.core.PasswordPolicy
 import org.amnezia.awg.mayak.core.RegisterForm
+import org.amnezia.awg.mayak.core.looksLikeReferralCode
+import org.amnezia.awg.mayak.core.referralFailure
 
 class MayakRegisterActivity : AppCompatActivity() {
 
@@ -77,8 +79,13 @@ class MayakRegisterActivity : AppCompatActivity() {
     /** Сторож шага капчи: страница может загрузиться и молча не решиться. */
     private var captchaWatchdog: Job? = null
 
+    /** Что стало с кодом приглашения: пусто — код не вводили, и на шаге 3 про него молчим. */
+    private var inviteResult = ""
+
     private lateinit var passwordLayout: TextInputLayout
     private lateinit var passwordField: TextInputEditText
+    private lateinit var inviteLayout: TextInputLayout
+    private lateinit var inviteField: TextInputEditText
     private lateinit var consent: MaterialCheckBox
     private lateinit var submit: MaterialButton
     private lateinit var error: TextView
@@ -94,6 +101,8 @@ class MayakRegisterActivity : AppCompatActivity() {
 
         passwordLayout = findViewById(R.id.mayak_reg_password_layout)
         passwordField = findViewById(R.id.mayak_reg_password)
+        inviteLayout = findViewById(R.id.mayak_reg_invite_layout)
+        inviteField = findViewById(R.id.mayak_reg_invite)
         consent = findViewById(R.id.mayak_reg_consent)
         submit = findViewById(R.id.mayak_reg_submit)
         error = findViewById(R.id.mayak_reg_error)
@@ -105,6 +114,15 @@ class MayakRegisterActivity : AppCompatActivity() {
             number = it.getString(K_NUMBER).orEmpty()
             trialDays = it.getInt(K_TRIAL)
             signedIn = it.getBoolean(K_SIGNED_IN)
+            inviteResult = it.getString(K_INVITE_RESULT).orEmpty()
+        }
+        // Пришёл по ссылке-приглашению и ставил из Play — код уже известен, руками вводить нечего.
+        // При установке APK с сайта метки нет, и поле просто останется пустым (см. MayakInstallReferrer).
+        if (savedInstanceState == null) {
+            lifecycleScope.launch {
+                val code = MayakInstallReferrer.code(this@MayakRegisterActivity)
+                if (code.isNotEmpty() && inviteField.text.isNullOrBlank()) inviteField.setText(code)
+            }
         }
 
         findViewById<MaterialButton>(R.id.mayak_reg_back).setOnClickListener { goBack() }
@@ -125,6 +143,8 @@ class MayakRegisterActivity : AppCompatActivity() {
             passwordLayout.error = null
         }
         findViewById<MaterialButton>(R.id.mayak_reg_copy_password).setOnClickListener { copyPassword() }
+        inviteField.doAfterTextChanged { inviteLayout.error = null }
+        findViewById<MaterialButton>(R.id.mayak_reg_invite_paste).setOnClickListener { pasteInvite() }
         findViewById<MaterialButton>(R.id.mayak_reg_policy).setOnClickListener {
             openUrl(MayakHostList.privacyUrl(this))
         }
@@ -146,6 +166,7 @@ class MayakRegisterActivity : AppCompatActivity() {
         outState.putString(K_NUMBER, number)
         outState.putInt(K_TRIAL, trialDays)
         outState.putBoolean(K_SIGNED_IN, signedIn)
+        outState.putString(K_INVITE_RESULT, inviteResult)
     }
 
     override fun onDestroy() {
@@ -183,6 +204,11 @@ class MayakRegisterActivity : AppCompatActivity() {
                 // Молчим, если сервер вернул 0: своих «7 дней» приложение не придумывает.
                 view.visibility = if (trialDays > 0) View.VISIBLE else View.GONE
                 if (trialDays > 0) view.text = resources.getQuantityString(R.plurals.mayak_reg_trial_days, trialDays, trialDays)
+            }
+            findViewById<TextView>(R.id.mayak_reg_invite_result).let { view ->
+                // Кода не вводили — молчим: чужая механика на экране новичка только мешает.
+                view.visibility = if (inviteResult.isBlank()) View.GONE else View.VISIBLE
+                view.text = inviteResult
             }
             // Учётка есть, а сессии нет — говорим прямо и ведём на вход с подставленным номером.
             findViewById<TextView>(R.id.mayak_reg_done_warning).text = getString(
@@ -257,6 +283,41 @@ class MayakRegisterActivity : AppCompatActivity() {
         android.widget.Toast.makeText(this, R.string.mayak_reg_password_copied, android.widget.Toast.LENGTH_SHORT).show()
     }
 
+    /**
+     * Применить код приглашения, если он введён. Зовётся ПОСЛЕ создания учётки и входа.
+     *
+     * Успех/отказ не влияют на саму регистрацию: аккаунт уже существует. Поэтому здесь нет ни одного
+     * `throw` наружу и ни одной ветки, которая возвращала бы человека к форме — только строка на
+     * экране номера о том, что стало с кодом.
+     */
+    private suspend fun applyInviteIfAny(token: String) {
+        val raw = inviteField.text?.toString().orEmpty()
+        if (raw.isBlank()) return
+        inviteResult = try {
+            backend.applyReferral(token, raw)
+            // Код доехал — забываем установочную метку, иначе она подставится в следующий раз.
+            MayakInstallReferrer.clear(this)
+            getString(R.string.mayak_reg_invite_ok)
+        } catch (e: Exception) {
+            getString(R.string.mayak_reg_invite_later, MayakReferral.reason(this, referralFailure(e)))
+        }
+    }
+
+    /**
+     * «Вставить код» — единственный канал для тех, кто ставил APK с сайта: лендинг кладёт код (или
+     * саму ссылку-приглашение) в буфер, когда человек жмёт «Скачать». Читаем буфер ТОЛЬКО по нажатию:
+     * фоновое чтение Android 12+ показывает системное предупреждение, и правильно делает.
+     */
+    private fun pasteInvite() {
+        val code = MayakReferral.codeFromClipboard(this)
+        if (code.isEmpty()) {
+            inviteLayout.error = getString(R.string.mayak_reg_invite_empty_clipboard)
+            return
+        }
+        inviteField.setText(code)
+        inviteLayout.error = null
+    }
+
     /** Тёмная ли тема ПРЯМО СЕЙЧАС — виджет капчи должен приехать в цвет экрана, а не наоборот. */
     private fun isDarkNow(): Boolean =
         (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
@@ -282,6 +343,15 @@ class MayakRegisterActivity : AppCompatActivity() {
         }
         if (!consent.isChecked) { // до кнопки дойти нельзя, но правило пусть будет и здесь
             showError(getString(R.string.mayak_reg_err_consent), offerBrowser = false)
+            return
+        }
+        // Код проверяем ЗДЕСЬ, до создания аккаунта: заведомо кривой код надо поправить сейчас, пока
+        // экран с полем перед глазами. Применить его после регистрации можно только один раз — окно
+        // применения открыто 14 дней, но человек в приложение с этим вопросом больше не вернётся.
+        val invite = inviteField.text?.toString().orEmpty()
+        if (invite.isNotBlank() && !looksLikeReferralCode(invite)) {
+            inviteLayout.error = getString(R.string.mayak_reg_invite_bad)
+            inviteField.requestFocus()
             return
         }
         if (!MayakNet.hasNetwork(this)) {
@@ -444,10 +514,19 @@ class MayakRegisterActivity : AppCompatActivity() {
             if (signedIn) {
                 // Автоматический вход: токен уже выдан этим же ответом, логиниться заново нечем и незачем.
                 session.adoptRegistration(res.token, res.accountNumber)
+                // Код приглашения — ПОСЛЕ создания учётки и только с сессией: ручка `apply` требует
+                // токен. Отказ здесь НЕ рушит регистрацию: аккаунт уже есть, и человеку надо сказать
+                // про код отдельной строкой, а не превратить успех в ошибку.
+                applyInviteIfAny(res.token)
             } else {
                 // Учётка создана, сессию сервер выдать не смог. Это НЕ ошибка: аккаунт существует,
                 // и повторять запрос нельзя — покажем номер и уведём на вход.
                 android.util.Log.w(TAG, "учётка создана, но сессия не выдана — ведём на вход")
+                // Кода без сессии не применить. Не теряем его: он лежит там же, откуда пришёл, и
+                // экран настроек предложит применить его после входа.
+                inviteField.text?.toString()?.takeIf { it.isNotBlank() }?.let {
+                    inviteResult = getString(R.string.mayak_reg_invite_later, getString(R.string.mayak_referral_err_login))
+                }
             }
             inFlight = false
             step = Step.DONE
@@ -516,6 +595,7 @@ class MayakRegisterActivity : AppCompatActivity() {
         private const val K_NUMBER = "mayak_reg_number"
         private const val K_TRIAL = "mayak_reg_trial"
         private const val K_SIGNED_IN = "mayak_reg_signed_in"
+        private const val K_INVITE_RESULT = "mayak_reg_invite_result"
 
         /** Открыть экран регистрации (с экрана входа). */
         fun open(activity: AppCompatActivity) {
