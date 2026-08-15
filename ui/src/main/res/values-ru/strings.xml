@@ -360,7 +360,13 @@
     <string name="mayak_referral_apply_ok">Код принят: %1$s придут после вашей оплаты и выдержки.</string>
     <string name="mayak_referral_apply_failed">Код не применился: %1$s</string>
     <string name="mayak_consent_note">Входя, вы принимаете Политику конфиденциальности и Условия использования.</string>
-    <string name="mayak_err_email_not_verified">Подтвердите email на сайте.</string>
+    <!-- ⚠️ 16-08, ревизия текстов: было «Подтвердите email на сайте». Подтверждение живёт не на
+         сайте, а в ЛИЧНОМ КАБИНЕТЕ (cabinet/app.js, маршрут `verify` → #/verify) — и кнопка этого
+         же диалога открывает именно кабинет (MayakActivity.showEmailNotVerified →
+         MayakHostList.cabinetUrl). Человек, закрывший диалог и пошедший «на сайт», искал бы там
+         страницу, которой нет. Без указания «кнопка ниже»: та же строка стоит и подписью под
+         кнопкой подключения, где никакой кнопки рядом уже нет. -->
+    <string name="mayak_err_email_not_verified">Подтвердите почту в личном кабинете.</string>
     <string name="mayak_err_bad_creds">Неверная почта (или номер аккаунта) либо пароль.</string>
     <string name="mayak_totp_hint">Код двухфакторной аутентификации</string>
     <!-- Поле кода показывается ТОЛЬКО после ответа ядра «нужен код», поэтому подпись под ним отвечает

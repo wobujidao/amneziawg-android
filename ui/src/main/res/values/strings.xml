@@ -144,7 +144,9 @@
     <string name="mayak_referral_apply_ok">The code is accepted: %1$s will arrive after your payment and the waiting period.</string>
     <string name="mayak_referral_apply_failed">The code did not apply: %1$s</string>
     <string name="mayak_consent_note">By signing in you accept the Privacy Policy and Terms of Use.</string>
-    <string name="mayak_err_email_not_verified">Please verify your email on the website.</string>
+    <!-- ⚠️ 16-08: было «on the website» — подтверждение живёт в кабинете (cabinet #/verify), туда же
+         ведёт кнопка этого диалога. -->
+    <string name="mayak_err_email_not_verified">Please verify your email in the account cabinet.</string>
     <string name="mayak_err_bad_creds">Wrong email/account number or password.</string>
     <string name="mayak_totp_hint">Two-factor code</string>
     <string name="mayak_totp_helper">Password is correct — enter the code from your authenticator app (or a recovery code).</string>
