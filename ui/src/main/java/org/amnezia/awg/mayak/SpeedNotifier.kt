@@ -38,7 +38,7 @@ object SpeedNotifier {
                     if (lastRx >= 0) {
                         val down = (rx - lastRx).coerceAtLeast(0) * 1000 / INTERVAL_MS // байт/с
                         val up = (tx - lastTx).coerceAtLeast(0) * 1000 / INTERVAL_MS
-                        val speed = "↓ ${MayakNotification.formatSpeed(down)}  ↑ ${MayakNotification.formatSpeed(up)}"
+                        val speed = "↓ ${MayakNotification.formatSpeed(app, down)}  ↑ ${MayakNotification.formatSpeed(app, up)}"
                         MayakNotification.show(
                             app, GoTunnel.connectedLabel, GoTunnel.connectedPingMs,
                             speed = speed, // ↓/↑ в тексте уведомления

@@ -137,14 +137,18 @@ object MayakUpdater {
     fun checkTrust(context: Context, apk: File): String? = runCatching {
         val pm = context.packageManager
         val dl = pm.getPackageArchiveInfo(apk.path, sigFlag())
-            ?: return "система не смогла прочитать скачанный файл как приложение"
-        if (dl.packageName != context.packageName) return "это другое приложение (${dl.packageName})"
+            ?: return context.getString(R.string.mayak_update_untrusted_unreadable)
+        if (dl.packageName != context.packageName) {
+            return context.getString(R.string.mayak_update_untrusted_other_app, dl.packageName)
+        }
         val me = pm.getPackageInfo(context.packageName, sigFlag())
         // «не даунгрейд» обещал KDoc, а проверялись только пакет и подпись (ревью #4). Android сам
         // режет откат при той же подписи, но полагаться на это — значит держать обещание чужими
         // руками: подсунутый старый (наш же, подписанный) APK проходил бы наш гейт.
         if (versionCode(dl) < versionCode(me)) {
-            return "скачана версия старее установленной (${versionCode(dl)} < ${versionCode(me)})"
+            return context.getString(
+                R.string.mayak_update_untrusted_downgrade, versionCode(dl), versionCode(me),
+            )
         }
         val a = certHashes(dl)
         val b = certHashes(me)
@@ -153,12 +157,14 @@ object MayakUpdater {
             // этих случая были для нас одним: обе ветки давали одинаковый отказ, а причина у них
             // разная и лечение тоже. Разделяем явно, иначе следующий такой случай снова уйдёт в
             // «наверное, ключ не тот».
-            a.isEmpty() -> "не удалось прочитать подпись скачанного файла на этой версии Android"
-            b.isEmpty() -> "не удалось прочитать подпись установленного приложения"
-            a != b -> "файл подписан другим ключом"
+            a.isEmpty() -> context.getString(R.string.mayak_update_untrusted_no_sig_file)
+            b.isEmpty() -> context.getString(R.string.mayak_update_untrusted_no_sig_app)
+            a != b -> context.getString(R.string.mayak_update_untrusted_other_key)
             else -> null
         }
-    }.getOrElse { e -> "проверка сорвалась: ${e.javaClass.simpleName}" }
+    }.getOrElse { e ->
+        context.getString(R.string.mayak_update_untrusted_crashed, e.javaClass.simpleName)
+    }
 
     /**
      * Один ли домен второго уровня у ссылки на APK и у ядра. Сравниваем ровно две последние метки

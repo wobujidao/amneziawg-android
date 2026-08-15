@@ -162,14 +162,16 @@ object MayakNotification {
         NotificationManagerCompat.from(ctx).notify(NOTIF_ID, builder.build())
     }
 
-    /** Скорость в Мбит/с — как во ВСЕХ спидтестах (правка владельца 2026-07-07). bytesPerSec×8. Синхронно с главным. */
-    fun formatSpeed(bytesPerSec: Long): String {
+    /** Скорость в Мбит/с — как во ВСЕХ спидтестах (правка владельца 2026-07-07). bytesPerSec×8. Синхронно с главным.
+     *  Единица — из ресурсов (mayak_speed_mbit), иначе английская шторка показывала бы «12 Мбит/с». */
+    fun formatSpeed(ctx: Context, bytesPerSec: Long): String {
         val mbit = bytesPerSec * 8.0 / 1_000_000.0
-        return when {
-            mbit >= 10 -> String.format("%.0f Мбит/с", mbit)
-            mbit >= 1 -> String.format("%.1f Мбит/с", mbit)
-            else -> String.format("%.2f Мбит/с", mbit)
+        val n = when {
+            mbit >= 10 -> String.format("%.0f", mbit)
+            mbit >= 1 -> String.format("%.1f", mbit)
+            else -> String.format("%.2f", mbit)
         }
+        return ctx.getString(R.string.mayak_speed_mbit, n)
     }
 
     fun clear(ctx: Context) {

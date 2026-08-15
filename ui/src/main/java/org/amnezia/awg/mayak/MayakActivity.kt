@@ -2899,11 +2899,12 @@ class MayakActivity : AppCompatActivity() {
      *  Малые — с двумя знаками (0.20 Мбит/с), покрупнее — с одним (3.4), от 10 — целые (95 Мбит/с). */
     private fun formatSpeed(bytesPerSec: Long): String {
         val mbit = bytesPerSec * 8.0 / 1_000_000.0
-        return when {
-            mbit >= 10 -> String.format("%.0f Мбит/с", mbit)
-            mbit >= 1 -> String.format("%.1f Мбит/с", mbit)
-            else -> String.format("%.2f Мбит/с", mbit)
+        val n = when {
+            mbit >= 10 -> String.format("%.0f", mbit)
+            mbit >= 1 -> String.format("%.1f", mbit)
+            else -> String.format("%.2f", mbit)
         }
+        return getString(R.string.mayak_speed_mbit, n)
     }
 
     private fun stopPing() {

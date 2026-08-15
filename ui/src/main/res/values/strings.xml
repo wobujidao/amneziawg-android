@@ -260,8 +260,10 @@
     <string name="mayak_details_server">Server</string>
     <string name="mayak_details_copy">Copy</string>
     <string name="mayak_details_copied">Copied</string>
+    <string name="mayak_copied_fmt">Copied: %1$s</string>
     <string name="mayak_details_open">Connection details</string>
     <string name="mayak_speed_fmt">↓ %1$s   ↑ %2$s</string>
+    <string name="mayak_speed_mbit">%1$s Mbit/s</string>
     <string name="mayak_settings_speed">Show transfer speed</string>
     <string name="mayak_settings_speed_hint">Displays current download/upload speed in the tunnel</string>
     <string name="mayak_update_uptodate">You have the latest version</string>
@@ -275,6 +277,13 @@
     <string name="mayak_update_downloading">Downloading update…</string>
     <string name="mayak_update_download_failed">Couldn\'t download the update</string>
     <string name="mayak_update_untrusted">Signature check failed — install cancelled</string>
+    <string name="mayak_update_untrusted_unreadable">the system could not read the downloaded file as an app</string>
+    <string name="mayak_update_untrusted_other_app">this is a different app (%1$s)</string>
+    <string name="mayak_update_untrusted_downgrade">the downloaded version is older than the installed one (%1$d &lt; %2$d)</string>
+    <string name="mayak_update_untrusted_no_sig_file">couldn\'t read the downloaded file\'s signature on this Android version</string>
+    <string name="mayak_update_untrusted_no_sig_app">couldn\'t read the installed app\'s signature</string>
+    <string name="mayak_update_untrusted_other_key">the file is signed with a different key</string>
+    <string name="mayak_update_untrusted_crashed">the check itself failed: %1$s</string>
     <string name="mayak_update_need_perm">Allow installs from this source, then tap Update again</string>
     <!-- Отрезанная сборка (порог min_version_code). Неотменяемый экран: «Позже» здесь нет. -->
     <string name="mayak_outdated_title">This version no longer works</string>

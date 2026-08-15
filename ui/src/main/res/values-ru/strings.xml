@@ -478,8 +478,10 @@
     <string name="mayak_details_server">Сервер</string>
     <string name="mayak_details_copy">Скопировать</string>
     <string name="mayak_details_copied">Скопировано</string>
+    <string name="mayak_copied_fmt">Скопировано: %1$s</string>
     <string name="mayak_details_open">Подробности подключения</string>
     <string name="mayak_speed_fmt">↓ %1$s   ↑ %2$s</string>
+    <string name="mayak_speed_mbit">%1$s Мбит/с</string>
     <string name="mayak_settings_speed">Показывать скорость передачи</string>
     <string name="mayak_settings_speed_hint">Отображает текущую скорость скачивания и отдачи в туннеле</string>
     <string name="mayak_update_uptodate">У вас последняя версия</string>
@@ -494,6 +496,13 @@
     <string name="mayak_update_downloading">Загрузка обновления…</string>
     <string name="mayak_update_download_failed">Не удалось скачать обновление</string>
     <string name="mayak_update_untrusted">Проверка подписи не пройдена — установка отменена</string>
+    <string name="mayak_update_untrusted_unreadable">система не смогла прочитать скачанный файл как приложение</string>
+    <string name="mayak_update_untrusted_other_app">это другое приложение (%1$s)</string>
+    <string name="mayak_update_untrusted_downgrade">скачана версия старее установленной (%1$d &lt; %2$d)</string>
+    <string name="mayak_update_untrusted_no_sig_file">не удалось прочитать подпись скачанного файла на этой версии Android</string>
+    <string name="mayak_update_untrusted_no_sig_app">не удалось прочитать подпись установленного приложения</string>
+    <string name="mayak_update_untrusted_other_key">файл подписан другим ключом</string>
+    <string name="mayak_update_untrusted_crashed">проверка сорвалась: %1$s</string>
     <string name="mayak_update_need_perm">Разрешите установку из этого источника и нажмите «Обновить» снова</string>
     <!-- Отрезанная сборка (порог min_version_code). Неотменяемый экран: «Позже» здесь нет.
          Человеку нужны три вещи и в этом порядке: почему он это видит, что делать, и что у него
