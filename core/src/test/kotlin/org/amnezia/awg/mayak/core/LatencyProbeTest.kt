@@ -18,6 +18,9 @@ import org.junit.Test
  */
 class LatencyProbeTest {
 
+    /** Момент «сейчас» для сортировки. Опыта подключения в этих тестах нет — проверяется ярус замера. */
+    private val NOW = 1_700_000_000_000L
+
     private fun dir(id: Long, health: String = "ok") =
         Direction(id = id, code = "d$id", name = "Страна $id", health = health)
 
@@ -100,20 +103,20 @@ class LatencyProbeTest {
     fun `свежие замеры есть — быстрейший выход первым`() {
         val dirs = listOf(dir(1), dir(2), dir(3)) // порядок сервера: 1, 2, 3
         val rtt = mapOf(1L to 80, 2L to 5, 3L to 40)
-        assertEquals(listOf(2L, 3L, 1L), orderForAuto(dirs) { rtt[it] }.map { it.id })
+        assertEquals(listOf(2L, 3L, 1L), orderForAutoWithHistory(dirs, { rtt[it] }, { null }, NOW).map { it.id })
     }
 
     @Test
     fun `замеров нет — порядок сервера как есть`() {
         val dirs = listOf(dir(3), dir(1), dir(2))
-        assertEquals(dirs, orderForAuto(dirs) { null })
+        assertEquals(dirs, orderForAutoWithHistory(dirs, { null }, { null }, NOW))
     }
 
     @Test
     fun `замер есть у части — измеренные первыми, прочие следом в порядке сервера`() {
         val dirs = listOf(dir(1), dir(2), dir(3), dir(4))
         val rtt = mapOf(3L to 50, 2L to 90)
-        assertEquals(listOf(3L, 2L, 1L, 4L), orderForAuto(dirs) { rtt[it] }.map { it.id })
+        assertEquals(listOf(3L, 2L, 1L, 4L), orderForAutoWithHistory(dirs, { rtt[it] }, { null }, NOW).map { it.id })
     }
 
     @Test
@@ -122,13 +125,13 @@ class LatencyProbeTest {
         // не означает «сюда стоит подключаться».
         val dirs = listOf(dir(1), dir(2, health = "down"), dir(3))
         val rtt = mapOf(1L to 80, 2L to 1, 3L to 40)
-        assertEquals(listOf(3L, 1L, 2L), orderForAuto(dirs) { rtt[it] }.map { it.id })
+        assertEquals(listOf(3L, 1L, 2L), orderForAutoWithHistory(dirs, { rtt[it] }, { null }, NOW).map { it.id })
     }
 
     @Test
     fun `равный RTT — порядок сервера (сортировка стабильна)`() {
         val dirs = listOf(dir(1), dir(2), dir(3))
-        assertEquals(listOf(1L, 2L, 3L), orderForAuto(dirs) { 25 }.map { it.id })
+        assertEquals(listOf(1L, 2L, 3L), orderForAutoWithHistory(dirs, { 25 }, { null }, NOW).map { it.id })
     }
 
     // ── Срок жизни замера ─────────────────────────────────────────────────────────

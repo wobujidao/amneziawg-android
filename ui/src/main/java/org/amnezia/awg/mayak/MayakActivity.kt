@@ -64,7 +64,7 @@ import org.amnezia.awg.mayak.core.MayakHosts
 import org.amnezia.awg.mayak.core.NoReachableHostException
 import org.amnezia.awg.mayak.core.OutdatedBuild
 import org.amnezia.awg.mayak.core.accessDenial
-import org.amnezia.awg.mayak.core.orderForAuto
+import org.amnezia.awg.mayak.core.orderForAutoWithHistory
 import org.amnezia.awg.mayak.core.outdatedBuild
 import org.amnezia.awg.mayak.core.splitRecommended
 
@@ -1481,7 +1481,15 @@ class MayakActivity : AppCompatActivity() {
         val mode = MayakPrefs.sortMode(this)
         val dirs = when (mode) {
             SORT_CUSTOM -> applyCustomOrder(dirsIn)
-            else -> orderForAuto(dirsIn) { id -> MayakLatency.freshRtt(this, id) } // SORT_AUTO
+            // SORT_AUTO: сперва СОБСТВЕННЫЙ опыт подключения (сколько реально поднимался туннель у
+            // этого человека), и только там, где опыта нет, — тихий замер близости. Правда сильнее
+            // приближения: легенда на :443 отвечает и у направления, чей UDP-путь у оператора режется.
+            else -> orderForAutoWithHistory(
+                dirsIn,
+                rttOf = { id -> MayakLatency.freshRtt(this, id) },
+                statOf = { id -> MayakConnectStats.stat(this, id) },
+                nowMs = System.currentTimeMillis(),
+            )
         }
         directions = dirs
         val container = dirsContainer ?: return
@@ -1847,12 +1855,22 @@ class MayakActivity : AppCompatActivity() {
             // кончился доступ) — не исход лестницы, по ним ступени судить нельзя.
             val ladderStartedAt = SystemClock.elapsedRealtime()
             val failedRungs = mutableListOf<String>()
-            fun noteLadderOutcome(successRung: String?) = MayakPrefs.noteLadder(
-                this@MayakActivity,
-                LadderTelemetry.attemptOutcome(
-                    failedRungs, successRung, SystemClock.elapsedRealtime() - ladderStartedAt,
-                ),
-            )
+            fun noteLadderOutcome(successRung: String?) {
+                val took = SystemClock.elapsedRealtime() - ladderStartedAt
+                MayakPrefs.noteLadder(
+                    this@MayakActivity,
+                    LadderTelemetry.attemptOutcome(failedRungs, successRung, took),
+                )
+                // Тот же исход — в собственный опыт по ЭТОМУ направлению (второй шаг «Авто»,
+                // ConnectHistory). Бикон отвечает на вопрос «как работают ступени во флоте», а
+                // опыт — на вопрос «что быстрее поднимается у ЭТОГО человека»; это разные данные,
+                // и складывать их в одно место нельзя: бикон уходит на сервер, опыт живёт на телефоне.
+                if (successRung != null) {
+                    MayakConnectStats.noteSuccess(this@MayakActivity, d.id, took)
+                } else {
+                    MayakConnectStats.noteFailure(this@MayakActivity, d.id)
+                }
+            }
             try {
                 // Конфиг берём из ПРЕДЗАГРУЖЕННОГО кэша (наполняется при выборе страны), чтобы в момент
                 // подключения НЕ дёргать api.mayakvpn.ru: РФ-DPI (сотовая) палит наш VPN-домен в TLS/DNS
