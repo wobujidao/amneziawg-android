@@ -319,7 +319,7 @@ class MayakPresetEditorActivity : AppCompatActivity() {
                     cm.setPrimaryClip(android.content.ClipData.newPlainText("app", text))
                     android.widget.Toast.makeText(
                         this@MayakPresetEditorActivity,
-                        getString(R.string.mayak_copied_fmt, text),
+                        this@MayakPresetEditorActivity.getString(R.string.mayak_copied_fmt, text),
                         android.widget.Toast.LENGTH_SHORT,
                     ).show()
                     true
