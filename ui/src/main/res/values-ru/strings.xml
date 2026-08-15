@@ -816,17 +816,27 @@
     <string name="mayak_msg_subscription_expired_body_plain">Продлите доступ, чтобы всё продолжало работать.</string>
     <string name="mayak_msg_access_revoked">Доступ отключён</string>
     <string name="mayak_msg_access_revoked_body">Продлите доступ или напишите нам — разберёмся.</string>
+    <!-- ⚠️ 16-08, ревизия текстов. Две беды на этих строках сразу.
+         (1) Знак рубля. Сервер кладёт в params голое число («500» — internal/usermsg/usermsg.go,
+             функция rub()), поэтому «Зачислено: 500.» выходило без единицы измерения. У соседних
+             поводов про приглашения «₽» стоит прямо в строке — ставим и здесь.
+         (2) Возврат. «Вернули: 500» читается как «деньги уже у вас». Их у человека ещё нет: касса
+             отправляет возврат тем же способом, которым он платил, и идёт он до нескольких рабочих
+             дней (internal/usermsg/usermsg.go, PaymentRefund; порядок возврата —
+             internal/admin/refunds.go, шапка файла: «КНОПКА ЗДЕСЬ НЕ ВОЗВРАЩАЕТ ДЕНЬГИ»).
+             Сервер именно так и пишет, но приложение подменяет его текст своим (MayakMessages.body:
+             localBody выигрывает у m.body), то есть теряло правду, которую сервер уже сказал. -->
     <string name="mayak_msg_payment_receipt">Оплата прошла</string>
-    <string name="mayak_msg_payment_receipt_body">Зачислено: %1$s. Спасибо!</string>
+    <string name="mayak_msg_payment_receipt_body">Зачислено: %1$s ₽. Спасибо!</string>
     <string name="mayak_msg_payment_receipt_body_plain">Спасибо! Оплата зачислена.</string>
     <string name="mayak_msg_payment_refund">Возврат оформлен</string>
-    <string name="mayak_msg_payment_refund_body">Вернули: %1$s.</string>
-    <string name="mayak_msg_payment_refund_body_plain">Деньги вернутся тем же способом, которым вы платили.</string>
+    <string name="mayak_msg_payment_refund_body">Возврат %1$s ₽ отправлен тем же способом, которым вы платили. Деньги идут до нескольких рабочих дней.</string>
+    <string name="mayak_msg_payment_refund_body_plain">Возврат отправлен тем же способом, которым вы платили. Деньги идут до нескольких рабочих дней.</string>
     <string name="mayak_msg_balance_topup">Счёт пополнен</string>
-    <string name="mayak_msg_balance_topup_body">Зачислено: %1$s.</string>
+    <string name="mayak_msg_balance_topup_body">Зачислено: %1$s ₽.</string>
     <string name="mayak_msg_balance_topup_body_plain">Средства зачислены на ваш счёт.</string>
     <string name="mayak_msg_balance_charge">Списание со счёта</string>
-    <string name="mayak_msg_balance_charge_body">Списано: %1$s.</string>
+    <string name="mayak_msg_balance_charge_body">Списано: %1$s ₽.</string>
     <string name="mayak_msg_balance_charge_body_plain">Средства списаны со счёта.</string>
     <string name="mayak_msg_autorenew_ok">Продление прошло</string>
     <string name="mayak_msg_autorenew_ok_body">Доступ продлён автоматически — делать ничего не нужно.</string>
