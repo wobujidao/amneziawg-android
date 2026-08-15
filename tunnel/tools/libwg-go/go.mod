@@ -4,7 +4,7 @@ module github.com/amnezia-vpn/amneziawg-android
 go 1.26.5
 
 require (
-	github.com/amnezia-vpn/amneziawg-go/v3 v3.0.20260805
+	github.com/amnezia-vpn/amneziawg-go/v3 v3.1.20260814
 	golang.org/x/sys v0.36.0
 )
 
