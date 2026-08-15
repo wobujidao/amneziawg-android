@@ -1699,7 +1699,15 @@ class MayakActivity : AppCompatActivity() {
         // Был подзаголовком снизу (SPEC-0037), но строка выходила ~54dp и десяток направлений на
         // экран не помещался (правка владельца 04-08). Пусто (старые направления без city) →
         // город скрыт, видно только название.
-        row.findViewById<TextView>(R.id.mayak_row_name).text = d.name
+        row.findViewById<TextView>(R.id.mayak_row_name).apply {
+            text = d.name
+            // Крупный системный шрифт (≥150 %): бейджи и пинг съедают ширину, и «Нидерланды»
+            // резалось до «Нидерл…» (замер 15-08 на 200 %). Разрешаем имени вторую строку —
+            // перенос по дефису (hyphenationFrequency в разметке), строка списка подрастает и
+            // прокручивается. При обычном шрифте остаётся одна строка — компактность списка
+            // (правка владельца 04-08) не трогается.
+            if (resources.configuration.fontScale >= 1.5f) maxLines = 2
+        }
         row.findViewById<TextView>(R.id.mayak_row_city).apply {
             val c = d.city.trim()
             if (c.isNotEmpty()) {

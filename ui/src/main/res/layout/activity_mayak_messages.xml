@@ -52,11 +52,20 @@
                     app:iconSize="24dp"
                     app:iconTint="@color/mayak_on_bg" />
 
+                <!-- Автоподбор размера (24→16sp): справа «Обновить», и при крупном системном
+                     шрифте (200 %) слову «Сообщения» не хватало ширины — рвалось по буквам
+                     на две строки (замер 15-08). При обычном шрифте — max-размер, вид прежний. -->
                 <TextView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
                     android:layout_weight="1"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    app:autoSizeTextType="uniform"
+                    app:autoSizeMinTextSize="14sp"
+                    app:autoSizeMaxTextSize="24sp"
+                    app:autoSizeStepGranularity="1sp"
                     android:text="@string/mayak_messages_title"
                     android:textAppearance="@style/Mayak.Title"
                     android:textSize="24sp" />

@@ -116,12 +116,17 @@
                             android:layout_marginTop="@dimen/mayak_space_3"
                             android:orientation="horizontal">
 
+                            <!-- hyphenationFrequency: кнопки делят ширину пополам, и при крупном
+                                 системном шрифте (200 %) слова рвались по буквам («Придум/ать»,
+                                 «Скопир/овать» — замер 15-08); с дефисацией перенос читаемый.
+                                 При обычном шрифте текст в одну строку — атрибут не влияет. -->
                             <com.google.android.material.button.MaterialButton
                                 android:id="@+id/mayak_reg_generate"
                                 style="@style/Mayak.Button.Outlined"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
+                                android:hyphenationFrequency="normal"
                                 android:text="@string/mayak_reg_generate" />
 
                             <com.google.android.material.button.MaterialButton
@@ -131,6 +136,7 @@
                                 android:layout_height="wrap_content"
                                 android:layout_marginStart="@dimen/mayak_space_2"
                                 android:layout_weight="1"
+                                android:hyphenationFrequency="normal"
                                 android:text="@string/mayak_reg_copy_password" />
                         </LinearLayout>
 

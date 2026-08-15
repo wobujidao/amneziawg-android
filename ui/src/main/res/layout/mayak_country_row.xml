@@ -60,6 +60,9 @@
         android:orientation="horizontal"
         android:baselineAligned="true">
 
+        <!-- hyphenationFrequency — на случай переноса: при крупном системном шрифте код
+             (countryRow) разрешает имени 2 строки, и без дефисации «Нидерланды» рвалось бы по
+             буквам; при одной строке (обычный шрифт) атрибут ни на что не влияет. -->
         <TextView
             android:id="@+id/mayak_row_name"
             android:layout_width="wrap_content"
@@ -69,6 +72,7 @@
             android:textStyle="bold"
             android:maxLines="1"
             android:ellipsize="end"
+            android:hyphenationFrequency="normal"
             android:text="—" />
 
         <TextView
@@ -118,11 +122,14 @@
         tools:ignore="HardcodedText,SmallSp"
         android:text="IPv6" />
 
-    <!-- SPEC-0031 / запрос владельца 2026-07-11: ЦИФРА пинга (мс) телефон→сервер вместо полосок. -->
+    <!-- SPEC-0031 / запрос владельца 2026-07-11: ЦИФРА пинга (мс) телефон→сервер вместо полосок.
+         marginStart — зазор от соседа слева: при крупном системном шрифте пинг шире своих 48dp,
+         и без отступа цифра прилипала вплотную к пилюле «IPv6» (замер 15-08, шрифт 200 %). -->
     <TextView
         android:id="@+id/mayak_row_ping"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginStart="6dp"
         android:minWidth="48dp"
         android:gravity="end"
         android:textSize="12sp"

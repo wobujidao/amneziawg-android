@@ -106,11 +106,16 @@
                     android:layout_height="wrap_content"
                     android:orientation="vertical">
 
+                    <!-- hintMaxLines=2 (Material 1.14): при крупном системном шрифте (200 %)
+                         однострочная подсказка резалась в «Почта или номер а…» — человек не
+                         узнавал, что сюда можно ввести НОМЕР, а именно он якорь входа без почты
+                         (замер 15-08). При обычном шрифте подсказка — одна строка, как была. -->
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/mayak_login_layout"
                         style="@style/Mayak.TextInput"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        app:hintMaxLines="2"
                         android:hint="@string/mayak_login_hint">
 
                         <!-- Логин — ПОЧТА ИЛИ НОМЕР АККАУНТА (9 цифр). Поле было объявлено почтовым

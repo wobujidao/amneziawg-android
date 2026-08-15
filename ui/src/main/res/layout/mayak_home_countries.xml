@@ -4,6 +4,7 @@
      колонка во всю высоту. Сама карточка всегда wrap_content и прижата к верху отсека: при двух
      странах в ней нет пустоты, при длинном списке прокручивается внутренний ScrollView. -->
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     style="@style/Mayak.Card"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
@@ -20,10 +21,23 @@
             android:orientation="horizontal"
             android:gravity="center_vertical">
 
+            <!-- Крупный системный шрифт: заголовку остаётся треть карточки (справа «Авто» и
+                 «Обновить»), и на 200 % слово «Выберите» рвалось ПО БУКВАМ на три строки
+                 (замер 15-08). Лекарство двойное: автоподбор размера (16→12sp) ужимает текст,
+                 дефисация даёт читаемый перенос там, где слово всё равно шире колонки (на
+                 200 % «Выберите» не влезает целиком даже на 12sp — без дефисов резалось бы).
+                 maxLines=3 — предел, до которого автоподбор ужимает размер; текст не теряется.
+                 При обычном шрифте — одна строка на max-размере, вид прежний. -->
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
+                android:maxLines="3"
+                android:hyphenationFrequency="normal"
+                app:autoSizeTextType="uniform"
+                app:autoSizeMinTextSize="12sp"
+                app:autoSizeMaxTextSize="16sp"
+                app:autoSizeStepGranularity="1sp"
                 android:text="@string/mayak_pick_country"
                 android:textAppearance="@style/Mayak.CardTitle" />
 

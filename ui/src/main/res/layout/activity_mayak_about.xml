@@ -154,12 +154,16 @@
                     android:layout_height="wrap_content"
                     android:orientation="vertical">
 
+                    <!-- hyphenationFrequency: на крупном системном шрифте (200 %) слово
+                         «конфиденциальности» шире кнопки и рвалось по буквам (замер 15-08);
+                         с дефисацией перенос читаемый. На обычном шрифте не влияет. -->
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/mayak_about_privacy"
                         style="@style/Mayak.Button.Outlined"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
+                        android:hyphenationFrequency="normal"
                         app:iconGravity="textStart"
                         android:text="@string/mayak_privacy_policy" />
 

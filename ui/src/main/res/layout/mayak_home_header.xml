@@ -31,54 +31,63 @@
             app:iconPadding="0dp"
             android:text="" />
 
-        <View
+        <!-- Отсек пресета занимает ВЕСЬ остаток ширины между темой и кнопками справа, а полоска
+             пресета центрируется внутри него — визуально то же, что дававшие середину два
+             спейсера с weight=1, которые тут стояли раньше. Зачем перестроено (замер 15-08,
+             системный шрифт 200 %): полоска была нерастяжимой, и когда имя пресета выросло,
+             оно вытолкнуло за правый край кнопку настроек ЦЕЛИКОМ (осталось 8dp — не нажать).
+             Теперь при нехватке места сжимается ИМЯ ПРЕСЕТА (с многоточием), а не соседи:
+             отсек ограничивает ширину, weight=1 на имени внутри полоски отдаёт дефицит ему.
+             При обычном шрифте полоска wrap_content — выглядит как раньше, ничего не тянется. -->
+        <FrameLayout
             android:layout_width="0dp"
-            android:layout_height="1dp"
-            android:layout_weight="1" />
-
-        <!-- Селектор пресета split-туннеля (SPEC-0028): имя активного пресета (тап → выбор/
-             создание/правка) + тумблер «применять пресет». Видимость — настройка
-             «Показывать пресеты на главном» (по умолч. ВКЛ). Текст имени ставится в коде. -->
-        <LinearLayout
-            android:id="@+id/mayak_preset_bar"
-            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:layout_weight="1">
 
-            <!-- Имя пресета: без иконки (правка владельца 2026-07-18 — «без 3х точек»),
-                 компактно, имя влезает целиком (без maxWidth/ellipsize), шрифт помельче. -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/mayak_preset_name"
-                style="@style/Mayak.Button.Outlined"
+            <!-- Селектор пресета split-туннеля (SPEC-0028): имя активного пресета (тап → выбор/
+                 создание/правка) + тумблер «применять пресет». Видимость — настройка
+                 «Показывать пресеты на главном» (по умолч. ВКЛ). Текст имени ставится в коде. -->
+            <LinearLayout
+                android:id="@+id/mayak_preset_bar"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:minWidth="0dp"
-                android:minHeight="34dp"
-                android:insetTop="0dp"
-                android:insetBottom="0dp"
-                android:paddingStart="12dp"
-                android:paddingEnd="12dp"
-                android:maxLines="1"
-                android:textSize="12sp"
-                android:text="РФ напрямую" />
+                android:layout_gravity="center"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
 
-            <!-- Тумблер «применять пресет»: уменьшен (scale 0.8) и подтянут вплотную —
-                 компактнее, чтобы имя пресета помещалось целиком (правка владельца). -->
-            <com.google.android.material.materialswitch.MaterialSwitch
-                android:id="@+id/mayak_preset_switch"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="-2dp"
-                android:scaleX="0.8"
-                android:scaleY="0.8"
-                android:contentDescription="@string/mayak_preset_switch_desc" />
-        </LinearLayout>
+                <!-- Имя пресета: без иконки (правка владельца 2026-07-18 — «без 3х точек»),
+                     компактно, шрифт помельче. При обычном шрифте имя влезает целиком (weight
+                     не растягивает: полоска wrap_content); многоточие — только когда имя
+                     физически не помещается (крупный системный шрифт). -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/mayak_preset_name"
+                    style="@style/Mayak.Button.Outlined"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:minWidth="0dp"
+                    android:minHeight="34dp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:textSize="12sp"
+                    android:text="РФ напрямую" />
 
-        <View
-            android:layout_width="0dp"
-            android:layout_height="1dp"
-            android:layout_weight="1" />
+                <!-- Тумблер «применять пресет»: уменьшен (scale 0.8) и подтянут вплотную —
+                     компактнее, чтобы имя пресета помещалось целиком (правка владельца). -->
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/mayak_preset_switch"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="-2dp"
+                    android:scaleX="0.8"
+                    android:scaleY="0.8"
+                    android:contentDescription="@string/mayak_preset_switch_desc" />
+            </LinearLayout>
+        </FrameLayout>
 
         <!-- Ящик сообщений (SPEC-0047). Стоит В ШАПКЕ, а не в настройках, ровно по одной причине:
              до него канала до человека без почты не было вовсе, и прятать его на пятом экране
