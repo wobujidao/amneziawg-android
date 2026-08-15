@@ -361,7 +361,9 @@
     <string name="mayak_referral_apply_window">Код можно применить в первые %1$d дн. после регистрации.</string>
     <string name="mayak_referral_apply_ok">Код принят: %1$s придут после вашей оплаты и выдержки.</string>
     <string name="mayak_referral_apply_failed">Код не применился: %1$s</string>
-    <string name="mayak_consent_note">Входя, вы принимаете Политику конфиденциальности и Условия использования.</string>
+    <string name="mayak_consent_note_fmt">Входя, вы принимаете %1$s и %2$s.</string>
+    <string name="mayak_consent_link_privacy">Политику конфиденциальности</string>
+    <string name="mayak_consent_link_terms">Условия использования</string>
     <!-- ⚠️ 16-08, ревизия текстов: было «Подтвердите email на сайте». Подтверждение живёт не на
          сайте, а в ЛИЧНОМ КАБИНЕТЕ (cabinet/app.js, маршрут `verify` → #/verify) — и кнопка этого
          же диалога открывает именно кабинет (MayakActivity.showEmailNotVerified →

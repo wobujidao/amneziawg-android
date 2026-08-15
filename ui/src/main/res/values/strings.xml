@@ -143,7 +143,11 @@
     <string name="mayak_referral_apply_window">A code can be applied within %1$d days of registration.</string>
     <string name="mayak_referral_apply_ok">The code is accepted: %1$s will arrive after your payment and the waiting period.</string>
     <string name="mayak_referral_apply_failed">The code did not apply: %1$s</string>
-    <string name="mayak_consent_note">By signing in you accept the Privacy Policy and Terms of Use.</string>
+    <!-- Та же строка, но с местами под ссылки: названия документов на экране входа кликабельны
+         (MayakLegalText). Отдельные подписи нужны из-за склонений в русской версии. -->
+    <string name="mayak_consent_note_fmt">By signing in you accept the %1$s and %2$s.</string>
+    <string name="mayak_consent_link_privacy">Privacy Policy</string>
+    <string name="mayak_consent_link_terms">Terms of Use</string>
     <!-- ⚠️ 16-08: было «on the website» — подтверждение живёт в кабинете (cabinet #/verify), туда же
          ведёт кнопка этого диалога. -->
     <string name="mayak_err_email_not_verified">Please verify your email in the account cabinet.</string>

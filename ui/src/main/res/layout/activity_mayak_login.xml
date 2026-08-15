@@ -2,6 +2,7 @@
 <!-- Экран входа «Mayak Networks»: брендовый градиентный фон, логотип-маяк, карточка с формой. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/mayak_bg_gradient">
@@ -232,7 +233,8 @@
                 android:textColor="@color/mayak_on_bg_muted"
                 android:textSize="14sp" />
 
-            <!-- Лёгкая ссылка на политику (согласие при использовании; биндинг — на сайте) -->
+            <!-- Согласие: названия Политики и Условий — ЖИВЫЕ ссылки, текст собирает
+                 MayakLegalText.bindConsentNote (до 16-08 здесь был неоткрываемый текст). -->
             <TextView
                 android:id="@+id/mayak_consent"
                 android:layout_width="match_parent"
@@ -241,7 +243,7 @@
                 android:gravity="center"
                 android:textColor="@color/mayak_on_bg_muted"
                 android:textSize="12sp"
-                android:text="@string/mayak_consent_note" />
+                tools:text="@string/mayak_consent_note_fmt" />
         </LinearLayout>
     </ScrollView>
 </FrameLayout>

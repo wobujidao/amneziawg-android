@@ -527,6 +527,10 @@ class MayakActivity : AppCompatActivity() {
         setupThemeButton()
         findViewById<MaterialButton>(R.id.mayak_language_button).setOnClickListener { MayakLanguages.showDialog(this) }
 
+        // Названия Политики и Условий под формой — ЖИВЫЕ ссылки. Раньше это был обычный текст:
+        // экран говорил «вы принимаете» и не давал прочитать, что именно (16-08).
+        findViewById<TextView>(R.id.mayak_consent)?.let { MayakLegalText.bindConsentNote(this, it) }
+
         // Ошибку показываем У ПОЛЯ, а не серой строкой под карточкой: с открытой клавиатурой низ экрана
         // не виден, и нажатие «Войти» выглядело как «ничего не произошло» (замечание владельца 07-26).
         // Пользователь начал править — ошибку убираем, иначе она висит и спорит с тем, что он вводит.
