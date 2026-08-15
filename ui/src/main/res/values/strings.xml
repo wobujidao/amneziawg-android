@@ -99,7 +99,9 @@
     <!-- Приглашения (SPEC-0049). Суммы НЕ называем на регистрации: их задаёт сервер и меняет
          владелец из панели, а сессии для запроса у нас на этом экране ещё нет. -->
     <string name="mayak_reg_invite_hint">Invitation code (optional)</string>
-    <string name="mayak_reg_invite_helper">Have you been invited? Enter the code — the reward goes to both of you after your first payment.</string>
+    <!-- ⚠️ 16-08: было «the reward goes to both of you after your first payment» — оплата лишь первое
+         из двух условий (см. русскую строку и internal/clientapi/referral.go). -->
+    <string name="mayak_reg_invite_helper">Have you been invited? Enter the code — the reward goes to both of you after your first payment and a waiting period. The terms are in Settings.</string>
     <string name="mayak_reg_invite_paste">Paste code</string>
     <string name="mayak_reg_invite_bad">This does not look like an invitation code: 8 characters, letters and digits. Leave it empty if you do not have one.</string>
     <string name="mayak_reg_invite_ok">Invitation code accepted.</string>
