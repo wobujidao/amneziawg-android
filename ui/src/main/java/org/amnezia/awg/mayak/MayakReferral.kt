@@ -41,7 +41,10 @@ object MayakReferral {
     fun money(kopecks: Long): String {
         val rub = kopecks / 100
         val kop = (kopecks % 100).toInt()
-        return if (kop == 0) "$rub ₽" else String.format("%d,%02d ₽", rub, kop)
+        // Пробел ПЕРЕД знаком рубля — неразрывный: на 390 px строка счётчиков переносилась ровно
+        // между числом и «₽», и «заработано: 0» висело с одиноким «₽» на следующей строке
+        // (поймано глазами на эмуляторе 15-08).
+        return if (kop == 0) "$rub\u00A0₽" else String.format("%d,%02d\u00A0₽", rub, kop)
     }
 
     /** Достать код из буфера обмена (по нажатию человека). Пусто — если там не код. */
