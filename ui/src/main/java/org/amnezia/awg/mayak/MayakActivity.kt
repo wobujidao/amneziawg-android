@@ -41,7 +41,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -53,7 +52,6 @@ import org.amnezia.awg.backend.GoBackend
 import org.amnezia.awg.mayak.core.AccessDenial
 import org.amnezia.awg.mayak.core.AppVersionInfo
 import org.amnezia.awg.mayak.core.Direction
-import org.amnezia.awg.mayak.core.DohResolver
 import org.amnezia.awg.mayak.core.Fallback
 import org.amnezia.awg.mayak.core.FallbackDecision
 import org.amnezia.awg.mayak.core.HostProvider
@@ -1157,16 +1155,18 @@ class MayakActivity : AppCompatActivity() {
         // Кнопка «Обновить» — явно перетянуть список стран с сервера (новые направления без перелогина).
         findViewById<View?>(R.id.mayak_refresh_dirs)?.setOnClickListener {
             MayakHaptics.tap(it)
-            MayakPingCache.clear() // «Обновить» ПЕРЕМЕРЯЕТ и пинги (иначе кэш 3 мин отдаёт старые) — правка владельца
             loadDirections(forceRefresh = true)
             checkAppUpdate(force = true) // «Обновить» проверяет и список стран, И версию приложения
         }
-        // SPEC-0031: циклический переключатель режима сортировки (Авто → Пинг → Свои).
+        // SPEC-0031: переключатель режима сортировки. Был циклом Авто → Пинг → Свои; режим «Пинг»
+        // снят 15-08 вместе с клиентским пингом напротив стран (директива владельца: «это не
+        // работает и задумывалось совсем по-другому») — остался цикл Авто ↔ Свои.
         findViewById<android.widget.TextView?>(R.id.mayak_sort_mode)?.let { btn ->
             updateSortModeLabel(btn)
             btn.setOnClickListener {
                 MayakHaptics.tap(it)
-                val next = (MayakPrefs.sortMode(this) + 1) % 3
+                // Сохранённое значение 1 (снятый режим «Пинг») читается как «Авто» → следующий «Свои».
+                val next = if (MayakPrefs.sortMode(this) == SORT_CUSTOM) SORT_AUTO else SORT_CUSTOM
                 MayakPrefs.setSortMode(this, next)
                 updateSortModeLabel(btn)
                 if (next == SORT_CUSTOM) Toast.makeText(this, R.string.mayak_sort_custom_hint, Toast.LENGTH_LONG).show()
@@ -1440,27 +1440,6 @@ class MayakActivity : AppCompatActivity() {
         }
     }
 
-    /** Перерисовать список стран + восстановить выбор (последняя выбранная, иначе первая). */
-    /** Уровень полосок 0..3 по КЛИЕНТСКОМУ RTT (мс), или null если пинг не мерян/провалился. */
-    private fun rttLevel(rttMs: Int?): Int? = when {
-        rttMs == null -> null
-        rttMs < 60 -> 3
-        rttMs < 120 -> 2
-        rttMs < 220 -> 1
-        else -> 1
-    }
-
-    /** Уровень полосок для строки: КЛИЕНТСКИЙ пинг (главное) если измерен, иначе серверный хинт (заглушка). */
-    private fun levelFor(d: Direction): Int = rttLevel(MayakPingCache.rtt(d.id)) ?: d.signalLevel()
-
-    /** Ключ сортировки «быстрейший вверху» (меньше = выше): реальный RTT если измерен; иначе псевдо-RTT из
-     *  серверного хинта (чтобы неспингованные шли разумно); мёртвые (health=down) — в самый низ. */
-    private fun sortRtt(d: Direction): Int {
-        if (d.health == "down") return Int.MAX_VALUE
-        MayakPingCache.rtt(d.id)?.let { return it }
-        return when (d.signalLevel()) { 3 -> 50; 2 -> 150; 1 -> 300; else -> 100000 }
-    }
-
     /** Пользовательский порядок (SPEC-0031, режим «свои»): сначала направления в сохранённом порядке (по id),
      *  затем новые (не в сохранённом списке) — в порядке сервера. Сохранённые id, которых больше нет, игнор. */
     private fun applyCustomOrder(dirsIn: List<Direction>): List<Direction> {
@@ -1473,13 +1452,12 @@ class MayakActivity : AppCompatActivity() {
         return ordered + rest
     }
 
-    /** Ярлык кнопки режима сортировки (Авто/Пинг/Свои) по текущему режиму. */
+    /** Ярлык кнопки режима сортировки (Авто/Свои) по текущему режиму. */
     private fun updateSortModeLabel(btn: android.widget.TextView) {
         btn.setText(
             when (MayakPrefs.sortMode(this)) {
-                SORT_PING -> R.string.mayak_sort_ping
                 SORT_CUSTOM -> R.string.mayak_sort_custom
-                else -> R.string.mayak_sort_auto
+                else -> R.string.mayak_sort_auto // в т. ч. легаси-значение 1 (снятый режим «Пинг»)
             }
         )
     }
@@ -1495,11 +1473,11 @@ class MayakActivity : AppCompatActivity() {
     /** Применить выбранный режим к сырому серверному списку и перерисовать (авто-режим не теряет порядок сервера). */
     private fun applyOrderAndRender() {
         val dirsIn = serverDirections
-        // SPEC-0031: порядок по выбранному режиму. 0 авто — как отдал сервер; 1 пинг — по клиентскому RTT
-        // (быстрейший вверху); 2 свои — пользовательский порядок (перетаскивание). Пинг гоняем ТОЛЬКО в режиме «пинг».
+        // SPEC-0031: порядок по выбранному режиму. 0 авто — как отдал сервер; 2 свои — пользовательский
+        // порядок (перетаскивание). Режим «по пингу» (легаси-значение 1) снят 15-08 вместе с клиентским
+        // пингом стран — сохранённая единица читается как «авто».
         val mode = MayakPrefs.sortMode(this)
         val dirs = when (mode) {
-            SORT_PING -> dirsIn.sortedWith(compareBy<Direction> { sortRtt(it) }.thenBy { it.displayLabel().lowercase() })
             SORT_CUSTOM -> applyCustomOrder(dirsIn)
             else -> dirsIn // SORT_AUTO: порядок сервера как есть
         }
@@ -1560,9 +1538,6 @@ class MayakActivity : AppCompatActivity() {
         if (connState == ConnState.DISCONNECTED) {
             setStatus(getString(R.string.mayak_status_disconnected))
         }
-        // Меряем RTT во ВСЕХ режимах (не только «пинг»), чтобы ЦИФРА пинга показывалась всегда (запрос
-        // владельца 2026-07-11: цифры вместо полосок). Кэш (TTL) не даёт спамить серверы повторно.
-        pingDirectionsOnce(dirs)
         maybeShowOnboarding() // после отрисовки списка: экран уже настоящий, а не пустой каркас
     }
 
@@ -1582,7 +1557,6 @@ class MayakActivity : AppCompatActivity() {
             setText(actionLabel)
             setOnClickListener {
                 MayakHaptics.tap(it)
-                MayakPingCache.clear()
                 loadDirections(forceRefresh = true)
             }
         }
@@ -1614,49 +1588,7 @@ class MayakActivity : AppCompatActivity() {
         showDirsState(getString(R.string.mayak_dirs_error_title), text, R.string.mayak_dirs_retry)
     }
 
-    private var pingPassJob: Job? = null
-
-    /**
-     * Замерить RTT «телефон→сервер» для направлений и пере-отрисовать список (сортировка+полоски по пингу).
-     * Пингуем ТОЛЬКО те, у кого нет свежего замера (кэш TTL) → куча клиентов не спамит серверы. Пинги идут
-     * параллельно, фоном (IO), UI не блокируется. Не таймер — вызывается лишь из renderDirections (по открытию
-     * списка/загрузке данных). Провалы кэшируются, чтобы не долбить сеть; повторный вызов найдёт всё свежим → без цикла.
-     */
-    private fun pingDirectionsOnce(dirs: List<Direction>) {
-        // АКТИВНОЕ направление (к которому подключён туннель) НЕ пингуем: подключённым `/system/bin/ping` идёт
-        // ЧЕРЕЗ туннель, а эхо в СВОЙ ЖЕ выходной IP заворачивается сам в себя (hairpin) и не проходит → в кэш
-        // осел бы null и строка показывала «—» у активной страны. Его пинг берём из ЖИВОГО замера туннеля
-        // (GoTunnel.connectedPingMs, тот же «Пинг: N мс» сверху) — см. рендер строки. Правка 2026-07-24.
-        // Активную страну берём из ПРОЦЕСС-СКОУПНОГО GoTunnel (переживает пересоздание Activity/пересортировку),
-        // fallback — Activity-поле connectedDir. Иначе после рефетча списка (добавили ноду) активная страна не
-        // опознавалась → пинговалась через свой же туннель (hairpin) → «•••». Правка 2026-07-24.
-        val activeId = if (connState == ConnState.CONNECTED) (GoTunnel.connectedDirectionId ?: connectedDir?.id) else null
-        val need = dirs.filter { it.poolHost.isNotBlank() && it.id != activeId && !MayakPingCache.isFresh(it.id) }
-        if (need.isEmpty()) return
-        pingPassJob?.cancel()
-        pingPassJob = lifecycleScope.launch {
-            val results = need.map { d ->
-                // poolHost — домен направления: РЕЗОЛВИМ через DoH (мимо оператора), пингуем УЖЕ IP. Иначе
-                // /system/bin/ping (внешний процесс) резолвил бы имя системным DNS оператора → на свежей/
-                // подменённой записи проба падает («...»), хотя нода жива. Уже IP или DoH не вышел → как есть.
-                async(Dispatchers.IO) { d.id to MayakPing.ping(DohResolver.resolveHost(d.poolHost)) }
-            }.awaitAll()
-            results.forEach { (id, rtt) -> MayakPingCache.put(id, rtt) }
-            // получили новые пинги → пересобрать список по свежим RTT. Кэш теперь свежий → повторный
-            // pingDirectionsOnce ничего не найдёт → без бесконечного цикла.
-            if (results.any { it.second != null }) applyOrderAndRender()
-        }
-    }
-
-    /** Пульсация (alpha 1↔0.25) для ячейки пинга, ПОКА идёт замер — вместо статичного «—» (правка владельца). */
-    private fun pingWaitAnimation(): android.view.animation.Animation =
-        android.view.animation.AlphaAnimation(1f, 0.25f).apply {
-            duration = 550
-            repeatMode = android.view.animation.Animation.REVERSE
-            repeatCount = android.view.animation.Animation.INFINITE
-        }
-
-    /** Строка-страна: ВЕКТОРНЫЙ флаг + название + индикатор сигнала; тап = выбор (без подключения).
+    /** Строка-страна: флаг + название (+город) + бейдж IPv6 + точка «подключено»; тап = выбор (без подключения).
      *  allowReorder=false — строка живёт в плитке «⚡ Рекомендуем»: перетаскивать её некуда
      *  (порядок «свои» — про список), долгий тап там ничего не делает. */
     private fun countryRow(d: Direction, allowReorder: Boolean = true): View {
@@ -1668,40 +1600,15 @@ class MayakActivity : AppCompatActivity() {
         val flagImage = row.findViewById<ImageView>(R.id.mayak_row_flag)
         val flagEmojiView = row.findViewById<TextView>(R.id.mayak_row_flag_emoji)
         MayakFlags.apply(flagImage, flagEmojiView, d.flagCode())
-        // SPEC-0031 / запрос владельца 2026-07-11: ЦИФРА клиентского пинга (мс), а не полоски. Цвет —
-        // по качеству (зелёный→оранжевый). Не измерен/провалился → «—» серым. Сортировка «Пинг» — по нему.
-        row.findViewById<TextView>(R.id.mayak_row_ping).apply {
-            // АКТИВНОЕ направление (подключены): его нельзя пинговать через туннель (self-ping заворачивается —
-            // «—»), поэтому показываем ЖИВОЙ пинг туннеля (тот же «Пинг: N мс» сверху); нет живого → прошлый
-            // замер (до подключения). Остальные — из кэша замеров. Правка 2026-07-24.
-            val isActiveDir = connState == ConnState.CONNECTED && d.id == (GoTunnel.connectedDirectionId ?: connectedDir?.id)
-            val rtt = if (isActiveDir) (GoTunnel.connectedPingMs?.takeIf { it > 0 } ?: MayakPingCache.rtt(d.id))
-                      else MayakPingCache.rtt(d.id)
-            when {
-                rtt != null -> { // измерен
-                    clearAnimation()
-                    text = getString(R.string.mayak_ping_value, rtt) // «мс» — из ресурсов, не хардкодом
-                    setTextColor(pingColor(rtt))
-                }
-                isActiveDir || MayakPingCache.isFresh(d.id) -> { // подключены (живой ещё не пришёл) ИЛИ сервер не ответил на ICMP
-                    clearAnimation()
-                    text = "—"
-                    setTextColor(0xFF8A929C.toInt())
-                }
-                else -> { // ЕЩЁ идёт замер → анимация ожидания вместо статичного «—» (правка владельца 2026-07-19)
-                    text = "•••"
-                    setTextColor(0xFF8A929C.toInt())
-                    startAnimation(pingWaitAnimation())
-                }
-            }
-        }
+        // Клиентский пинг напротив страны СНЯТ 15-08 (директива владельца: «это не работает и
+        // задумывалось совсем по-другому»). Пинг живого туннеля («Пинг: N мс» под статусом) остался.
         // Название — жирным; город приписан СБОКУ, в ту же строку («Нидерланды · Амстердам»).
         // Был подзаголовком снизу (SPEC-0037), но строка выходила ~54dp и десяток направлений на
         // экран не помещался (правка владельца 04-08). Пусто (старые направления без city) →
         // город скрыт, видно только название.
         row.findViewById<TextView>(R.id.mayak_row_name).apply {
             text = d.name
-            // Крупный системный шрифт (≥150 %): бейджи и пинг съедают ширину, и «Нидерланды»
+            // Крупный системный шрифт (≥150 %): бейджи съедают ширину, и «Нидерланды»
             // резалось до «Нидерл…» (замер 15-08 на 200 %). Разрешаем имени вторую строку —
             // перенос по дефису (hyphenationFrequency в разметке), строка списка подрастает и
             // прокручивается. При обычном шрифте остаётся одна строка — компактность списка
@@ -1756,14 +1663,13 @@ class MayakActivity : AppCompatActivity() {
      * выдуманная клиентом, разошлась бы с сервером и кабинетом; либо направление ровно одно —
      * см. doc-комментарий splitRecommended).
      *
-     * Внутри плитки — ОБЫЧНАЯ строка-страна (countryRow): флаг, пинг и выбор по тапу достаются
-     * даром. Строка попадает в rowViews (тот же список, что и строки под ней) — благодаря этому
-     * подсветка выбора И живой пинг активного направления (refreshActiveRowPing) находят строку
-     * ГДЕ БЫ она ни отрисовалась, в плитке или в списке. Направление отрисовывается РОВНО в одном
-     * месте (splitRecommended уже вырезал его из списка) — двух чисел под одно направление больше
-     * не бывает (баг 09-08: плитка 119 мс, строка снизу 76 мс — потому что раньше это были ДВЕ
-     * разные View одного и того же направления, и живой пинг обновлял только ту, что в списке).
-     * Перетаскивание в режиме «свои» плитке отключено.
+     * Внутри плитки — ОБЫЧНАЯ строка-страна (countryRow): флаг и выбор по тапу достаются даром.
+     * Строка попадает в rowViews (тот же список, что и строки под ней) — благодаря этому подсветка
+     * выбора И точка «подключено» (refreshConnectedDots) находят строку ГДЕ БЫ она ни отрисовалась,
+     * в плитке или в списке. Направление отрисовывается РОВНО в одном месте (splitRecommended уже
+     * вырезал его из списка) — двух строк под одно направление больше не бывает (баг 09-08: плитка
+     * и список показывали одно направление дважды с разными данными, потому что это были ДВЕ разные
+     * View). Перетаскивание в режиме «свои» плитке отключено.
      */
     private fun renderRecommendedTile(rec: Direction?) {
         val tile = findViewById<View?>(R.id.mayak_recommended_tile) ?: return
@@ -2820,23 +2726,6 @@ class MayakActivity : AppCompatActivity() {
     )
 
     /**
-     * Подтянуть живой пинг в строку страны, к которой мы подключены (аудит 2026-07-31, п. 21).
-     *
-     * Было: под кнопкой «Пинг: 193 мс», а в списке у той же «Нидерланды» — «423 мс». Строка списка
-     * держала замер, сделанный ДО подключения (по открытой сети), и обновлялась только при
-     * перерисовке списка. Два разных числа про один сервер на одном экране — человек справедливо
-     * не верит ни одному. Теперь активная строка ходит за тем же пингом, что и надпись сверху.
-     *
-     * Ищем ПО rowViews, а не по детям dirsContainer (правка 09-08): активное направление могло
-     * оказаться той самой строкой в плитке «⚡ Рекомендуем» (mayak_recommended_row_slot — сосед
-     * dirsContainer, не его ребёнок). Со старым поиском только по контейнеру списка плитка на живой
-     * тик пинга не подписывалась вовсе и застревала на числе из момента отрисовки — тот самый баг
-     * «119 мс в плитке против 76 мс в списке»: до сегодняшней правки splitRecommended направление
-     * ещё и дублировалось (строка была И в списке, И в плитке), и обновлялась только копия в списке.
-     * rowViews — единственный список видимых строк (список + плитка), поэтому это и есть общий
-     * источник: то же представление обновляют и подсветка выбора (selectDir), и живой пинг.
-     */
-    /**
      * Точка «через эту страну идёт трафик» — по всем видимым строкам сразу.
      *
      * Идём по rowViews, а не по детям контейнера, по той же причине, что и живой пинг ниже: активная
@@ -2851,24 +2740,6 @@ class MayakActivity : AppCompatActivity() {
             val on = activeId != null && (row.tag as? Long) == activeId
             dot.visibility = if (on) View.VISIBLE else View.GONE
             dot.contentDescription = if (on) getString(R.string.mayak_row_connected_dot_desc) else null
-        }
-    }
-
-    private fun refreshActiveRowPing(ms: Int?) {
-        val activeId = GoTunnel.connectedDirectionId ?: connectedDir?.id ?: return
-        for (row in rowViews) {
-            if ((row.tag as? Long) != activeId) continue
-            row.findViewById<TextView>(R.id.mayak_row_ping)?.apply {
-                clearAnimation()
-                if (ms != null && ms > 0) {
-                    text = getString(R.string.mayak_ping_value, ms)
-                    setTextColor(pingColor(ms))
-                } else {
-                    text = "—"
-                    setTextColor(0xFF8A929C.toInt())
-                }
-            }
-            return
         }
     }
 
@@ -2894,7 +2765,6 @@ class MayakActivity : AppCompatActivity() {
                     else getString(R.string.mayak_ping_label, ms)
                     setTextColor(pingColor(shown))
                 }
-                refreshActiveRowPing(ms)
                 // Туннель поднят, а трафик через него не идёт — это самый неприятный из возможных
                 // исходов: у человека НЕТ интернета вообще (всё уходит в туннель), а приложение
                 // спокойно говорит «Защищено». Так бывает, например, если устройство удалили в
@@ -3216,7 +3086,8 @@ class MayakActivity : AppCompatActivity() {
 
         // SPEC-0031: режимы сортировки списка стран.
         private const val SORT_AUTO = 0   // как отдал сервер
-        private const val SORT_PING = 1   // по клиентскому пингу (быстрейший вверху)
+        // Значение 1 исторически занято снятым режимом «по клиентскому пингу» (убран 15-08 вместе с
+        // пингом напротив стран) — НЕ переиспользовать: у людей оно ещё лежит в prefs и читается как «авто».
         private const val SORT_CUSTOM = 2 // пользовательский порядок (перетаскивание)
 
         // Адреса ядра, ЗАШИТЫЕ в сборку. Дев (MayakHosts, :core) — генерируется из реестра доменов

@@ -352,7 +352,6 @@
     <string name="mayak_recommended_tile">⚡ Рекомендуем</string>
     <string name="mayak_refresh">Обновить</string>
     <string name="mayak_sort_auto">Авто</string>
-    <string name="mayak_sort_ping">Пинг</string>
     <string name="mayak_sort_custom">Свои</string>
     <string name="mayak_sort_custom_hint">Зажмите и перетащите страну, чтобы изменить порядок — он сохранится</string>
     <string name="mayak_disconnect">Отключить</string>

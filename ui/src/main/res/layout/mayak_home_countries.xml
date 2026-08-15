@@ -41,7 +41,8 @@
                 android:text="@string/mayak_pick_country"
                 android:textAppearance="@style/Mayak.CardTitle" />
 
-            <!-- SPEC-0031: режим сортировки (Авто/Пинг/Свои) — циклический переключатель. -->
+            <!-- SPEC-0031: режим сортировки (Авто/Свои) — переключатель. Режим «Пинг» снят 15-08
+                 вместе с клиентским пингом напротив стран (директива владельца). -->
             <TextView
                 android:id="@+id/mayak_sort_mode"
                 android:layout_width="wrap_content"

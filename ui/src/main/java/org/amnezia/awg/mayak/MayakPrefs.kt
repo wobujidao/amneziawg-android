@@ -58,7 +58,7 @@ object MayakPrefs {
     private const val KEY_LEARNED_SITE = "learned_site" // адрес сайта из того же реестра (роль site) — справка
     private const val KEY_AUTOCONNECT = "autoconnect" // F3: автоподнятие последнего рабочего туннеля (по умолч. ВЫКЛ)
     private const val KEY_APP_LOCK = "app_lock" // блокировка приложения по биометрии/PIN устройства (по умолч. ВЫКЛ)
-    private const val KEY_SORT_MODE = "dir_sort_mode" // SPEC-0031: 0=авто(сервер), 1=пинг, 2=свои (по умолч. 0)
+    private const val KEY_SORT_MODE = "dir_sort_mode" // SPEC-0031: 0=авто(сервер), 2=свои; 1=снятый режим «пинг» → авто
     private const val KEY_CUSTOM_ORDER = "dir_custom_order" // SPEC-0031: пользовательский порядок направлений (CSV id)
     // Агрегированные (не-ПДн) счётчики для тихого еженедельного телеметри-бикона (MayakTelemetryWorker).
     // Кумулятивные за всё время установки (сервер при желании считает недельную дельту сам). НЕ сбрасываем.
@@ -83,8 +83,9 @@ object MayakPrefs {
     private const val KEY_LAST_AUTO_DIAG_ATTEMPT = "auto_diag_last_attempt_ms"
     private const val KEY_LAST_AUTO_DIAG_OK = "auto_diag_last_ok_ms"
 
-    // Режим сортировки списка стран (SPEC-0031): 0 — как отдал сервер (авто), 1 — по клиентскому пингу,
-    // 2 — пользовательский (свой порядок перетаскиванием). По умолчанию 0.
+    // Режим сортировки списка стран (SPEC-0031): 0 — как отдал сервер (авто), 2 — пользовательский
+    // (свой порядок перетаскиванием). По умолчанию 0. Значение 1 — снятый 15-08 режим «по клиентскому
+    // пингу»: у людей оно ещё лежит в prefs, читается как «авто», НЕ переиспользовать.
     fun sortMode(context: Context): Int = prefs(context).getInt(KEY_SORT_MODE, 0)
     fun setSortMode(context: Context, mode: Int) {
         prefs(context).edit().putInt(KEY_SORT_MODE, mode).apply()

@@ -147,7 +147,6 @@
     <string name="mayak_row_city_inline">· %1$s</string>
     <string name="mayak_refresh">Refresh</string>
     <string name="mayak_sort_auto">Auto</string>
-    <string name="mayak_sort_ping">Ping</string>
     <string name="mayak_sort_custom">Custom</string>
     <string name="mayak_sort_custom_hint">Long-press and drag a country to reorder; the order is saved</string>
     <string name="mayak_disconnect">Disconnect</string>

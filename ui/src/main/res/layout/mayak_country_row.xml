@@ -122,17 +122,8 @@
         tools:ignore="HardcodedText,SmallSp"
         android:text="IPv6" />
 
-    <!-- SPEC-0031 / запрос владельца 2026-07-11: ЦИФРА пинга (мс) телефон→сервер вместо полосок.
-         marginStart — зазор от соседа слева: при крупном системном шрифте пинг шире своих 48dp,
-         и без отступа цифра прилипала вплотную к пилюле «IPv6» (замер 15-08, шрифт 200 %). -->
-    <TextView
-        android:id="@+id/mayak_row_ping"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="6dp"
-        android:minWidth="48dp"
-        android:gravity="end"
-        android:textSize="12sp"
-        android:textStyle="bold"
-        android:importantForAccessibility="no" />
+    <!-- Ячейки клиентского пинга («129 мс») здесь больше НЕТ — снята 15-08 по директиве владельца
+         («это не работает и задумывалось совсем по-другому»). Пинг живого туннеля остался на главном
+         экране под статусом («Пинг: N мс»). Правый край строки теперь держит пилюля «IPv6»
+         (или точка «подключено»), отступ края — paddingEnd корня. -->
 </LinearLayout>
