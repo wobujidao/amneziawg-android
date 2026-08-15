@@ -421,9 +421,12 @@ class MayakActivity : AppCompatActivity() {
             2 -> getString(R.string.mayak_update_msg_aging, name)
             else -> getString(R.string.mayak_update_msg_old, name)
         }
+        // Список изменений — на языке человека: рамка диалога переводится ресурсами, а текст приходит
+        // с сервера, и до 16-08 он был русским для всех (английский телефон получал русскую стену).
+        val changelog = info.changelogFor(MayakBackend.namesLanguageBucket())
         val msg = buildString {
             append(lead)
-            if (info.changelog.isNotBlank()) { append("\n\n"); append(info.changelog) }
+            if (changelog.isNotBlank()) { append("\n\n"); append(changelog) }
         }
         AlertDialog.Builder(this)
             .setTitle(R.string.mayak_update_title)
