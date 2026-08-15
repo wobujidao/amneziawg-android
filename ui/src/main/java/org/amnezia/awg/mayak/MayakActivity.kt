@@ -376,13 +376,17 @@ class MayakActivity : AppCompatActivity() {
             // повторные с более жёстким текстом, с 36-го дня — каждый холодный старт. Раньше одно
             // «Позже» выключало напоминание про эту версию навсегда, и между ним и жёстким порогом
             // min_version_code не было ничего.
-            var step = UpdateNudge.STEP_DAYS.size - 1 // «проверить обновления» руками — самый прямой текст
-            if (!force) {
-                val (days, lastStep) = MayakPrefs.updateNudgeState(
-                    this@MayakActivity, info.latestVersionCode, System.currentTimeMillis())
-                step = UpdateNudge.stepToShow(days, lastStep)
-                if (step == UpdateNudge.NONE) return@launch
-            }
+            // ⚠️ 16-08, ревизия текстов: раньше при ручной проверке ступень бралась САМАЯ ПОСЛЕДНЯЯ
+            // («самый прямой текст»), а на ней стоит фраза «Ваша сборка старше месяца». Человеку,
+            // поставившему приложение вчера и нажавшему «проверить обновления», приложение прямо
+            // врало про возраст его сборки. Настойчивость должна быть в тоне, а не в выдуманном
+            // факте, поэтому тон берём по РЕАЛЬНОМУ возрасту, а ручное нажатие влияет только на то,
+            // показывать ли окно вообще: передаём NO_STEP, и уже показанная ступень не глушит показ
+            // (stepToShow вернёт ступень по дням, а не NONE).
+            val (days, lastStep) = MayakPrefs.updateNudgeState(
+                this@MayakActivity, info.latestVersionCode, System.currentTimeMillis())
+            val step = UpdateNudge.stepToShow(days, if (force) UpdateNudge.NO_STEP else lastStep)
+            if (step == UpdateNudge.NONE) return@launch
             // Установлено из Play — обновляет сам Play. Наш APK с сайта подписан ДРУГИМ ключом, и
             // установка такому человеку гарантированно падает на несовпадении подписи: он качает
             // файл, ждёт и получает отказ, который читается как поломка приложения. Поэтому здесь
