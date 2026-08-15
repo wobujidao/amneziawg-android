@@ -64,6 +64,7 @@ import org.amnezia.awg.mayak.core.MayakHosts
 import org.amnezia.awg.mayak.core.NoReachableHostException
 import org.amnezia.awg.mayak.core.OutdatedBuild
 import org.amnezia.awg.mayak.core.accessDenial
+import org.amnezia.awg.mayak.core.ConnectHistory
 import org.amnezia.awg.mayak.core.orderForAutoWithHistory
 import org.amnezia.awg.mayak.core.outdatedBuild
 import org.amnezia.awg.mayak.core.splitRecommended
@@ -1511,7 +1512,11 @@ class MayakActivity : AppCompatActivity() {
         // Разбор на плитку/список — В :core (splitRecommended, RecommendationTest): рекомендованное
         // направление живёт РОВНО в одном месте на экране (баг 09-08 «Почему тут 2 Нидерланды?» —
         // плитку рисовали НАД полным списком, не убирая из него то же направление).
-        val split = splitRecommended(dirs)
+        // ⚠️ Плитку прячем, если у ЭТОГО человека рекомендованное направление только что не
+        // поднялось: крупная кнопка «нажми сюда», которая минуту назад не сработала, — обман.
+        val split = splitRecommended(dirs) { id ->
+            ConnectHistory.recentlyFailed(MayakConnectStats.stat(this, id), System.currentTimeMillis())
+        }
         for (d in split.list) {
             val row = countryRow(d)
             container.addView(row)

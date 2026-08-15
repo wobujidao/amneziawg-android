@@ -43,8 +43,26 @@ data class RecommendationSplit(val tile: Direction?, val list: List<Direction>)
  * направлений нет) обсуждался и отклонён: он тянет за собой новую локализованную строку в семи
  * языках ради состояния, которое ничем не богаче обычной строки списка.
  */
-fun splitRecommended(dirs: List<Direction>): RecommendationSplit {
+fun splitRecommended(dirs: List<Direction>): RecommendationSplit =
+    splitRecommended(dirs, justFailed = { false })
+
+/**
+ * То же с одним дополнением: [justFailed] — «у ЭТОГО человека направление только что не поднялось»
+ * (свежий провал лестницы, ConnectHistory.recentlyFailed).
+ *
+ * Зачем. Сервер видит загрузку узла, но не видит, что у конкретного человека к этому узлу минуту
+ * назад не встал туннель (оператор, DPI, кривая сеть в метро). Плитка «⚡ Рекомендуем» на таком
+ * направлении — это крупная кнопка «нажми сюда», которая только что не сработала; человек нажмёт её
+ * снова и снова будет ждать. Поэтому плитку в этом случае НЕ показываем вовсе.
+ *
+ * Именно НЕ показываем, а не подставляем своё направление: кого рекомендовать — по-прежнему решение
+ * сервера, и подмена дала бы два расходящихся мнения об одном «рекомендуем» (в кабинете одно, в
+ * приложении другое). Направление при этом не исчезает — оно остаётся обычной строкой списка,
+ * и порядок списка сам увёл его вниз (orderForAutoWithHistory).
+ */
+fun splitRecommended(dirs: List<Direction>, justFailed: (Long) -> Boolean): RecommendationSplit {
     val rec = recommendedDirection(dirs) ?: return RecommendationSplit(tile = null, list = dirs)
     if (dirs.size <= 1) return RecommendationSplit(tile = null, list = dirs)
+    if (justFailed(rec.id)) return RecommendationSplit(tile = null, list = dirs)
     return RecommendationSplit(tile = rec, list = dirs.filterNot { it.id == rec.id })
 }

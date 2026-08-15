@@ -105,4 +105,22 @@ class RecommendationTest {
         assertEquals(2L, recommendedDirection(dirs)?.id)
         assertEquals(false, dirs[0].recommended)
     }
+
+    @Test
+    fun `плитки нет, если рекомендованное только что не поднялось у этого человека`() {
+        // Сервер видит загрузку узла, но не видит, что у человека к нему минуту назад не встал
+        // туннель. Крупная кнопка «нажми сюда», которая только что не сработала, — обман.
+        val dirs = listOf(dir(1), dir(2, recommended = true), dir(3))
+        val split = splitRecommended(dirs) { id -> id == 2L }
+        assertNull(split.tile)
+        assertEquals("направление не исчезает — остаётся строкой списка", 3, split.list.size)
+    }
+
+    @Test
+    fun `чужой провал плитку не трогает`() {
+        val dirs = listOf(dir(1), dir(2, recommended = true), dir(3))
+        val split = splitRecommended(dirs) { id -> id == 3L }
+        assertEquals(2L, split.tile?.id)
+        assertEquals(2, split.list.size)
+    }
 }
