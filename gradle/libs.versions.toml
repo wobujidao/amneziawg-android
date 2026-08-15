@@ -37,7 +37,7 @@ google-material = "com.google.android.material:material:1.14.0"
 # людей, и для них push просто не заводится. Артефакт и так приезжает с firebase-messaging, но ТОЛЬКО
 # в runtime-зависимостях (в его gradle-метаданных он не api) — на classpath компиляции его нет, поэтому
 # объявлен явно. Версию держим ту же, что тянет BoM, иначе получим два разных play-services-base.
-google-play-services-base = "com.google.android.gms:play-services-base:18.9.0"
+google-play-services-base = "com.google.android.gms:play-services-base:18.10.0"
 # Установочная метка Play: единственный канал, по которому код приглашения доезжает от ссылки до
 # приложения САМ (SPEC-0049). Работает только у тех, кто ставил из магазина; при установке APK с
 # сайта метки нет вовсе, и код человек вводит руками — см. MayakInstallReferrer.

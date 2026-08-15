@@ -34,7 +34,10 @@ configure<SettingsExtension> {
     // свежие androidx (core 1.19) требуют компиляции против 37, а брать поведение Android 17
     // мы не готовы — его не на чем проверить. Приложение при этом остаётся в правилах Play.
     buildToolsVersion = "37.0.0"
+    // 37 = android-37.0. Минорную 37.1 сюда не завести: у settings-плагина AGP 9.3.1 нет свойства
+    // compileSdkMinor (проверено сборкой: «Unresolved reference»), а разница минорных SDK — только
+    // в добавленных API, которыми мы не пользуемся.
     compileSdk = 37
     minSdk = 24
-    ndkVersion = "26.1.10909125"
+    ndkVersion = "29.0.14206865"
 }
