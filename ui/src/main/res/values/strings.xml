@@ -72,7 +72,7 @@
          screen. None of the strings below may contain "VPN", "tunnel" or "bypass" — see the guard
          MayakMessagesWordsTest. -->
     <string name="mayak_reg_title">Create account</string>
-    <string name="mayak_reg_intro">No email, no letters. Pick a password — we will give you an account number and you are in. The number and the password are your way in.</string>
+    <string name="mayak_reg_intro">No email address, no messages from us. Pick a password — we will give you an account number and you are in. The number and the password are your way in.</string>
     <string name="mayak_reg_password_hint">Password</string>
     <string name="mayak_reg_password_helper">At least 8 characters, letters and digits.</string>
     <string name="mayak_reg_generate">Generate</string>
@@ -84,12 +84,12 @@
     <string name="mayak_reg_browser">Open sign-up in a browser</string>
     <string name="mayak_reg_err_weak">The service will not accept this password: at least 8 characters, letters and digits.</string>
     <string name="mayak_reg_err_consent">Tick the data processing consent — the account cannot be created without it.</string>
-    <string name="mayak_reg_err_captcha">The "you are human" check did not pass. Try again or create the account in a browser.</string>
-    <string name="mayak_reg_err_captcha_unavailable">The "you are human" check does not open right now. Try later or create the account in a browser.</string>
+    <string name="mayak_reg_err_captcha">The “you are human” check did not pass. Try again or create the account in a browser.</string>
+    <string name="mayak_reg_err_captcha_unavailable">The “you are human” check does not open right now. Try later or create the account in a browser.</string>
     <string name="mayak_reg_done_title">Your account number</string>
     <!-- ⚠️ 16-08: было «We show the number once» — номер всегда виден в «Настройках»
          (MayakSettingsActivity.showAccountNumber). Один раз показывается пароль. -->
-    <string name="mayak_reg_done_warning">Write down the number and the password. We will not show the password anywhere again: the account has no email, so without it there is nothing to restore access with. The number always stays in Settings. If you want recovery, add an email in your personal cabinet.</string>
+    <string name="mayak_reg_done_warning">Write down the number and the password. We will not show the password anywhere again: the account has no email address, so there would be no way to restore access. The number always stays in Settings. If you want recovery, add an email in your personal cabinet.</string>
     <string name="mayak_reg_no_session">The account was created, but we could not sign you in automatically. Write down the number and the password — the sign-in screen opens next with the number already filled in.</string>
     <!-- Число дней согласуется с существительным: «1 days» — брак, который видно на первом же
          экране новичка (поймано живым прогоном 13-08). Поэтому plurals, а не строка с %d. -->
@@ -158,7 +158,7 @@
     <string name="mayak_err_totp_empty">Enter your two-factor code.</string>
     <string name="mayak_err_device_key_conflict">This device key belongs to another account and could not be reissued. Try again or contact support.</string>
     <string name="mayak_session_expired">Your session has expired — please sign in again. This usually happens after a password change.</string>
-    <string name="mayak_status_no_traffic">Tunnel is up but no traffic is passing — please reconnect.</string>
+    <string name="mayak_status_no_traffic">You are connected, but no traffic is passing — please reconnect.</string>
     <!-- Честные статусы вместо слова «Защищено» без подтверждения (аудит 2026-07-31). -->
     <string name="mayak_status_no_network">No internet on this phone — check your connection</string>
     <string name="mayak_status_checking">Checking the connection…</string>
@@ -179,7 +179,7 @@
     <string name="mayak_forgot_msg">Enter the email of your account — we\'ll send a reset code. Works only if an email is linked.</string>
     <!-- В поле сброса ввели НОМЕР аккаунта: у такой учётки почты может не быть вовсе, и «код
          отправлен» был бы ложью. Отвечаем сами, не тревожа сервер. -->
-    <string name="mayak_forgot_no_email">This needs the account\'s email: there is nowhere to send a code for a number or a login. If no email is linked, sign in with your number and password and link one in your personal cabinet — or write to support.</string>
+    <string name="mayak_forgot_no_email">This needs the account\'s email address: with a number or a login there is nowhere to send the code. If no email is linked, sign in with your number and password and link one in your personal cabinet — or write to support.</string>
     <string name="mayak_forgot_send">Send code</string>
     <string name="mayak_forgot_sending">Sending code…</string>
     <string name="mayak_forgot_sent">Code sent to your email (if the account exists). Check your inbox.</string>
@@ -230,7 +230,7 @@
     <string name="mayak_route_fallback">Backup channel</string>
     <string name="mayak_details_route">Path</string>
     <string name="mayak_settings_force_fallback">Always use backup channel</string>
-    <string name="mayak_settings_force_fallback_hint">Normally not needed: the app switches to the backup channel by itself when UDP is blocked. Turn on if UDP never works on your network — saves the wait on every connect. Slower than the direct path.</string>
+    <string name="mayak_settings_force_fallback_hint">Normally not needed: the app moves to the backup channel by itself when the usual connection does not get through. Turn it on if the usual connection never works on your network — then you don\'t wait for that on every connect. The backup channel is slower.</string>
     <string name="mayak_status_offline_lastgood">Server not responding — connecting to %1$s with saved settings…</string>
     <string name="mayak_status_no_egress">Could not connect. Try again or pick another country</string>
     <string name="mayak_status_disconnected">Unprotected</string>
@@ -298,7 +298,7 @@
     <string name="mayak_err_fill_login">Enter your login and password</string>
     <string name="mayak_err_bad_link">Link not recognized</string>
     <string name="mayak_err_no_vpn_perm">The system did not allow the protected connection</string>
-    <string name="mayak_err_empty_dirs">Core returned no countries</string>
+    <string name="mayak_err_empty_dirs">The server returned no countries</string>
     <!-- Пустой список стран и отказ загрузки — ДВА РАЗНЫХ состояния (правило проекта: одна
          формулировка на две причины запрещена). Первое: сервер ответил, но стран в ответе нет.
          Второе: сервер не ответил вовсе — тогда список может быть в полном порядке. -->
@@ -353,7 +353,7 @@
     <string name="mayak_dns_custom_value">Your own DNS server: %1$s</string>
     <string name="mayak_dns_default_desc">A plain fast resolver. Nothing is blocked.</string>
     <string name="mayak_dns_adblock_desc">Blocks ads and trackers in apps and the browser (AdGuard DNS).</string>
-    <string name="mayak_dns_family_desc">The same plus adult sites and safe search (AdGuard Family).</string>
+    <string name="mayak_dns_family_desc">Everything above, plus adult sites are blocked and safe search is on (AdGuard Family).</string>
     <string name="mayak_dns_custom_desc">Your resolver: corporate, family or any public one.</string>
     <string name="mayak_dns_custom_hint">One or two public IP addresses, comma separated, e.g. 1.1.1.1, 9.9.9.9</string>
     <string name="mayak_dns_saved">Profile saved. It applies on the next connection</string>
@@ -496,7 +496,7 @@
     <string name="mayak_support_write_more">Write again</string>
     <string name="mayak_support_err_topic">The list of topics is out of date — update the app. We sent your text as “Other”.</string>
     <string name="mayak_support_err_short">Too short: describe the problem in at least one sentence.</string>
-    <string name="mayak_support_err_long">Too long: leave up to %1$d characters, the rest we will discuss in the thread.</string>
+    <string name="mayak_support_err_long">Too long: keep it to %1$d characters — we can go into the rest in the thread.</string>
     <string name="mayak_support_err_rate">Too many messages in a row. You can send again in about %1$d min — what has arrived is already with us.</string>
     <string name="mayak_support_err_rate_soon">Too many messages in a row. Try a bit later — what has arrived is already with us.</string>
     <string name="mayak_support_err_channel_off">The form does not work on our side right now. Your text is not lost — send it by mail, the address is below.</string>
@@ -504,7 +504,7 @@
     <string name="mayak_support_err_offline">No connection to the server. The text is kept — try again when the network is back.</string>
     <string name="mayak_support_err_login">Sign in to your account: then we see your plan and devices and answer to the point.</string>
     <string name="mayak_support_err_not_found">The ticket is not found.</string>
-    <string name="mayak_support_err_unknown">Did not work out: %1$s</string>
+    <string name="mayak_support_err_unknown">That didn\'t work: %1$s</string>
     <string name="mayak_support_tickets_title">My tickets</string>
     <string name="mayak_support_tickets_loading">Loading…</string>
     <string name="mayak_support_tickets_empty">No tickets yet. Write to us above — the reply shows up here (and by email, if one is linked).</string>
@@ -828,7 +828,7 @@
     <string name="mayak_msg_autorenew_ok">Renewed automatically</string>
     <string name="mayak_msg_autorenew_ok_body">Your access has been renewed — nothing to do.</string>
     <string name="mayak_msg_autorenew_failed">Automatic renewal failed</string>
-    <string name="mayak_msg_autorenew_failed_body">There was not enough money on your balance. Top it up and access continues.</string>
+    <string name="mayak_msg_autorenew_failed_body">There was not enough money on your balance. Top it up and your access continues.</string>
     <string name="mayak_msg_plan_changed">Plan changed</string>
     <string name="mayak_msg_plan_changed_body">You are now on: %1$s.</string>
     <string name="mayak_msg_group_invited">Invitation to shared access</string>
@@ -865,12 +865,12 @@
 
     <string name="mayak_settings_notify">Notifications</string>
     <string name="mayak_settings_notify_account">Access and money</string>
-    <string name="mayak_settings_notify_account_hint">Receipts, access period and security always arrive: this is how the service works, not a mailing list, and it cannot be turned off.</string>
+    <string name="mayak_settings_notify_account_hint">Receipts, access reminders and security alerts always arrive: that is how the service works — it is not a mailing list and cannot be turned off.</string>
     <string name="mayak_settings_notify_service">Service messages</string>
     <string name="mayak_settings_notify_service_hint">Support replies, scheduled maintenance, setup hints.</string>
     <string name="mayak_settings_notify_news">News and offers</string>
     <string name="mayak_settings_notify_news_hint">Discounts and what is new. Off by default.</string>
-    <string name="mayak_settings_notify_news_consent">We will send you messages about discounts and new features. You can opt out at any moment with this very switch.</string>
+    <string name="mayak_settings_notify_news_consent">We will send you messages about discounts and new features. You can opt out at any time with this same switch.</string>
     <string name="mayak_settings_notify_news_agree">I agree to receive</string>
     <string name="mayak_settings_notify_quiet">Quiet hours (23:00–09:00)</string>
     <string name="mayak_settings_notify_quiet_hint">At night messages arrive silently. We use the time from your phone.</string>
