@@ -405,7 +405,8 @@
     <string name="mayak_onboarding_1_title">One button</string>
     <string name="mayak_onboarding_1_text">Tap the big circle and your traffic goes through our server. Tap again to turn protection off.</string>
     <string name="mayak_onboarding_2_title">Change country any time</string>
-    <string name="mayak_onboarding_2_text">Pick a country from the list below: if protection is on, the app switches over by itself. The number next to a country is its latency — lower is faster.</string>
+    <!-- ⚠️ Тут было «рядом со страной — задержка»: цифры пинга убраны 15-08, фраза пережила правку. -->
+    <string name="mayak_onboarding_2_text">Pick a country from the list below: if protection is on, the app switches over by itself. In “Auto” mode the countries you connect to fastest come first.</string>
     <string name="mayak_onboarding_3_title">Local services bypass the tunnel</string>
     <string name="mayak_onboarding_3_text">The switch at the top keeps banks and government sites on your normal connection, where a foreign address only gets in the way.</string>
     <string name="mayak_onboarding_done">Got it</string>
