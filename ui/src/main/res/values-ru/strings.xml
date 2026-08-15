@@ -338,6 +338,12 @@
     <string name="mayak_referral_stats">Приглашено: %1$d · оплатили: %2$d · заработано: %3$s</string>
     <string name="mayak_referral_apply_hint">Вас пригласили? Введите код</string>
     <string name="mayak_referral_apply">Применить код</string>
+    <string name="mayak_referral_mine_pending">Код приглашения применён. %1$s придут на баланс после того, как вы оплатите тариф и пробудете с нами %2$d дн.</string>
+    <string name="mayak_referral_mine_ripening">Код приглашения применён, оплата засчитана. %1$s придут на баланс %2$s.</string>
+    <string name="mayak_referral_mine_rewarded">Код приглашения применён — %1$s уже начислены на баланс.</string>
+    <string name="mayak_referral_mine_capped">Код приглашения применён, но награда не начислена: был исчерпан месячный лимит программы.</string>
+    <string name="mayak_referral_mine_reversed">Приглашение отменено: оплата вернулась.</string>
+    <string name="mayak_referral_mine_plain">Код приглашения к этой учётке уже применён.</string>
     <string name="mayak_referral_apply_window">Код можно применить в первые %1$d дн. после регистрации.</string>
     <string name="mayak_referral_apply_ok">Код принят: %1$s придут после вашей оплаты и выдержки.</string>
     <string name="mayak_referral_apply_failed">Код не применился: %1$s</string>

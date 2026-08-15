@@ -810,6 +810,20 @@
                             android:layout_marginTop="8dp"
                             android:text="@string/mayak_referral_apply" />
                     </LinearLayout>
+
+                    <!-- Что с МОИМ приглашением, если код уже применён. Раньше на этом месте не было
+                         ничего: поле ввода пряталось, и человек больше нигде не видел ни обещанной
+                         суммы, ни срока, ни того, начислили ему уже или нет (найдено 15-08). -->
+                    <TextView
+                        android:id="@+id/mayak_settings_referral_mine"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:textAppearance="@style/Mayak.Tagline"
+                        android:textColor="@color/mayak_on_surface_muted"
+                        android:visibility="gone"
+                        tools:text="Код приглашения применён. 50 ₽ придут на баланс после оплаты тарифа."
+                        tools:visibility="visible" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

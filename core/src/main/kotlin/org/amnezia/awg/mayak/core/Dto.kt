@@ -727,6 +727,30 @@ data class ReferralInfo(
     @SerialName("hold_days") val holdDays: Int = 0,
     @SerialName("applied_code") val appliedCode: Boolean = false,
     @SerialName("apply_window_days") val applyWindowDays: Int = 0,
+    /**
+     * Приглашение, ПО КОТОРОМУ ПРИШЁЛ САМ владелец учётки. null — код не применялся (или человека
+     * привела ботовая механика, у которой своего состояния нет), а также у старого ядра, которое
+     * поле ещё не отдаёт: экран обязан пережить его отсутствие, а не показать нули.
+     *
+     * Появилось потому, что `appliedCode` в одиночку — тупик: приложение просто прятало поле ввода,
+     * и человек больше нигде не видел ни обещанной суммы, ни того, начислили ему уже или нет.
+     */
+    @SerialName("my_invite") val myInvite: MyReferralInvite? = null,
+)
+
+/**
+ * Состояние СВОЕГО приглашения глазами приглашённого.
+ *
+ * 🔴 `promisedKopecks` и `kopecks` — РАЗНЫЕ числа, и путать их нельзя: первое обещано по сегодняшним
+ * настройкам программы и ещё не начислено, второе уже лежит на счету. Пока денег нет, показываем
+ * обещание; как только начислили — факт, который не поедет вслед за правкой чисел в панели.
+ */
+@Serializable
+data class MyReferralInvite(
+    val status: String = "",
+    @SerialName("ripe_at") val ripeAt: String = "",
+    val kopecks: Long = 0,
+    @SerialName("promised_kopecks") val promisedKopecks: Long = 0,
 )
 
 /**

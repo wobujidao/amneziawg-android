@@ -130,6 +130,12 @@
     <string name="mayak_referral_stats">Invited: %1$d · paid: %2$d · earned: %3$s</string>
     <string name="mayak_referral_apply_hint">Were you invited? Enter the code</string>
     <string name="mayak_referral_apply">Apply the code</string>
+    <string name="mayak_referral_mine_pending">Invitation code applied. %1$s will arrive on your balance once you pay for a plan and stay with us for %2$d days.</string>
+    <string name="mayak_referral_mine_ripening">Invitation code applied, your payment counted. %1$s will arrive on your balance on %2$s.</string>
+    <string name="mayak_referral_mine_rewarded">Invitation code applied — %1$s has been credited to your balance.</string>
+    <string name="mayak_referral_mine_capped">Invitation code applied, but no reward was credited: the programme\'s monthly limit was reached.</string>
+    <string name="mayak_referral_mine_reversed">The invitation was cancelled: the payment was refunded.</string>
+    <string name="mayak_referral_mine_plain">An invitation code has already been applied to this account.</string>
     <string name="mayak_referral_apply_window">A code can be applied within %1$d days of registration.</string>
     <string name="mayak_referral_apply_ok">The code is accepted: %1$s will arrive after your payment and the waiting period.</string>
     <string name="mayak_referral_apply_failed">The code did not apply: %1$s</string>

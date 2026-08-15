@@ -533,6 +533,7 @@ class MayakSettingsActivity : AppCompatActivity() {
         // поле, которое заведомо ответит отказом. Окно считает СЕРВЕР, здесь только показываем срок.
         val box = findViewById<View>(R.id.mayak_settings_referral_apply_box)
         box.visibility = if (info.appliedCode) View.GONE else View.VISIBLE
+        renderMyInvite(info)
         if (info.appliedCode) return
         val layout = findViewById<TextInputLayout>(R.id.mayak_settings_referral_input_layout)
         val field = findViewById<TextInputEditText>(R.id.mayak_settings_referral_input)
@@ -542,6 +543,57 @@ class MayakSettingsActivity : AppCompatActivity() {
         findViewById<MaterialButton>(R.id.mayak_settings_referral_apply).setOnClickListener {
             applyReferralCode(field.text?.toString().orEmpty(), layout, info)
         }
+    }
+
+    /**
+     * Что с МОИМ приглашением — строка на месте спрятанного поля ввода.
+     *
+     * 🔴 Зачем. Раньше приложение просто прятало поле, и человек, применивший код, больше НИГДЕ не
+     * видел ни обещанной суммы, ни условия, ни того, начислили ему уже или нет (найдено живой
+     * проверкой 15-08; в кабинете была та же беда, там висела сухая фраза «код уже применён»).
+     * Обещание, о котором нельзя вспомнить, работает как обман: человек ждёт денег и идёт в
+     * поддержку.
+     *
+     * Все числа — С СЕРВЕРА. Своих цифр не рисуем и старое ядро переживаем молча: нет `myInvite` —
+     * говорим то, что знаем точно, а не выдумываем сумму.
+     */
+    private fun renderMyInvite(info: org.amnezia.awg.mayak.core.ReferralInfo) {
+        val view = findViewById<TextView>(R.id.mayak_settings_referral_mine)
+        if (!info.appliedCode) {
+            view.visibility = View.GONE
+            return
+        }
+        val m = info.myInvite
+        val text = when {
+            m == null -> getString(R.string.mayak_referral_mine_plain)
+            m.status == "reversed" -> getString(R.string.mayak_referral_mine_reversed)
+            m.kopecks > 0 -> getString(R.string.mayak_referral_mine_rewarded, MayakReferral.money(m.kopecks))
+            m.status == "capped" -> getString(R.string.mayak_referral_mine_capped)
+            m.promisedKopecks <= 0 -> getString(R.string.mayak_referral_mine_plain)
+            m.status == "qualified" && ripeDate(m.ripeAt) != null ->
+                getString(R.string.mayak_referral_mine_ripening, MayakReferral.money(m.promisedKopecks), ripeDate(m.ripeAt))
+            else -> getString(
+                R.string.mayak_referral_mine_pending,
+                MayakReferral.money(m.promisedKopecks),
+                info.holdDays,
+            )
+        }
+        view.text = text
+        view.visibility = View.VISIBLE
+    }
+
+    /** Дата созревания в языке телефона. Сервер шлёт время по RFC 3339; не разобрали — молчим. */
+    private fun ripeDate(iso: String): String? {
+        if (iso.isBlank()) return null
+        return runCatching {
+            java.time.OffsetDateTime.parse(iso)
+                .atZoneSameInstant(java.time.ZoneId.systemDefault())
+                .format(
+                    java.time.format.DateTimeFormatter
+                        .ofLocalizedDate(java.time.format.FormatStyle.MEDIUM)
+                        .withLocale(java.util.Locale.getDefault())
+                )
+        }.getOrNull()
     }
 
     /** Отправить чужой код. Отказ называем причиной, а не «не получилось»: см. ReferralOutcome. */
