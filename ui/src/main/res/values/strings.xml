@@ -87,7 +87,9 @@
     <string name="mayak_reg_err_captcha">The "you are human" check did not pass. Try again or create the account in a browser.</string>
     <string name="mayak_reg_err_captcha_unavailable">The "you are human" check does not open right now. Try later or create the account in a browser.</string>
     <string name="mayak_reg_done_title">Your account number</string>
-    <string name="mayak_reg_done_warning">Write down the number and the password. We show the number once: the account has no email, so without them there is nothing to restore access with. If you want recovery, add an email in the account cabinet.</string>
+    <!-- ⚠️ 16-08: было «We show the number once» — номер всегда виден в «Настройках»
+         (MayakSettingsActivity.showAccountNumber). Один раз показывается пароль. -->
+    <string name="mayak_reg_done_warning">Write down the number and the password. We will not show the password anywhere again: the account has no email, so without it there is nothing to restore access with. The number always stays in Settings. If you want recovery, add an email in the account cabinet.</string>
     <string name="mayak_reg_no_session">The account was created, but we could not sign you in automatically. Write down the number and the password — the sign-in screen opens next with the number already filled in.</string>
     <!-- Число дней согласуется с существительным: «1 days» — брак, который видно на первом же
          экране новичка (поймано живым прогоном 13-08). Поэтому plurals, а не строка с %d. -->
