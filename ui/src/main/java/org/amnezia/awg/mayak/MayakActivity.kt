@@ -64,6 +64,7 @@ import org.amnezia.awg.mayak.core.MayakHosts
 import org.amnezia.awg.mayak.core.NoReachableHostException
 import org.amnezia.awg.mayak.core.OutdatedBuild
 import org.amnezia.awg.mayak.core.accessDenial
+import org.amnezia.awg.mayak.core.orderForAuto
 import org.amnezia.awg.mayak.core.outdatedBuild
 import org.amnezia.awg.mayak.core.splitRecommended
 
@@ -1473,13 +1474,14 @@ class MayakActivity : AppCompatActivity() {
     /** Применить выбранный режим к сырому серверному списку и перерисовать (авто-режим не теряет порядок сервера). */
     private fun applyOrderAndRender() {
         val dirsIn = serverDirections
-        // SPEC-0031: порядок по выбранному режиму. 0 авто — как отдал сервер; 2 свои — пользовательский
-        // порядок (перетаскивание). Режим «по пингу» (легаси-значение 1) снят 15-08 вместе с клиентским
-        // пингом стран — сохранённая единица читается как «авто».
+        // SPEC-0031: порядок по выбранному режиму. 0 авто — свежие ТИХИЕ замеры близости есть →
+        // быстрейший выход первым (LatencyProbe/MayakLatency; цифр на экране нет — их владелец убрал
+        // 15-08), замеров нет → как отдал сервер; 2 свои — пользовательский порядок (перетаскивание).
+        // Видимый режим «по пингу» (легаси-значение 1) снят 15-08 — сохранённая единица читается как «авто».
         val mode = MayakPrefs.sortMode(this)
         val dirs = when (mode) {
             SORT_CUSTOM -> applyCustomOrder(dirsIn)
-            else -> dirsIn // SORT_AUTO: порядок сервера как есть
+            else -> orderForAuto(dirsIn) { id -> MayakLatency.freshRtt(this, id) } // SORT_AUTO
         }
         directions = dirs
         val container = dirsContainer ?: return
@@ -1537,6 +1539,16 @@ class MayakActivity : AppCompatActivity() {
         selectDir(initial, userInitiated = false) // пассивно: без сети, без переподключения (тема молчит)
         if (connState == ConnState.DISCONNECTED) {
             setStatus(getString(R.string.mayak_status_disconnected))
+        }
+        // Тихий замер близости выходов (TCP до легенды узла :443) — ТОЛЬКО при выключенном VPN
+        // (любом: признак TRANSPORT_VPN у системы MayakLatency проверяет сам, перед каждой попыткой)
+        // и только для протухших замеров (TTL сутки) — то есть фактически раз в сутки на холодном
+        // старте, без будильников. connState-гейт сверху — не дублёр той проверки, а про CONNECTING:
+        // системный признак VPN во время подъёма туннеля ещё не выставлен, а спорить с рукопожатием
+        // за радио замеру незачем. Появились новые замеры → перерисовать «Авто» по ним; повторный
+        // вход цикла не даёт — всё уже свежо, measureIfNeeded выходит сразу.
+        if (connState == ConnState.DISCONNECTED) {
+            MayakLatency.measureIfNeeded(this, dirsIn, lifecycleScope) { applyOrderAndRender() }
         }
         maybeShowOnboarding() // после отрисовки списка: экран уже настоящий, а не пустой каркас
     }
@@ -3085,7 +3097,7 @@ class MayakActivity : AppCompatActivity() {
         const val EXTRA_OPEN_SPLIT_TUNNEL = "mayak_open_split_tunnel"
 
         // SPEC-0031: режимы сортировки списка стран.
-        private const val SORT_AUTO = 0   // как отдал сервер
+        private const val SORT_AUTO = 0   // свежие тихие замеры есть → быстрейший первым, иначе как отдал сервер
         // Значение 1 исторически занято снятым режимом «по клиентскому пингу» (убран 15-08 вместе с
         // пингом напротив стран) — НЕ переиспользовать: у людей оно ещё лежит в prefs и читается как «авто».
         private const val SORT_CUSTOM = 2 // пользовательский порядок (перетаскивание)
