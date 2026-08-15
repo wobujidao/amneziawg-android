@@ -32,7 +32,7 @@ desugarJdkLibs = "com.android.tools:desugar_jdk_libs:2.0.4"
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebase-bom" }
 # Версии НЕТ намеренно: её задаёт BoM выше (platform(...) в ui/build.gradle.kts).
 firebase-messaging = { module = "com.google.firebase:firebase-messaging" }
-google-material = "com.google.android.material:material:1.11.0"
+google-material = "com.google.android.material:material:1.14.0"
 # Проверка «есть ли на телефоне сервисы Google» (GoogleApiAvailability) — телефоны без GMS есть у части
 # людей, и для них push просто не заводится. Артефакт и так приезжает с firebase-messaging, но ТОЛЬКО
 # в runtime-зависимостях (в его gradle-метаданных он не api) — на classpath компиляции его нет, поэтому
