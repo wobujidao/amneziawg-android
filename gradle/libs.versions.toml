@@ -4,31 +4,31 @@ agp = "9.3.1"
 # Ed25519-проверка подписанного delivery-документа (F-T8): BouncyCastle lightweight API.
 # НЕ Tink и НЕ java.security (Ed25519 там только с API 33, у нас minSdk 24) —
 # ресёрч ядра docs/research/2026-07-11-android-ed25519-verify.md.
-bouncycastle = "1.81"
+bouncycastle = "1.85.2"
 # Push-уведомления (SPEC-0047, ускоритель ящика): версии Firebase берём ТОЛЬКО из BoM — она держит
 # согласованными messaging/common/installations, которые между собой версиями расходятся.
 firebase-bom = "34.17.0"
 kotlin = "2.4.10"
-kotlinx-serialization = "1.6.0"
-kotlinx-coroutines = "1.7.3"
+kotlinx-serialization = "1.11.0"
+kotlinx-coroutines = "1.11.0"
 
 [libraries]
-androidx-activity-ktx = "androidx.activity:activity-ktx:1.8.2"
-androidx-annotation = "androidx.annotation:annotation:1.7.1"
-androidx-appcompat = "androidx.appcompat:appcompat:1.6.1"
+androidx-activity-ktx = "androidx.activity:activity-ktx:1.13.0"
+androidx-annotation = "androidx.annotation:annotation:1.10.0"
+androidx-appcompat = "androidx.appcompat:appcompat:1.8.0"
 androidx-biometric = "androidx.biometric:biometric:1.1.0"
-androidx-collection = "androidx.collection:collection:1.4.0"
-androidx-constraintlayout = "androidx.constraintlayout:constraintlayout:2.1.4"
-androidx-coordinatorlayout = "androidx.coordinatorlayout:coordinatorlayout:1.2.0"
-androidx-core-ktx = "androidx.core:core-ktx:1.12.0"
-androidx-datastore-preferences = "androidx.datastore:datastore-preferences:1.0.0"
-androidx-fragment-ktx = "androidx.fragment:fragment-ktx:1.6.2"
-androidx-lifecycle-runtime-ktx = "androidx.lifecycle:lifecycle-runtime-ktx:2.7.0"
+androidx-collection = "androidx.collection:collection:1.6.0"
+androidx-constraintlayout = "androidx.constraintlayout:constraintlayout:2.2.2"
+androidx-coordinatorlayout = "androidx.coordinatorlayout:coordinatorlayout:1.3.0"
+androidx-core-ktx = "androidx.core:core-ktx:1.19.0"
+androidx-datastore-preferences = "androidx.datastore:datastore-preferences:1.2.1"
+androidx-fragment-ktx = "androidx.fragment:fragment-ktx:1.9.0"
+androidx-lifecycle-runtime-ktx = "androidx.lifecycle:lifecycle-runtime-ktx:2.11.0"
 androidx-preference-ktx = "androidx.preference:preference-ktx:1.2.1"
-androidx-security-crypto = "androidx.security:security-crypto:1.1.0-alpha06"
-androidx-work-runtime-ktx = "androidx.work:work-runtime-ktx:2.9.1"
+androidx-security-crypto = "androidx.security:security-crypto:1.1.0"
+androidx-work-runtime-ktx = "androidx.work:work-runtime-ktx:2.11.2"
 bouncycastle-prov = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncycastle" }
-desugarJdkLibs = "com.android.tools:desugar_jdk_libs:2.0.4"
+desugarJdkLibs = "com.android.tools:desugar_jdk_libs:2.1.5"
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebase-bom" }
 # Версии НЕТ намеренно: её задаёт BoM выше (platform(...) в ui/build.gradle.kts).
 firebase-messaging = { module = "com.google.firebase:firebase-messaging" }

@@ -31,7 +31,12 @@ android {
         // 2026-07-06 по запросу владельца). Код уже поддерживает applicationId ≠ namespace (debug-вариант,
         // MayakDisguise через context.packageName, FileProvider authority = ${applicationId}).
         applicationId = providers.gradleProperty("mayakApplicationId").get()
-        targetSdk = 35
+        // targetSdk 36 (Android 16) — с 31 августа 2026 Google Play не принимает обновления с
+        // меньшим (developer.android.com/google/play/requirements/target-sdk, сверено 16-08-2026).
+        // Что меняется в поведении при 36: край-до-края включён принудительно (у нас уже так с 0.5.5,
+        // MayakSystemBars), «предсказуемое назад» уже объявлено в манифесте, ограничения ориентации на
+        // больших экранах игнорируются. Проверять экранами на API 36, а не только сборкой.
+        targetSdk = 36
         // Версия ПРИЛОЖЕНИЯ Маяк (наша, не движка AmneziaWG). См. gradle.properties / CHANGELOG.md.
         versionCode = providers.gradleProperty("mayakVersionCode").get().toInt()
         versionName = providers.gradleProperty("mayakVersionName").get()
