@@ -27,7 +27,16 @@ android {
         all {
             externalNativeBuild {
                 cmake {
-                    targets("libwg-go.so", "libwg.so", "libwg-quick.so")
+                    // 🔴 Собираем ТОЛЬКО движок. libwg.so и libwg-quick.so — это amneziawg-tools,
+                    // то есть код под GPL-2.0 внутри нашего Apache-2.0 приложения, и нужны они
+                    // единственному пути — AwgQuickBackend (режим «ядерный модуль + root»).
+                    // В «Маяке» этот путь НЕДОСТИЖИМ: включается он галочкой на апстримном экране
+                    // SettingsActivity, а тот открывается только из апстримной MainActivity, которая
+                    // в манифесте exported=false и не запускается ниоткуда (лаунчер ведёт в
+                    // MayakActivity). Знание UserKnobs.enableKernelModule больше нигде не меняется.
+                    // Возвращать эти цели — только вместе с живым путём в интерфейсе.
+                    // Минус ~0,45 МБ несжатого в APK и минус GPL-бинари в поставке (замер 17-08).
+                    targets("libwg-go.so")
                     arguments("-DGRADLE_USER_HOME=${project.gradle.gradleUserHomeDir}")
                 }
             }
