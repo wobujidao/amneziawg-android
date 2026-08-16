@@ -45,7 +45,10 @@ class RandomTrailersPipeTest {
     @Test
     fun `флаг доезжает от рендера через парсер форка до UAPI-строки движка`() {
         val conf = renderConf(true)
-        assertTrue("в .conf нет директивы awg-tools", conf.contains("RandomTrailers = true"))
+        // Значение обязано быть on/off или 0/1: parse_bool у awg-tools «true» не понимает и роняет
+        // разбор всего конфига (замерено на боевой ноде 16-08 — линия ушла в «No such device»).
+        assertTrue("в .conf нет директивы в формате awg-tools", conf.contains("RandomTrailers = on"))
+        assertFalse("«true» в .conf awg-tools отвергнут", conf.contains("RandomTrailers = true"))
         val uapi = Config.parse(BufferedReader(StringReader(conf))).getInterface().toAwgUserspaceString()
         // UAPI-имя фиксировано движком v3.1 (device/uapi.go: case "random_trailers")
         assertTrue("флаг не доехал до движка: $uapi", uapi.contains("random_trailers=true\n"))

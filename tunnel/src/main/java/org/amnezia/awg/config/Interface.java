@@ -544,7 +544,7 @@ public final class Interface {
         specialJunkI4.ifPresent(i4 -> sb.append("I4 = ").append(i4).append('\n'));
         specialJunkI5.ifPresent(i5 -> sb.append("I5 = ").append(i5).append('\n'));
         headerProtectionKey.ifPresent(hpk -> sb.append("HeaderProtectionKey = ").append(hpk).append('\n'));
-        if (randomTrailers) sb.append("RandomTrailers = true\n");
+        if (randomTrailers) sb.append("RandomTrailers = on\n");
         sb.append("PrivateKey = ").append(keyPair.getPrivateKey().toBase64()).append('\n');
         return sb.toString();
     }
@@ -896,8 +896,10 @@ public final class Interface {
         public Builder parseRandomTrailers(final String value) throws BadConfigException {
             if (value == null || value.trim().isEmpty()) return setRandomTrailers(false);
             final String v = value.trim().toLowerCase(java.util.Locale.ROOT);
-            if ("true".equals(v) || "1".equals(v)) return setRandomTrailers(true);
-            if ("false".equals(v) || "0".equals(v)) return setRandomTrailers(false);
+            // on/off — то, что пишут awg-tools и наш сервер; true/false и 1/0 принимаем тоже,
+            // чтобы конфиг, набранный руками, не отвергался из-за написания.
+            if ("on".equals(v) || "true".equals(v) || "1".equals(v)) return setRandomTrailers(true);
+            if ("off".equals(v) || "false".equals(v) || "0".equals(v)) return setRandomTrailers(false);
             throw new BadConfigException(Section.INTERFACE, Location.TOP_LEVEL,
                     Reason.INVALID_VALUE, value);
         }

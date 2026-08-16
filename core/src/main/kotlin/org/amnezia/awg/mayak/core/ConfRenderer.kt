@@ -75,7 +75,11 @@ object ConfRenderer {
             // настройка парная, и включённая в одностороннем порядке она ломает связь совсем.
             // false = директивы нет вовсе, .conf байт-в-байт как раньше.
             if (o.randomTrailers) {
-                sb.appendLine("RandomTrailers = true")
+                // 🔴 «on», а НЕ «true»: тот же .conf формат читают awg-tools на сервере и на
+                // роутерах, а их parse_bool знает только on/off и 0/1 — «true» роняет разбор ВСЕГО
+                // файла (замерено живьём: линия Россия ушла в «No such device» 16-08).
+                // В UAPI движка тот же флаг уходит как random_trailers=true — там ParseBool.
+                sb.appendLine("RandomTrailers = on")
             }
         }
 
