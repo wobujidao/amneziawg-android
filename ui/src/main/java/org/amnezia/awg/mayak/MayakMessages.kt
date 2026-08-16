@@ -563,8 +563,16 @@ object MayakMessages {
         MessageKinds.REFERRAL_FRIEND_JOINED -> {
             val amount = m.param("amount")
             val hold = m.param("hold_days")
-            if (amount != null && hold != null) {
-                context.getString(R.string.mayak_msg_referral_friend_joined_body, amount, hold)
+            // Срок приходит СТРОКОЙ (сервер кладёт его в параметры сообщения). Число — через
+            // plurals; не разобралось в число — отдаём как есть, лишь бы не потерять сообщение.
+            val holdN = hold?.trim()?.toIntOrNull()
+            val holdText = if (holdN != null) {
+                context.resources.getQuantityString(R.plurals.mayak_days, holdN, holdN)
+            } else {
+                hold
+            }
+            if (amount != null && holdText != null) {
+                context.getString(R.string.mayak_msg_referral_friend_joined_body, amount, holdText)
             } else {
                 null
             }

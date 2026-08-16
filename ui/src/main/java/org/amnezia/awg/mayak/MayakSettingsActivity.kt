@@ -502,7 +502,10 @@ class MayakSettingsActivity : AppCompatActivity() {
     private fun renderReferral(info: org.amnezia.awg.mayak.core.ReferralInfo) {
         findViewById<TextView>(R.id.mayak_settings_referral_terms).text = getString(
             R.string.mayak_referral_terms,
-            info.holdDays,
+            // Срок — через plurals, а не «%d days»: владелец правит выдержку в панели, и на
+            // значении 1 английский выдавал «1 days», а русский прятал склонение сокращением «дн.»
+            // (найдено вычиткой английских строк 16-08).
+            resources.getQuantityString(R.plurals.mayak_days, info.holdDays, info.holdDays),
             MayakReferral.money(info.inviteeKopecks),
             MayakReferral.money(info.inviterKopecks),
         )
@@ -575,7 +578,7 @@ class MayakSettingsActivity : AppCompatActivity() {
             else -> getString(
                 R.string.mayak_referral_mine_pending,
                 MayakReferral.money(m.promisedKopecks),
-                info.holdDays,
+                resources.getQuantityString(R.plurals.mayak_days, info.holdDays, info.holdDays),
             )
         }
         view.text = text
