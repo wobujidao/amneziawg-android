@@ -1,32 +1,54 @@
 # Modified 2026 by Mayak Networks. SPDX-License-Identifier: Apache-2.0
-name: Android build (signed AAB / debug APK)
-run-name: "Android • ${{ inputs.target }} • ${{ inputs.ref || github.ref_name }}"
+#
+# РЕЗЕРВНАЯ сборка приложения. Основная — ЛОКАЛЬНАЯ на kz-serv (решение владельца 26-07: 2 минуты
+# против 10–20 в CI на четыре ABI). Этот workflow нужен ровно на один случай: локальная сборка
+# сломалась (JDK/SDK/gradle/диск), а выпустить надо. Отступать иначе некуда.
+#
+# 🔴 ПОДПИСЬ ЗДЕСЬ НЕ СТАВИТСЯ, И ЭТО РЕШЕНИЕ, А НЕ НЕДОДЕЛКА. Репозиторий ПУБЛИЧНЫЙ, а ключ
+# подписи сайта (`mayak-networks-release.p12`) — то, чем проверяется самообновление у людей: его
+# утечка означает, что чужой может подписать «обновление Маяка» как мы. Секреты публичного репо
+# форкам не отдаются, но и класть туда крон-ювелир незачем: артефакт скачивается и подписывается
+# на месте одной командой (`scripts/sign-app-release.sh` в репозитории mayak), которая ОБЯЗАТЕЛЬНО
+# сверяет отпечаток. Если сломалась именно локальная СБОРКА, подпись локально работает.
+#
+# Что собирает (варианты живого контура — mayaknetworks.com):
+#   site_apk       — :ui:assembleProdRelease  → APK для сайта (R8 включён, mapping.txt рядом)
+#   play_aab       — :ui:bundleStoreRelease   → AAB для Google Play (без REQUEST_INSTALL_PACKAGES)
+#   prod_debug_apk — :ui:assembleProdDebug    → боевой контур, debug-подпись, пакет .debug (экраны)
+#
+# 🔴 Целей `release`/`dev` здесь больше нет: `assembleRelease` собирает под ДЕВ-домен mayakvpn.ru,
+# снятый 07-08 (мёртвый домен, чужой CA) — такой файл нельзя выложить никуда; а `assembleDev` звал
+# buildType `dev`, которого в проекте не существует вовсе, то есть цель падала на первом же запуске.
+name: Резервная сборка приложения (боевой контур)
+run-name: "Резерв • ${{ inputs.target }} • ${{ inputs.ref || github.ref_name }}"
 
 on:
   workflow_dispatch:
     inputs:
       target:
-        description: "What to build"
+        description: "Что собрать"
         type: choice
         required: true
-        default: release_aab
+        default: site_apk
         options:
-        - release_aab
-        - release_apk
-        - debug_apk
-        - dev_apk
+        - site_apk
+        - play_aab
+        - prod_debug_apk
       ref:
         # ПУСТО по умолчанию: checkout использует `ref: ${{ inputs.ref }}`, а пустой ref в actions/checkout
         # означает «ветка/SHA, запустившие workflow» (при dispatch — ветка, на которой запущен). Раньше
         # default="master" ЖЁСТКО собирал master даже при dispatch на фиче (баг: debug/AAB 0.3.12 собрались
         # с master/0.3.0). Явно указанный ref (ветка/тег/sha) по-прежнему уважается.
-        description: "Git ref (branch/tag/sha). Пусто = ветка, на которой запущен workflow."
+        description: "Git ref (ветка/тег/sha). Пусто = ветка, на которой запущен workflow."
         required: false
         default: ""
 
+# Раннер — ubuntu-latest, а НЕ наш self-hosted, и это тоже решение: репозиторий публичный, минуты
+# GitHub на публичных репозиториях бесплатны, а self-hosted раннер в публичном репозитории — это
+# чужой код на своей машине (GitHub прямо не рекомендует такую связку).
 jobs:
   build:
-    name: "Build (${{ inputs.target }})"
+    name: "Сборка (${{ inputs.target }})"
     runs-on: ubuntu-latest
 
     steps:
@@ -55,53 +77,56 @@ jobs:
       run: |
         set -euo pipefail
         case "${{ inputs.target }}" in
-          release_aab)
-            echo "gradle_task=bundleRelease" >> "$GITHUB_OUTPUT"
-            echo "kind=aab" >> "$GITHUB_OUTPUT"
-            echo "artifact_name=release-aab" >> "$GITHUB_OUTPUT"
-            echo "needs_signing=true" >> "$GITHUB_OUTPUT"
+          site_apk)
+            echo "gradle_task=:ui:assembleProdRelease" >> "$GITHUB_OUTPUT"
+            echo "kind=site_apk" >> "$GITHUB_OUTPUT"
+            echo "artifact_name=site-apk-unsigned" >> "$GITHUB_OUTPUT"
+            echo "needs_firebase=true" >> "$GITHUB_OUTPUT"
             ;;
-          release_apk)
-            # assembleRelease даёт UNSIGNED APK → подписываем защищённым релиз-ключом из секретов
-            # (ANDROID_KEYSTORE_BASE64) через zipalign+apksigner. Ключ НЕ в репозитории.
-            echo "gradle_task=assembleRelease" >> "$GITHUB_OUTPUT"
-            echo "kind=apk_release" >> "$GITHUB_OUTPUT"
-            echo "artifact_name=release-apk" >> "$GITHUB_OUTPUT"
-            echo "needs_signing=true" >> "$GITHUB_OUTPUT"
+          play_aab)
+            echo "gradle_task=:ui:bundleStoreRelease" >> "$GITHUB_OUTPUT"
+            echo "kind=play_aab" >> "$GITHUB_OUTPUT"
+            echo "artifact_name=play-aab-unsigned" >> "$GITHUB_OUTPUT"
+            echo "needs_firebase=true" >> "$GITHUB_OUTPUT"
             ;;
-          debug_apk)
-            echo "gradle_task=assembleDebug" >> "$GITHUB_OUTPUT"
-            echo "kind=apk" >> "$GITHUB_OUTPUT"
-            echo "artifact_name=debug-apk" >> "$GITHUB_OUTPUT"
-            echo "needs_signing=false" >> "$GITHUB_OUTPUT"
-            ;;
-          dev_apk)
-            # DEV-сборка НОВОГО дизайна: applicationId mayaknetworks.app.dev (ставится РЯДОМ с прод),
-            # подписана стабильным mayakdebug-ключом в gradle → готовый к установке APK, БЕЗ секретов.
-            echo "gradle_task=assembleDev" >> "$GITHUB_OUTPUT"
-            echo "kind=apk_dev" >> "$GITHUB_OUTPUT"
-            echo "artifact_name=dev-apk" >> "$GITHUB_OUTPUT"
-            echo "needs_signing=false" >> "$GITHUB_OUTPUT"
+          prod_debug_apk)
+            # Подписан публичным mayak-debug.p12 прямо в gradle, пакет mayaknetworks.app.debug —
+            # ставится РЯДОМ с боевым, людям не уходит и уйти не может. Firebase в этом варианте
+            # не живёт по устройству сборки (ресурсы только у prodRelease) — не требуем.
+            echo "gradle_task=:ui:assembleProdDebug" >> "$GITHUB_OUTPUT"
+            echo "kind=prod_debug_apk" >> "$GITHUB_OUTPUT"
+            echo "artifact_name=prod-debug-apk" >> "$GITHUB_OUTPUT"
+            echo "needs_firebase=false" >> "$GITHUB_OUTPUT"
             ;;
           *)
-            echo "Unknown target: ${{ inputs.target }}" >&2
+            echo "Неизвестная цель: ${{ inputs.target }}" >&2
             exit 1
             ;;
         esac
 
-    - name: Decode keystore from secret
-      if: ${{ steps.cfg.outputs.needs_signing == 'true' }}
+    # 🔴 Без этого шага боевая сборка соберётся УСПЕШНО и БЕЗ ПУША. Ресурсы Firebase живут только в
+    # варианте prodRelease и генерятся из google-services.json (файл в .gitignore, ключ). Нет файла —
+    # FirebaseApp просто не инициализируется, приложение работает, ящик опрашивается по таймеру, и
+    # человек узнаёт о сообщении часами позже. Молчаливая потеря целого канала — поэтому падаем.
+    #
+    # Значения из google-services.json и так лежат внутри КАЖДОГО выложенного APK (их оттуда
+    # достаёт кто угодно) — секретом они являются только для сканеров секретов в публичном git.
+    - name: Firebase resources
+      if: ${{ steps.cfg.outputs.needs_firebase == 'true' }}
       shell: bash
       env:
-        KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        GS_JSON_B64: ${{ secrets.FIREBASE_GOOGLE_SERVICES_JSON }}
       run: |
         set -euo pipefail
-        if [[ -z "${KEYSTORE_B64}" ]]; then
-          echo "Missing secret ANDROID_KEYSTORE_BASE64" >&2
+        if [[ -z "${GS_JSON_B64}" ]]; then
+          echo "::error::Нет секрета FIREBASE_GOOGLE_SERVICES_JSON — боевая сборка вышла бы БЕЗ ПУША." >&2
+          echo "Взять ~/.mayak-secrets/firebase/google-services.json на kz-serv, base64 → секрет репозитория." >&2
           exit 1
         fi
-        echo "${KEYSTORE_B64}" | base64 --decode > release.keystore.jks
-        echo "KEYSTORE_PATH=${PWD}/release.keystore.jks" >> "$GITHUB_ENV"
+        echo "${GS_JSON_B64}" | base64 --decode > /tmp/google-services.json
+        ./scripts/firebase-res.sh /tmp/google-services.json
+        rm -f /tmp/google-services.json
+        test -s ui/src/prodRelease/res/values/firebase.xml
 
     - name: Build
       shell: bash
@@ -115,87 +140,56 @@ jobs:
       shell: bash
       run: |
         set -euo pipefail
-        
+
         case "${{ steps.cfg.outputs.kind }}" in
-          aab) FILE="./ui/build/outputs/bundle/release/ui-release.aab" ;;
-          apk_release)
-            FILE="./ui/build/outputs/apk/release/ui-release-unsigned.apk"
-            [[ -f "${FILE}" ]] || FILE="./ui/build/outputs/apk/release/ui-release.apk"
+          site_apk)
+            FILE="./ui/build/outputs/apk/prodRelease/ui-prodRelease-unsigned.apk"
+            [[ -f "${FILE}" ]] || FILE="./ui/build/outputs/apk/prodRelease/ui-prodRelease.apk"
             ;;
-          apk_dev) FILE="./ui/build/outputs/apk/dev/ui-dev.apk" ;;
-          *) FILE="./ui/build/outputs/apk/debug/ui-debug.apk" ;;
+          play_aab) FILE="./ui/build/outputs/bundle/storeRelease/ui-storeRelease.aab" ;;
+          *) FILE="./ui/build/outputs/apk/prodDebug/ui-prodDebug.apk" ;;
         esac
 
         if [[ ! -f "${FILE}" ]]; then
-          echo "Built file not found: ${FILE}" >&2
+          echo "::error::Собранный файл не найден: ${FILE}" >&2
           ls -R ./ui/build/outputs || true
           exit 1
         fi
 
+        mkdir -p upload
+        cp "${FILE}" upload/
+
+        # mapping.txt от R8 — без него крэш-репорт от человека нечитаем. Кладём рядом с артефактом:
+        # забирать сборку и маппинг надо ОДНИМ движением, иначе следующая сборка его перезапишет.
+        for M in ./ui/build/outputs/apk-mapping/prodRelease/*.txt \
+                 ./ui/build/outputs/mapping/prodRelease/mapping.txt \
+                 ./ui/build/outputs/mapping/storeRelease/mapping.txt; do
+          [[ -f "$M" ]] && cp "$M" upload/ || true
+        done
+
         echo "built_file=${FILE}" >> "$GITHUB_OUTPUT"
-
-    - name: Sign AAB
-      if: ${{ steps.cfg.outputs.kind == 'aab' }}
-      id: sign
-      shell: bash
-      env:
-        KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-        KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-      run: |
-        set -euo pipefail
-        
-        AAB="${{ steps.locate.outputs.built_file }}"
-        SIGNED_AAB="${AAB%.aab}-signed.aab"
-        
-        if [[ -z "${KEYSTORE_PASSWORD}" || -z "${KEY_ALIAS}" ]]; then
-          echo "Missing one of secrets: ANDROID_KEYSTORE_PASSWORD / ANDROID_KEY_ALIAS" >&2
-          exit 1
-        fi
-        
-        jarsigner \
-          -keystore "${KEYSTORE_PATH}" \
-          -storetype PKCS12 \
-          -storepass "${KEYSTORE_PASSWORD}" \
-          -signedjar "${SIGNED_AAB}" \
-          "${AAB}" \
-          "${KEY_ALIAS}"
-        
-        echo "final_file=${SIGNED_AAB}" >> "$GITHUB_OUTPUT"
-
-    - name: Sign release APK
-      if: ${{ steps.cfg.outputs.kind == 'apk_release' }}
-      id: signapk
-      shell: bash
-      env:
-        KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-        KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-      run: |
-        set -euo pipefail
-        if [[ -z "${KEYSTORE_PASSWORD}" || -z "${KEY_ALIAS}" ]]; then
-          echo "Missing one of secrets: ANDROID_KEYSTORE_PASSWORD / ANDROID_KEY_ALIAS" >&2
-          exit 1
-        fi
-        UNSIGNED="${{ steps.locate.outputs.built_file }}"
-        SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
-        BT="$(ls -d "${SDK}"/build-tools/* 2>/dev/null | sort -V | tail -1)"
-        if [[ -z "${BT}" ]]; then echo "build-tools not found under ${SDK}" >&2; exit 1; fi
-        echo "Using build-tools: ${BT}"
-        ALIGNED="${UNSIGNED%.apk}-aligned.apk"
-        SIGNED="${PWD}/mayakvpn-release-signed.apk"
-        "${BT}/zipalign" -p -f 4 "${UNSIGNED}" "${ALIGNED}"
-        "${BT}/apksigner" sign \
-          --ks "${KEYSTORE_PATH}" \
-          --ks-pass "pass:${KEYSTORE_PASSWORD}" \
-          --ks-key-alias "${KEY_ALIAS}" \
-          --key-pass "pass:${KEYSTORE_PASSWORD}" \
-          --out "${SIGNED}" \
-          "${ALIGNED}"
-        "${BT}/apksigner" verify --print-certs "${SIGNED}"
-        echo "final_file=${SIGNED}" >> "$GITHUB_OUTPUT"
+        {
+          echo "## Собрано: \`$(basename "${FILE}")\`"
+          echo
+          echo "версия: \`$(sed -n 's/^mayakVersionName=//p' gradle.properties)\` (код \`$(sed -n 's/^mayakVersionCode=//p' gradle.properties)\`), sha256:"
+          echo
+          echo '```'
+          sha256sum "${FILE}"
+          echo '```'
+          echo
+          echo "🔴 **Файл БЕЗ ПОДПИСИ.** Скачать артефакт и подписать на kz-serv:"
+          echo
+          echo '```'
+          echo "scripts/sign-app-release.sh apk ~/Downloads/$(basename "${FILE}")   # для сайта"
+          echo "scripts/sign-app-release.sh aab ~/Downloads/$(basename "${FILE}")   # для Play"
+          echo '```'
+          echo
+          echo "Скрипт сам сверит отпечаток ключа с эталоном — руками команды не набирать."
+        } >> "$GITHUB_STEP_SUMMARY"
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: ${{ steps.cfg.outputs.artifact_name }}
-        path: ${{ steps.sign.outputs.final_file || steps.signapk.outputs.final_file || steps.locate.outputs.built_file }}
+        path: upload/
         if-no-files-found: error
