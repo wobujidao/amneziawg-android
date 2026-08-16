@@ -131,7 +131,7 @@
     <string name="mayak_referral_copied">The invitation link is copied.</string>
     <string name="mayak_referral_share">Share the invitation link</string>
     <string name="mayak_referral_share_text">Try Mayak Networks — a fast connection without blocks. My invitation link: %1$s</string>
-    <string name="mayak_referral_stats">Invited: %1$d · paid: %2$d · earned: %3$s</string>
+    <string name="mayak_referral_stats">Invited: %1$d · rewarded: %2$d · earned: %3$s</string>
     <string name="mayak_referral_apply_hint">Were you invited? Enter the code</string>
     <string name="mayak_referral_apply">Apply the code</string>
     <string name="mayak_referral_mine_pending">Invitation code applied. %1$s will arrive on your balance once you pay for a plan and stay with us for %2$s.</string>
@@ -825,6 +825,7 @@
          в русской версии этих же строк. -->
     <string name="mayak_msg_payment_receipt">Payment received</string>
     <string name="mayak_msg_payment_receipt_body">Received: %1$s ₽. Thank you!</string>
+    <string name="mayak_msg_payment_receipt_body_full">Received: %1$s ₽ for the “%2$s” plan. Access runs until %3$s.</string>
     <string name="mayak_msg_payment_receipt_body_plain">Thank you! Your payment has been received.</string>
     <string name="mayak_msg_payment_refund">Refund issued</string>
     <string name="mayak_msg_payment_refund_body">A refund of %1$s ₽ has been sent back the same way you paid. It takes up to several business days to arrive.</string>
@@ -834,13 +835,16 @@
     <string name="mayak_msg_balance_topup_body_plain">The money has been added to your balance.</string>
     <string name="mayak_msg_balance_charge">Charged from balance</string>
     <string name="mayak_msg_balance_charge_body">Charged: %1$s ₽.</string>
+    <string name="mayak_msg_balance_charge_body_full">Charged: %1$s ₽. Your balance is now %2$s ₽.</string>
     <string name="mayak_msg_balance_charge_body_plain">The money has been charged from your balance.</string>
     <string name="mayak_msg_autorenew_ok">Renewed automatically</string>
     <string name="mayak_msg_autorenew_ok_body">Your access has been renewed — nothing to do.</string>
+    <string name="mayak_msg_autorenew_ok_body_full">Charged %1$s ₽ from your balance; access now runs until %2$s.</string>
     <string name="mayak_msg_autorenew_failed">Automatic renewal failed</string>
     <string name="mayak_msg_autorenew_failed_body">There was not enough money on your balance. Top it up and your access continues.</string>
     <string name="mayak_msg_plan_changed">Plan changed</string>
     <string name="mayak_msg_plan_changed_body">You are now on: %1$s.</string>
+    <string name="mayak_msg_plan_changed_body_full">You are now on the “%1$s” plan; it runs until %2$s.</string>
     <string name="mayak_msg_group_invited">Invitation to shared access</string>
     <string name="mayak_msg_group_invited_body">You have been invited to use the access together. Accept the invitation to claim your place.</string>
     <string name="mayak_msg_group_invite_accepted">Invitation accepted</string>

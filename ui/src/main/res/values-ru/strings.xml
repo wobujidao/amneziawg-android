@@ -347,7 +347,7 @@
     <string name="mayak_referral_copied">Ссылка-приглашение скопирована.</string>
     <string name="mayak_referral_share">Поделиться ссылкой</string>
     <string name="mayak_referral_share_text">Попробуй Mayak Networks — быстрое соединение без блокировок. Моя ссылка-приглашение: %1$s</string>
-    <string name="mayak_referral_stats">Приглашено: %1$d · оплатили: %2$d · заработано: %3$s</string>
+    <string name="mayak_referral_stats">Приглашено: %1$d · с наградой: %2$d · заработано: %3$s</string>
     <string name="mayak_referral_apply_hint">Вас пригласили? Введите код</string>
     <string name="mayak_referral_apply">Применить код</string>
     <string name="mayak_referral_mine_pending">Код приглашения применён. %1$s придут на баланс после того, как вы оплатите тариф и пробудете с нами %2$s.</string>
@@ -862,6 +862,9 @@
              localBody выигрывает у m.body), то есть теряло правду, которую сервер уже сказал. -->
     <string name="mayak_msg_payment_receipt">Оплата прошла</string>
     <string name="mayak_msg_payment_receipt_body">Зачислено: %1$s ₽. Спасибо!</string>
+    <!-- Полный вариант: сервер кладёт в сообщение и тариф, и срок — показывать одну сумму значит
+         прятать от человека то, за что он заплатил и до какого числа теперь доступ. -->
+    <string name="mayak_msg_payment_receipt_body_full">Зачислено: %1$s ₽ за тариф «%2$s». Доступ до %3$s.</string>
     <string name="mayak_msg_payment_receipt_body_plain">Спасибо! Оплата зачислена.</string>
     <string name="mayak_msg_payment_refund">Возврат оформлен</string>
     <string name="mayak_msg_payment_refund_body">Возврат %1$s ₽ отправлен тем же способом, которым вы платили. Деньги идут до нескольких рабочих дней.</string>
@@ -871,13 +874,16 @@
     <string name="mayak_msg_balance_topup_body_plain">Средства зачислены на ваш счёт.</string>
     <string name="mayak_msg_balance_charge">Списание со счёта</string>
     <string name="mayak_msg_balance_charge_body">Списано: %1$s ₽.</string>
+    <string name="mayak_msg_balance_charge_body_full">Списано: %1$s ₽. Остаток на счету — %2$s ₽.</string>
     <string name="mayak_msg_balance_charge_body_plain">Средства списаны со счёта.</string>
     <string name="mayak_msg_autorenew_ok">Продление прошло</string>
     <string name="mayak_msg_autorenew_ok_body">Доступ продлён автоматически — делать ничего не нужно.</string>
+    <string name="mayak_msg_autorenew_ok_body_full">Списано %1$s ₽ с баланса, доступ продлён до %2$s.</string>
     <string name="mayak_msg_autorenew_failed">Не удалось продлить автоматически</string>
     <string name="mayak_msg_autorenew_failed_body">На счёте не хватило средств. Пополните — и доступ продолжится.</string>
     <string name="mayak_msg_plan_changed">Тариф изменён</string>
     <string name="mayak_msg_plan_changed_body">Теперь у вас: %1$s.</string>
+    <string name="mayak_msg_plan_changed_body_full">Теперь у вас тариф «%1$s», он действует до %2$s.</string>
     <string name="mayak_msg_group_invited">Приглашение в общий доступ</string>
     <string name="mayak_msg_group_invited_body">Вас пригласили пользоваться доступом вместе. Примите приглашение, чтобы место закрепилось за вами.</string>
     <string name="mayak_msg_group_invite_accepted">Приглашение принято</string>

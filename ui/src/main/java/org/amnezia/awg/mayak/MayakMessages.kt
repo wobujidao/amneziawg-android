@@ -522,9 +522,22 @@ object MayakMessages {
 
         MessageKinds.ACCESS_REVOKED -> context.getString(R.string.mayak_msg_access_revoked_body)
 
-        MessageKinds.PAYMENT_RECEIPT ->
-            m.param("amount")?.let { context.getString(R.string.mayak_msg_payment_receipt_body, it) }
-                ?: context.getString(R.string.mayak_msg_payment_receipt_body_plain)
+        // 🔴 Берём ВСЕ параметры, что дал сервер, а не одну сумму. До 16-08 приложение показывало
+        // «Зачислено: 300 ₽. Спасибо!», пряча от человека тариф и дату — то есть ровно то, за что он
+        // заплатил и до какого числа теперь доступ. Сервер эти поля кладёт с самого начала (и с
+        // 16-08 отдаёт их англичанину уже по-английски: имя тарифа из базы, дата словом месяца).
+        // Нет какого-то поля — падаем на прежние короткие строки: старый сервер их и не пришлёт.
+        MessageKinds.PAYMENT_RECEIPT -> {
+            val amount = m.param("amount")
+            val plan = m.param("plan")
+            val until = m.param("until")
+            when {
+                amount != null && plan != null && until != null ->
+                    context.getString(R.string.mayak_msg_payment_receipt_body_full, amount, plan, until)
+                amount != null -> context.getString(R.string.mayak_msg_payment_receipt_body, amount)
+                else -> context.getString(R.string.mayak_msg_payment_receipt_body_plain)
+            }
+        }
 
         MessageKinds.PAYMENT_REFUND ->
             m.param("amount")?.let { context.getString(R.string.mayak_msg_payment_refund_body, it) }
@@ -534,15 +547,38 @@ object MayakMessages {
             m.param("amount")?.let { context.getString(R.string.mayak_msg_balance_topup_body, it) }
                 ?: context.getString(R.string.mayak_msg_balance_topup_body_plain)
 
-        MessageKinds.BALANCE_CHARGE ->
-            m.param("amount")?.let { context.getString(R.string.mayak_msg_balance_charge_body, it) }
-                ?: context.getString(R.string.mayak_msg_balance_charge_body_plain)
+        MessageKinds.BALANCE_CHARGE -> {
+            val amount = m.param("amount")
+            val balance = m.param("balance")
+            when {
+                amount != null && balance != null ->
+                    context.getString(R.string.mayak_msg_balance_charge_body_full, amount, balance)
+                amount != null -> context.getString(R.string.mayak_msg_balance_charge_body, amount)
+                else -> context.getString(R.string.mayak_msg_balance_charge_body_plain)
+            }
+        }
 
-        MessageKinds.AUTORENEW_OK -> context.getString(R.string.mayak_msg_autorenew_ok_body)
+        MessageKinds.AUTORENEW_OK -> {
+            val amount = m.param("amount")
+            val until = m.param("until")
+            if (amount != null && until != null) {
+                context.getString(R.string.mayak_msg_autorenew_ok_body_full, amount, until)
+            } else {
+                context.getString(R.string.mayak_msg_autorenew_ok_body)
+            }
+        }
         MessageKinds.AUTORENEW_FAILED -> context.getString(R.string.mayak_msg_autorenew_failed_body)
 
-        MessageKinds.PLAN_CHANGED ->
-            m.param("plan")?.let { context.getString(R.string.mayak_msg_plan_changed_body, it) }
+        MessageKinds.PLAN_CHANGED -> {
+            val plan = m.param("plan")
+            val until = m.param("until")
+            when {
+                plan != null && until != null ->
+                    context.getString(R.string.mayak_msg_plan_changed_body_full, plan, until)
+                plan != null -> context.getString(R.string.mayak_msg_plan_changed_body, plan)
+                else -> null
+            }
+        }
 
         MessageKinds.GROUP_INVITED -> context.getString(R.string.mayak_msg_group_invited_body)
         MessageKinds.GROUP_INVITE_ACCEPTED -> context.getString(R.string.mayak_msg_group_invite_accepted_body)
