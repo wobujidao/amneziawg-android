@@ -140,7 +140,7 @@
     <string name="mayak_referral_mine_capped">Invitation code applied, but no reward was credited: the programme\'s monthly limit was reached.</string>
     <string name="mayak_referral_mine_reversed">The invitation was cancelled: the payment was refunded.</string>
     <string name="mayak_referral_mine_plain">An invitation code has already been applied to this account.</string>
-    <string name="mayak_referral_apply_window">A code can be applied within %1$d days of registration.</string>
+    <string name="mayak_referral_apply_window">A code can be applied within %1$s of registration.</string>
     <string name="mayak_referral_apply_ok">The code is accepted: %1$s will arrive after your payment and the waiting period.</string>
     <string name="mayak_referral_apply_failed">The code did not apply: %1$s</string>
     <!-- Та же строка, но с местами под ссылки: названия документов на экране входа кликабельны

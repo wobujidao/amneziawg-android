@@ -540,8 +540,16 @@ class MayakSettingsActivity : AppCompatActivity() {
         if (info.appliedCode) return
         val layout = findViewById<TextInputLayout>(R.id.mayak_settings_referral_input_layout)
         val field = findViewById<TextInputEditText>(R.id.mayak_settings_referral_input)
-        layout.helperText =
-            if (info.applyWindowDays > 0) getString(R.string.mayak_referral_apply_window, info.applyWindowDays) else null
+        // Срок — через mayak_days: подставленное числом «%d дн.» обходит склонение, и на единице
+        // получалось «1 days»/«1 дн.» (тот же брак ловили на экране регистрации 13-08).
+        layout.helperText = if (info.applyWindowDays > 0) {
+            getString(
+                R.string.mayak_referral_apply_window,
+                resources.getQuantityString(R.plurals.mayak_days, info.applyWindowDays, info.applyWindowDays),
+            )
+        } else {
+            null
+        }
         field.doAfterTextChanged { layout.error = null }
         findViewById<MaterialButton>(R.id.mayak_settings_referral_apply).setOnClickListener {
             applyReferralCode(field.text?.toString().orEmpty(), layout, info)

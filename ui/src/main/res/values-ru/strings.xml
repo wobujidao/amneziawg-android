@@ -358,7 +358,9 @@
     <string name="mayak_referral_mine_capped">Код приглашения применён, но награда не начислена: был исчерпан месячный лимит программы.</string>
     <string name="mayak_referral_mine_reversed">Приглашение отменено: оплата вернулась.</string>
     <string name="mayak_referral_mine_plain">Код приглашения к этой учётке уже применён.</string>
-    <string name="mayak_referral_apply_window">Код можно применить в первые %1$d дн. после регистрации.</string>
+    <!-- Срок называем словом с числом (mayak_days), а не «%1$d дн.»: сокращение обходит склонение,
+         и та же ошибка уже вылезала «1 days» на экране регистрации (поймано живым прогоном 13-08). -->
+    <string name="mayak_referral_apply_window">Код действует %1$s после регистрации.</string>
     <string name="mayak_referral_apply_ok">Код принят: %1$s придут после вашей оплаты и выдержки.</string>
     <string name="mayak_referral_apply_failed">Код не применился: %1$s</string>
     <string name="mayak_consent_note_fmt">Входя, вы принимаете %1$s и %2$s.</string>
