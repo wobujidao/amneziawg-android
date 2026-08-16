@@ -161,10 +161,12 @@ jobs:
 
         # mapping.txt от R8 — без него крэш-репорт от человека нечитаем. Кладём рядом с артефактом:
         # забирать сборку и маппинг надо ОДНИМ движением, иначе следующая сборка его перезапишет.
+        # Берём ОДИН файл: копию с версией в имени (её делает copyProdReleaseMapping), а если её нет —
+        # штатную. Два одинаковых файла по 33 МБ в артефакте — это просто лишние 33 МБ.
         for M in ./ui/build/outputs/apk-mapping/prodRelease/*.txt \
                  ./ui/build/outputs/mapping/prodRelease/mapping.txt \
                  ./ui/build/outputs/mapping/storeRelease/mapping.txt; do
-          [[ -f "$M" ]] && cp "$M" upload/ || true
+          if [[ -f "$M" ]]; then cp "$M" upload/; break; fi
         done
 
         echo "built_file=${FILE}" >> "$GITHUB_OUTPUT"

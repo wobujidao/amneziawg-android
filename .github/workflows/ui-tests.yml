@@ -43,12 +43,38 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Unit tests :ui (prodRelease)
+      # 🔴 Задача называется testDebugUnitTest, а НЕ testProdReleaseUnitTest, и это не мелочь.
+      # С 13-08 (1e84186c, «инструменты сборки — до последних версий») AGP заводит юнит-тестовые
+      # задачи только для тестового buildType (debug). Прежнее имя перестало существовать, workflow
+      # падал «task not found» — и падал 34 прогона подряд четыре дня, через релизы 0.5.1…0.5.22.
+      # То есть сторожа, ради которых он заведён, всё это время не гонялись вовсе, а красный
+      # значок никто не открывал. Проверять при апгрейде AGP: `./gradlew :ui:tasks --all | grep UnitTest`.
+      #
+      # Сборочный вариант тут не важен: все эти тесты читают ФАЙЛЫ дерева исходников
+      # (res/values*/strings.xml, src/prodRelease/res/xml, манифест, .gitignore), а не ресурсы
+      # собранного варианта, — они объявлены входами задачи в ui/build.gradle.kts.
+      - name: Unit tests :ui
         shell: bash
         run: |
           set -euo pipefail
           chmod +x ./gradlew
-          ./gradlew --no-daemon --stacktrace :ui:testProdReleaseUnitTest
+          ./gradlew --no-daemon --stacktrace :ui:testDebugUnitTest
+
+      # Сторож на сторожа: BUILD SUCCESSFUL бывает и когда не запустилось НИ ОДНОГО теста
+      # (задачу переименовали, фильтр не совпал, вариант исчез). Считаем прогнанные тесты по отчётам
+      # и падаем, если их подозрительно мало.
+      - name: Тесты действительно шли, а не пропустились
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import glob, sys, xml.etree.ElementTree as ET
+          files = glob.glob('ui/build/test-results/testDebugUnitTest/*.xml')
+          total = sum(int(ET.parse(p).getroot().get('tests')) for p in files)
+          print(f'классов: {len(files)}, тестов: {total}')
+          if total < 40:
+              sys.exit(f'ОЖИДАЛИ хотя бы 40 тестов, прогнано {total} — сторожа не запустились')
+          PY
 
       - name: Отчёты тестов (когда упало — смотреть сюда)
         if: failure()
