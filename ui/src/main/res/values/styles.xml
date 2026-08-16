@@ -58,6 +58,24 @@
         <item name="android:colorBackground">@color/mayak_bg</item>
         <item name="colorSurface">@color/mayak_surface</item>
         <item name="colorOnSurface">@color/mayak_on_surface</item>
+        <!-- 🔴 Диалоги и меню Material берут фон НЕ из colorSurface, а из «контейнерных» ролей —
+             и без этих строк рисовались стандартным СЕРЫМ поверх нашего тёмно-синего экрана: чужая
+             карточка в середине приложения (снято на эмуляторе 17-08 на «Мои устройства», «Сбросить
+             настройки», «Выйти» — то есть на всех разом). Правится в теме, а не по месту вызова:
+             мест вызова два десятка, и следующий диалог снова родился бы серым. -->
+        <item name="colorSurfaceContainer">@color/mayak_surface</item>
+        <item name="colorSurfaceContainerLow">@color/mayak_surface</item>
+        <item name="colorSurfaceContainerLowest">@color/mayak_surface</item>
+        <item name="colorSurfaceContainerHigh">@color/mayak_surface</item>
+        <item name="colorSurfaceContainerHighest">@color/mayak_surface</item>
+        <!-- Диалоги AppCompat (а ими построены все наши подтверждения) берут фон окна отсюда,
+             а не из ролей выше. Без этой пары «Мои устройства» и все вопросы-подтверждения
+             оставались серыми. -->
+        <item name="android:colorBackgroundFloating">@color/mayak_surface</item>
+        <item name="colorBackgroundFloating">@color/mayak_surface</item>
+        <!-- Своя тема диалога: только она надёжно перекрашивает окно (см. Mayak.Dialog). -->
+        <item name="alertDialogTheme">@style/Mayak.Dialog</item>
+        <item name="materialAlertDialogTheme">@style/Mayak.Dialog</item>
         <item name="colorPrimary">@color/mayak_primary</item>
         <item name="colorOnPrimary">@color/mayak_on_primary</item>
         <!-- Панели ПРОЗРАЧНЫЕ, под ними наш собственный фон (градиент/шапка экрана). Так во всех
@@ -95,6 +113,37 @@
     <style name="Mayak.CardTitle" parent="TextAppearance.Material3.TitleMedium">
         <item name="android:textColor">@color/mayak_on_surface</item>
         <item name="android:textStyle">bold</item>
+    </style>
+
+    <!-- Диалоги приложения. Material берёт фон окна диалога из отдельного drawable, а не из
+         цветовых ролей, — поэтому перекрашиваем именно окно (mayak_bg_dialog), а роли задаём
+         рядом, чтобы текст и кнопки внутри читались на нашем фоне. Заведено 17-08: до этого все
+         диалоги приложения были стандартные серые поверх тёмно-синих экранов. -->
+    <style name="Mayak.Dialog" parent="ThemeOverlay.Material3.Dialog.Alert">
+        <item name="android:windowBackground">@drawable/mayak_bg_dialog</item>
+        <!-- Панель диалога рисует СВОЙ фон поверх окна — прямоугольный. Пока он непрозрачен, скруглённые
+             углы нашего окна не видны: гасим панель, углы остаются от mayak_bg_dialog. -->
+        <item name="android:colorBackgroundFloating">@android:color/transparent</item>
+        <item name="colorBackgroundFloating">@android:color/transparent</item>
+        <!-- Радиус угла диалога: Material берёт его отсюда, а не из нашего drawable. -->
+        <item name="android:dialogCornerRadius">28dp</item>
+        <item name="dialogCornerRadius">28dp</item>
+        <item name="colorSurface">@color/mayak_surface</item>
+        <item name="colorOnSurface">@color/mayak_on_surface</item>
+        <item name="colorOnSurfaceVariant">@color/mayak_on_surface</item>
+        <item name="android:textColorPrimary">@color/mayak_on_surface</item>
+        <item name="android:textColorSecondary">@color/mayak_on_surface_muted</item>
+        <item name="colorPrimary">@color/mayak_primary</item>
+        <item name="buttonBarPositiveButtonStyle">@style/Mayak.Dialog.Button</item>
+        <item name="buttonBarNegativeButtonStyle">@style/Mayak.Dialog.Button</item>
+        <item name="buttonBarNeutralButtonStyle">@style/Mayak.Dialog.Button</item>
+    </style>
+
+    <!-- Кнопки диалога: цвет наш, минимальная высота — палец. -->
+    <style name="Mayak.Dialog.Button" parent="Widget.Material3.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/mayak_primary</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:minHeight">48dp</item>
     </style>
 
     <style name="Mayak.Card" parent="Widget.Material3.CardView.Elevated">
