@@ -551,9 +551,17 @@ object MayakMessages {
         MessageKinds.PASSWORD_CHANGED -> context.getString(R.string.mayak_msg_password_changed_body)
         MessageKinds.SUPPORT_REPLY -> context.getString(R.string.mayak_msg_support_reply_body)
 
+        // Срок — через склонения (mayak_days), а не подстановкой числа в «%s дн.»: по-русски
+        // сокращение выглядело как обрубок («в течение 30 дн.»), а по-английски «1 days» было бы
+        // прямой ошибкой. Число из params может прийти нечислом (сервер меняется отдельно от
+        // приложения) — тогда честнее показать текст без срока, чем упасть или напечатать мусор.
         MessageKinds.INACTIVE_WARNING ->
-            m.param("days")?.let { context.getString(R.string.mayak_msg_inactive_warning_body, it) }
-                ?: context.getString(R.string.mayak_msg_inactive_warning_body_plain)
+            m.param("days")?.toIntOrNull()?.let { days ->
+                context.getString(
+                    R.string.mayak_msg_inactive_warning_body,
+                    context.resources.getQuantityString(R.plurals.mayak_days, days, days),
+                )
+            } ?: context.getString(R.string.mayak_msg_inactive_warning_body_plain)
 
         MessageKinds.NEVER_CONNECTED -> context.getString(R.string.mayak_msg_never_connected_body)
 

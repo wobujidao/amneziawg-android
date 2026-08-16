@@ -849,7 +849,7 @@
     <string name="mayak_msg_support_reply">Reply to your request</string>
     <string name="mayak_msg_support_reply_body">We have replied — open it to read.</string>
     <string name="mayak_msg_inactive_warning">Your account has been idle</string>
-    <string name="mayak_msg_inactive_warning_body">If you do not sign in within %1$s days, we will delete it.</string>
+    <string name="mayak_msg_inactive_warning_body">If you do not sign in, we will delete it in %1$s.</string>
     <string name="mayak_msg_inactive_warning_body_plain">Open the app so that we do not delete it.</string>
     <string name="mayak_msg_never_connected">You have not connected yet</string>
     <string name="mayak_msg_never_connected_body">Open the app and press the big round button — that is all it takes.</string>

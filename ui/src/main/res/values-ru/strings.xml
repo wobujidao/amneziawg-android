@@ -887,7 +887,7 @@
     <string name="mayak_msg_support_reply">Ответ по вашему обращению</string>
     <string name="mayak_msg_support_reply_body">Мы ответили — откройте, чтобы прочитать.</string>
     <string name="mayak_msg_inactive_warning">Учётной записью давно не пользовались</string>
-    <string name="mayak_msg_inactive_warning_body">Если не зайти в течение %1$s дн., мы её удалим.</string>
+    <string name="mayak_msg_inactive_warning_body">Если не зайти, через %1$s мы её удалим.</string>
     <string name="mayak_msg_inactive_warning_body_plain">Зайдите в приложение, чтобы её не удалили.</string>
     <string name="mayak_msg_never_connected">Вы ещё ни разу не подключались</string>
     <string name="mayak_msg_never_connected_body">Откройте приложение и нажмите большую круглую кнопку — этого достаточно.</string>
