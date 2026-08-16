@@ -768,6 +768,19 @@
     <string name="mayak_support_mail_fallback">Написать письмом</string>
     <string name="mayak_support_need_login">Форма работает после входа в аккаунт — тогда мы видим ваш тариф и устройства и отвечаем по делу. Без входа напишите нам на почту: адрес ниже.</string>
     <string name="mayak_support_login">Войти</string>
+    <!-- Проверка связи: приложение по очереди пробует ВСЕ пути подключения и присылает нам отчёт.
+         Нужна там, где мы сами измерить не можем — у человека на его операторе. -->
+    <string name="mayak_settings_check_link">Проверить связь</string>
+    <string name="mayak_check_title">Проверка связи</string>
+    <string name="mayak_check_intro">Приложение по очереди попробует все пути до страны «%1$s» и пришлёт нам результат. Займёт около минуты; на это время подключение будет выключено.</string>
+    <string name="mayak_check_start">Начать проверку</string>
+    <string name="mayak_check_running">Проверяю: %1$s (%2$d из %3$d)…</string>
+    <string name="mayak_check_ok">работает, %1$s с</string>
+    <string name="mayak_check_failed">не поднялся</string>
+    <string name="mayak_check_absent">у этой страны нет</string>
+    <string name="mayak_check_sent">Отчёт отправлен. Спасибо — теперь мы видим, что пропускает ваш оператор.</string>
+    <string name="mayak_check_not_sent">Отчёт отправить не вышло, он сохранён на телефоне и уйдёт со следующим логом.</string>
+    <string name="mayak_check_need_login">Сначала войдите — отчёт привязывается к вашему аккаунту.</string>
     <string name="mayak_settings_send_log">Отправить лог</string>
     <string name="mayak_settings_send_log_sending">Отправляю лог…</string>
     <string name="mayak_settings_send_log_ok">Лог отправлен. Спасибо!</string>

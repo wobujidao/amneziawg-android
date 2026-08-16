@@ -536,6 +536,19 @@
     <string name="mayak_support_mail_fallback">Write by mail</string>
     <string name="mayak_support_need_login">The form works after you sign in — then we see your plan and devices and answer to the point. Without signing in, write to us by mail: the address is below.</string>
     <string name="mayak_support_login">Sign in</string>
+    <!-- Проверка связи: приложение по очереди пробует ВСЕ пути подключения и присылает нам отчёт.
+         Нужна там, где мы сами измерить не можем — у человека на его операторе. -->
+    <string name="mayak_settings_check_link">Check the connection</string>
+    <string name="mayak_check_title">Connection check</string>
+    <string name="mayak_check_intro">We will try every route to %1$s one by one and send us the result. Takes about a minute; the connection will be off while it runs.</string>
+    <string name="mayak_check_start">Start the check</string>
+    <string name="mayak_check_running">Checking: %1$s (%2$d of %3$d)…</string>
+    <string name="mayak_check_ok">works, %1$s s</string>
+    <string name="mayak_check_failed">did not come up</string>
+    <string name="mayak_check_absent">not available for this country</string>
+    <string name="mayak_check_sent">Report sent. Thank you — now we can see what your operator lets through.</string>
+    <string name="mayak_check_not_sent">Could not send the report, it is saved on your phone. It will go out with the next log.</string>
+    <string name="mayak_check_need_login">Sign in first — the report is tied to your account.</string>
     <string name="mayak_settings_send_log">Send log</string>
     <string name="mayak_settings_send_log_sending">Sending log…</string>
     <string name="mayak_settings_send_log_ok">Log sent. Thank you!</string>

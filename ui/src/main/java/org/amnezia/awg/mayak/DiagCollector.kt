@@ -36,6 +36,11 @@ object DiagCollector {
         // Живой туннель — только ради счётчиков трафика (статистика движка доступна на экземпляре).
         // null (например, из настроек) → полей rx/tx просто не будет.
         tunnel: GoTunnel? = null,
+        // Дополнительные поля в meta от вызывающего. Заведено под «Проверить связь» (17-08): исход
+        // КАЖДОЙ ступени лестницы. Кладём именно в meta, а не в текст лога, потому что meta в панели
+        // видна открытым текстом, а тело лога зашифровано офлайн-ключом — отчёт, который нельзя
+        // прочитать без ключа из сейфа, никто читать не станет.
+        extraMeta: Map<String, String> = emptyMap(),
     ): DiagLogRequest =
         withContext(Dispatchers.IO) {
             val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
@@ -74,6 +79,7 @@ object DiagCollector {
                     if (net.upKbps > 0) put("link_up_kbps", net.upKbps.toString())
                     putAll(tunnelState(tunnel))
                     putAll(deviceState(context))
+                    putAll(extraMeta) // кладём ПОСЛЕДНИМИ: вызывающий знает свой случай лучше общего сбора
                 },
                 log = captureLog(),
             )

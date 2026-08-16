@@ -1,0 +1,7 @@
+<!-- «Проверить связь»: столбики сигнала с галочкой. Material Symbols «network_check». -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <path android:fillColor="#FF000000"
+        android:pathData="M15.9,5l-3.4,4.2 -1.1,-1.4 -0.1,-0.1L9.8,9.1l2.7,3.4 4.9,-6.1zM3,17h2v-5H3v5zM7,17h2V9H7v8zM11,17h2v-3.5l-2,-2.5v6zM15,17h2v-6.4l-2,2.5V17zM19,17h2V7h-2v10z"/>
+</vector>

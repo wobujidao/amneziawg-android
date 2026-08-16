@@ -290,13 +290,30 @@ class MayakBackend(
             json.decodeFromString(AppVersionInfo.serializer(), resp)
         }.getOrNull()
 
-    /** OTA-список РФ-приложений для split-туннеля (BlancVPN-parity): публичный /v1/client/ru-direct
-     *  через тот же фейловер доменов, БЕЗ токена. Не критично: любая ошибка → null (клиент оставит кэш/ассет). */
-    suspend fun ruDirect(): RuDirectList? =
-        runCatching {
-            val resp = call("GET", "/v1/client/ru-direct", token = null, body = null)
-            json.decodeFromString(RuDirectList.serializer(), resp)
-        }.getOrNull()
+    /**
+     * OTA-список РФ-приложений для split-туннеля (BlancVPN-parity): публичный /v1/client/ru-direct
+     * через тот же фейловер доменов, БЕЗ токена.
+     *
+     * `knownVersion` — версия списка, которая уже лежит у клиента. Она же и есть ETag на стороне
+     * ядра, поэтому отдельного хранилища для ETag заводить не пришлось: шлём её в If-None-Match, и
+     * ядро на совпадении отвечает 304 без тела. Список весит 27 КБ и качался целиком при каждом
+     * запуске приложения, хотя меняется раз в месяцы.
+     *
+     * Три исхода различаются НАМЕРЕННО: «не менялось» и «не смог» — разные вещи, и в логе они должны
+     * читаться по-разному (иначе поддержка не отличит тишину от поломки).
+     */
+    suspend fun ruDirect(knownVersion: String? = null): RuDirectFetch =
+        try {
+            val etag = knownVersion?.takeIf { it.isNotEmpty() }?.let { "\"$it\"" }
+            val resp = callRaw("GET", "/v1/client/ru-direct", token = null, body = null, ifNoneMatch = etag)
+            if (resp.code == HttpURLConnection.HTTP_NOT_MODIFIED) {
+                RuDirectFetch.NotModified
+            } else {
+                RuDirectFetch.Ok(json.decodeFromString(RuDirectList.serializer(), resp.body))
+            }
+        } catch (e: Exception) {
+            RuDirectFetch.Failed(e)
+        }
 
     /** ПОДПИСАННЫЙ delivery-документ (F-T8, SPEC-0009): GET /v1/client/delivery, БЕЗ токена, тело —
      *  configsign.Envelope как есть (проверка подписи — Delivery.verify, НЕ здесь). 404 — ШТАТНО:
@@ -547,6 +564,19 @@ class MayakBackend(
      * живьём на сотовой: «все домены недоступны» при сломанной немецкой линии.
      */
     private suspend fun call(method: String, path: String, token: String?, body: String?): String =
+        callRaw(method, path, token, body, ifNoneMatch = null).body
+
+    /**
+     * То же, что call(), но отдаёт КОД и ETag ответа — нужно условному GET (см. ruDirect).
+     * 304 «не менялось» ошибкой не считается и до фейловера не доходит.
+     */
+    private suspend fun callRaw(
+        method: String,
+        path: String,
+        token: String?,
+        body: String?,
+        ifNoneMatch: String?,
+    ): RawResponse =
         withContext(Dispatchers.IO) {
             var lastError: IOException? = null
             // Сначала обычным путём (внутри туннеля, если он поднят), затем — мимо него.
@@ -555,7 +585,7 @@ class MayakBackend(
                 repeat(hosts.size) {
                     val base = hosts.current()
                     try {
-                        return@withContext doRequest("$base$path", method, token, body, open)
+                        return@withContext doRequest("$base$path", method, token, body, ifNoneMatch, open)
                     } catch (e: MayakApiException) {
                         throw e // ответ ядра — фейловер не нужен
                     } catch (e: IOException) {
@@ -578,13 +608,17 @@ class MayakBackend(
      */
     private fun acceptLanguage(): String? = languageTag()
 
+    /** Что вернул сервер: код, тело (у 304 — пустое) и ETag, если прислал. */
+    private class RawResponse(val code: Int, val body: String, val etag: String?)
+
     private fun doRequest(
         url: String,
         method: String,
         token: String?,
         body: String?,
+        ifNoneMatch: String?,
         open: (URL) -> HttpURLConnection = direct,
-    ): String {
+    ): RawResponse {
         // только https: иначе Bearer-токен и данные ушли бы plaintext (напр. если резерв-домен задан http).
         require(url.startsWith("https://")) { "небезопасная схема (нужен https): $url" }
         val conn = open(URL(url))
@@ -601,6 +635,10 @@ class MayakBackend(
             // правка не трогает — и наоборот: новая сборка со старым ядром просто не получит перевод.
             acceptLanguage()?.let { conn.setRequestProperty("Accept-Language", it) }
             token?.let { conn.setRequestProperty("Authorization", "Bearer $it") }
+            // Условный GET: «пришли тело, только если оно не то, что у меня уже есть». Ядро на
+            // совпадение отвечает 304 без тела. Экономит не байты ради байтов: список РФ-приложений
+            // весит 27 КБ и качался ЦЕЛИКОМ на каждый запуск приложения, хотя меняется раз в месяцы.
+            ifNoneMatch?.let { conn.setRequestProperty("If-None-Match", it) }
             if (body != null) {
                 conn.doOutput = true
                 conn.setRequestProperty("Content-Type", "application/json; charset=utf-8")
@@ -608,6 +646,10 @@ class MayakBackend(
             }
 
             val code = conn.responseCode
+            // 304 — это УСПЕХ «у тебя уже свежее»: тела нет вовсе, читать нечего.
+            if (code == HttpURLConnection.HTTP_NOT_MODIFIED) {
+                return RawResponse(code, "", conn.getHeaderField("ETag"))
+            }
             val stream = if (code in 200..299) conn.inputStream else (conn.errorStream ?: conn.inputStream)
             val text = stream.use { it.readBytes().toString(Charsets.UTF_8) }
             if (code !in 200..299) {
@@ -616,7 +658,7 @@ class MayakBackend(
                 // подсказки, когда пробовать снова.
                 throw apiError(code, text, json, parseRetryAfter(conn.getHeaderField("Retry-After")))
             }
-            return text
+            return RawResponse(code, text, conn.getHeaderField("ETag"))
         } finally {
             conn.disconnect()
         }

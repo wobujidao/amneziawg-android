@@ -796,6 +796,23 @@
                             app:iconTint="@color/mayak_outline"
                             android:text="@string/mayak_support_write" />
 
+                        <!-- «Проверить связь» (17-08): приложение по очереди пробует ВСЕ ступени
+                             подключения и присылает отчёт. Заведена потому, что сами мы этого
+                             измерить не можем: наши ночные проверки идут из Казахстана, а вопрос
+                             стоит «пропускает ли человека ЕГО российский оператор». Стоит выше
+                             «Отправить лог»: лог отвечает «что случилось», проверка — «что вообще
+                             работает», и второе полезнее, когда не работает ничего. -->
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/mayak_settings_check_link"
+                            style="@style/Mayak.Button.Outlined"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            app:icon="@drawable/ic_network_check"
+                            app:iconGravity="textStart"
+                            app:iconTint="@color/mayak_outline"
+                            android:text="@string/mayak_settings_check_link" />
+
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/mayak_settings_send_log"
                             style="@style/Mayak.Button.Outlined"

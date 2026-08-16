@@ -9,6 +9,7 @@ import android.Manifest
 import android.content.Context
 import android.util.Log
 import org.amnezia.awg.mayak.core.MayakBackend
+import org.amnezia.awg.mayak.core.RuDirectFetch
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -55,10 +56,25 @@ object MayakRuDirect {
      *  прежний кэш/ассет. ВАЖНО: вызывать НЕ во время коннекта (DPI палит домен рядом с хендшейком —
      *  см. MayakSession), а на старте приложения / в фоне. */
     suspend fun refresh(ctx: Context, backend: MayakBackend) {
-        val list = backend.ruDirect() ?: return
+        val cur = MayakPrefs.ruDirectVersion(ctx)
+        // Свою версию шлём как If-None-Match: ядро на совпадении отвечает 304 без тела. Раньше эти
+        // 27 КБ приезжали ЦЕЛИКОМ при каждом запуске приложения, чтобы клиент сравнил одну строку
+        // version и всё выбросил. Условие «кэш на месте» обязательно: без файла нам нужно тело, даже
+        // если версия та же (иначе после чистки кэша останемся на зашитом ассете навсегда).
+        val known = cur.takeIf { it.isNotEmpty() && cacheFile(ctx).exists() }
+        val list = when (val r = backend.ruDirect(known)) {
+            is RuDirectFetch.NotModified -> {
+                Log.i(TAG, "OTA-список не менялся (304), version=$cur")
+                return
+            }
+            is RuDirectFetch.Failed -> {
+                Log.i(TAG, "OTA-список не забрал: ${r.cause.javaClass.simpleName} — оставляю кэш")
+                return
+            }
+            is RuDirectFetch.Ok -> r.list
+        }
         // защита от вырождения: пустой список не затираем (оставляем кэш/ассет).
         if (list.regex.isEmpty() && list.apps.isEmpty()) return
-        val cur = MayakPrefs.ruDirectVersion(ctx)
         if (list.version.isNotEmpty() && list.version == cur && cacheFile(ctx).exists()) return // без изменений
         val obj = JSONObject().apply {
             put("version", list.version)

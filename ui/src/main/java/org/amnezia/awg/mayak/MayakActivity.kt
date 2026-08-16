@@ -97,6 +97,11 @@ class MayakActivity : AppCompatActivity() {
     private var backend: MayakBackend? = null
     private var pendingConnect: Direction? = null
 
+    // «Проверить связь»: направление, ждущее согласия на VPN, и корутина самой проверки. Отдельно от
+    // pendingConnect/connectJob намеренно — иначе отмена подключения гасила бы проверку и наоборот.
+    private var pendingLinkCheck: Direction? = null
+    private var linkCheckJob: Job? = null
+
     private lateinit var status: TextView
     private var dirsContainer: LinearLayout? = null
 
@@ -149,12 +154,16 @@ class MayakActivity : AppCompatActivity() {
     private var rippleView: RippleView? = null
     private var networkBg: NetworkBackgroundView? = null
 
-    // согласие на VPN → продолжаем отложенное подключение
+    // согласие на VPN → продолжаем отложенное подключение (или отложенную проверку связи)
     private val vpnPermission =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             val dir = pendingConnect
+            val check = pendingLinkCheck
             pendingConnect = null
-            if (result.resultCode == RESULT_OK && dir != null) {
+            pendingLinkCheck = null
+            if (result.resultCode == RESULT_OK && check != null) {
+                doLinkCheck(check)
+            } else if (result.resultCode == RESULT_OK && dir != null) {
                 doConnect(dir)
             } else {
                 renderState(ConnState.DISCONNECTED)
@@ -446,6 +455,22 @@ class MayakActivity : AppCompatActivity() {
      *  проверки подписи у нас быть не должно. */
     private fun startInAppUpdate(info: AppVersionInfo) =
         MayakUpdater.runUpdate(this, info.apkUrl, backend?.knownBases ?: emptyList())
+
+    /**
+     * Возврат на УЖЕ ЖИВОЙ главный экран с новым intent'ом (FLAG_ACTIVITY_CLEAR_TOP от «Настроек»).
+     *
+     * Без этого метода extra просто пропадает: onCreate/showHome при повторном использовании
+     * экземпляра не зовутся, а разбор флагов живёт там. Ровно так «Проверить связь» и не сработала
+     * с первого раза — кнопка возвращала на главный экран и молчала.
+     */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (intent.getBooleanExtra(EXTRA_RUN_LINK_CHECK, false)) {
+            intent.removeExtra(EXTRA_RUN_LINK_CHECK)
+            if (isHomeShown) offerLinkCheck()
+        }
+    }
 
     override fun onStart() {
         super.onStart()
@@ -1246,6 +1271,13 @@ class MayakActivity : AppCompatActivity() {
             showPresetChooser()
         }
 
+        // Пришли из «Настроек» → «Проверить связь». removeExtra по той же причине, что и выше:
+        // пересоздание активити (смена темы, поворот) не должно запускать проверку заново.
+        if (intent?.getBooleanExtra(EXTRA_RUN_LINK_CHECK, false) == true) {
+            intent.removeExtra(EXTRA_RUN_LINK_CHECK)
+            offerLinkCheck()
+        }
+
         // Тап с press-feedback: лёгкое сжатие 0.96 + haptic-tick, затем toggle.
         connectCircle?.setOnClickListener { v ->
             MayakHaptics.tap(v)
@@ -1849,6 +1881,13 @@ class MayakActivity : AppCompatActivity() {
         connectJob?.cancel()
         connectJob = null
         pendingConnect = null
+        // Проверка связи тоже выглядит на экране как «Подключаюсь…», и тап по кругу для человека
+        // означает «отмени» независимо от того, что именно идёт. Без этой строки круг отменял бы
+        // несуществующее подключение, гасил туннель под проверкой и оставлял её крутиться дальше.
+        linkCheckJob?.cancel()
+        linkCheckJob = null
+        pendingLinkCheck = null
+        MayakFallbackTransport.stop()
         lifecycleScope.launch { runCatching { tunnel.down() } }
         stopTimer()
         stopPing()
@@ -1857,6 +1896,150 @@ class MayakActivity : AppCompatActivity() {
         renderState(ConnState.DISCONNECTED)
         setStatus(getString(R.string.mayak_status_cancelled))
         errorShownAt = SystemClock.elapsedRealtime() // «отменено» — тоже событие, а не состояние
+    }
+
+    // ── ПРОВЕРКА СВЯЗИ ─────────────────────────────────────────────────────────────────────────
+    //
+    // Обычное подключение идёт по лестнице и ОСТАНАВЛИВАЕТСЯ на первой сработавшей ступени — это
+    // правильно для человека и бесполезно для нас: мы не узнаём, работали ли остальные. А вопрос,
+    // на который нам нечем ответить, ровно такой: пропускает ли человека ЕГО оператор. Все наши
+    // ночные проверки идут с машины в Казахстане — про МТС в Москве они не говорят ничего.
+    //
+    // Поэтому здесь лестница проходится ЦЕЛИКОМ: каждая ступень поднимается отдельно, замеряется,
+    // гасится, и результат по всем трём уходит нам диаг-логом (meta.link_check, видно в панели).
+    // Это единственное место в приложении, которое поднимает туннель не для того, чтобы им
+    // пользоваться, — поэтому оно и живёт рядом с настоящим подключением, а не отдельным классом:
+    // подъём/проба/гашение должны меняться ВМЕСТЕ с ним, иначе проверка начнёт мерить не то.
+
+    /** Объяснить, что сейчас будет, и спросить. Проверка занимает до минуты и рвёт подключение. */
+    private fun offerLinkCheck() {
+        val d = selectedDir ?: run { setStatus(getString(R.string.mayak_select_country_first)); return }
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.mayak_check_title)
+            .setMessage(getString(R.string.mayak_check_intro, d.name))
+            .setPositiveButton(R.string.mayak_check_start) { _, _ -> startLinkCheck(d) }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun startLinkCheck(d: Direction) {
+        val prepare = GoBackend.VpnService.prepare(this)
+        if (prepare != null) {
+            pendingLinkCheck = d
+            vpnPermission.launch(prepare)
+        } else doLinkCheck(d)
+    }
+
+    /** Исход одной ступени: имя для человека, поднялась ли, сколько заняла. */
+    private class RungResult(val route: String, val ok: Boolean?, val ms: Long)
+
+    private fun doLinkCheck(d: Direction) {
+        val b = backend ?: return
+        if (!MayakNet.hasNetwork(this)) { fail(getString(R.string.mayak_status_no_network)); return }
+        // Идущее подключение и проверка не уживаются: обе поднимают туннель. Гасим текущее — человека
+        // об этом предупредили в диалоге («на это время подключение будет выключено»).
+        connectJob?.cancel()
+        connectJob = null
+        stopTimer(); stopPing(); stopKeepalive()
+        connGeneration++
+        ipv6ProbeJob?.cancel()
+        renderState(ConnState.CONNECTING)
+        linkCheckJob = lifecycleScope.launch {
+            val results = mutableListOf<RungResult>()
+            try {
+                runCatching { tunnel.down() }
+                val paths = session.takeCachedConnect(d.id) ?: session.connect(b, d)
+                val direct = paths.directConf
+                val relay = paths.relayConf
+                val fb = paths.directFallback?.takeIf { it.usable() } ?: paths.relayFallback?.takeIf { it.usable() }
+                val fbConf = if (paths.directFallback?.usable() == true) direct else relay
+                val total = listOfNotNull(direct, relay, if (fb != null && fbConf != null) fbConf else null).size
+
+                suspend fun step(no: Int, route: String, run: suspend () -> String?) {
+                    setStatus(getString(R.string.mayak_check_running, routeLabel(route), no, total))
+                    val t0 = SystemClock.elapsedRealtime()
+                    val ip = runCatching { run() }.getOrNull()
+                    results += RungResult(route, ip != null, SystemClock.elapsedRealtime() - t0)
+                    // Гасим ОБЯЗАТЕЛЬНО и всегда: следующая ступень поднимается своим конфигом, а
+                    // `up()` поверх поднятого туннеля — no-op («Tunnel already up»), то есть без
+                    // гашения мы бы мерили одну и ту же ступень три раза и не заметили этого.
+                    MayakFallbackTransport.stop()
+                    runCatching { tunnel.down() }
+                    GoTunnel.connectedViaFallback = false
+                }
+
+                var no = 0
+                if (direct != null) {
+                    no++
+                    step(no, GoTunnel.ROUTE_DIRECT) {
+                        bringUpUdp(direct, hasNextRung = true, route = GoTunnel.ROUTE_DIRECT,
+                            serverHost = MayakPing.hostOf(paths.directEndpoint), peerSyncSlackMs = peerSyncSlack(paths))
+                    }
+                }
+                if (relay != null) {
+                    no++
+                    step(no, GoTunnel.ROUTE_RELAY) {
+                        bringUpUdp(relay, hasNextRung = true, route = GoTunnel.ROUTE_RELAY,
+                            serverHost = MayakPing.hostOf(paths.relayEndpoint), peerSyncSlackMs = peerSyncSlack(paths))
+                    }
+                }
+                if (fb != null && fbConf != null) {
+                    no++
+                    step(no, GoTunnel.ROUTE_FALLBACK) { switchToFallback(fbConf, fb) }
+                }
+                sendLinkCheckReport(d, results)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                runCatching { tunnel.down() }
+                throw e
+            } catch (e: Exception) {
+                MayakFallbackTransport.stop()
+                runCatching { tunnel.down() }
+                fail(getString(R.string.mayak_status_no_egress))
+            } finally {
+                linkCheckJob = null
+                renderState(ConnState.DISCONNECTED)
+            }
+        }
+    }
+
+    /**
+     * Показать итог человеку и отправить его нам.
+     *
+     * Отчёт уходит ОБЫЧНЫМ диаг-логом: у него уже есть всё, ради чего его стоило бы заводить заново
+     * (оператор, тип сети, модель, версия, шифрование лога на офлайн-ключ) — а сами ступени кладём в
+     * meta, потому что meta в панели видна открытым текстом, в отличие от тела лога.
+     */
+    private suspend fun sendLinkCheckReport(d: Direction, results: List<RungResult>) {
+        val lines = results.joinToString("\n") { r ->
+            val verdict = if (r.ok == true) getString(R.string.mayak_check_ok, "%.1f".format(r.ms / 1000.0))
+            else getString(R.string.mayak_check_failed)
+            "• ${routeLabel(r.route)} — $verdict"
+        }
+        val meta = buildMap {
+            put("link_check", "1")
+            put("link_check_direction", d.name)
+            results.forEach { r ->
+                put("link_check_${r.route}", if (r.ok == true) "ok" else "fail")
+                put("link_check_${r.route}_ms", r.ms.toString())
+            }
+        }
+        val msg = try {
+            val backendForLog = backend
+                ?: MayakBackend(hostProvider(), bypassTunnel = OutsideTunnel.opener(this))
+            val req = DiagCollector.collect(
+                this, direction = d.name, deviceId = session.deviceId(),
+                source = "manual", reason = "link-check", extraMeta = meta,
+            )
+            session.sendDiagLog(backendForLog, req)
+            getString(R.string.mayak_check_sent)
+        } catch (_: Exception) {
+            getString(R.string.mayak_check_not_sent)
+        }
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.mayak_check_title)
+            .setMessage("$lines\n\n$msg")
+            .setPositiveButton(android.R.string.ok, null)
+            .show()
     }
 
     private fun connectTo(d: Direction) {
@@ -3154,6 +3337,10 @@ class MayakActivity : AppCompatActivity() {
         /** «Настройки» → «Split-туннель»: та же непомеченная кнопка-пресет на главном, но по имени,
          *  которое видит человек (находка 2026-08-03, docs/research/2026-08-03-app-post-login.md). */
         const val EXTRA_OPEN_SPLIT_TUNNEL = "mayak_open_split_tunnel"
+
+        /** «Настройки» → «Проверить связь»: сама проверка живёт здесь (тут разрешение VPN, туннель
+         *  и выбранная страна), кнопка — там, где её ищут. */
+        const val EXTRA_RUN_LINK_CHECK = "mayak_run_link_check"
 
         // SPEC-0031: режимы сортировки списка стран.
         private const val SORT_AUTO = 0   // свежие тихие замеры есть → быстрейший первым, иначе как отдал сервер

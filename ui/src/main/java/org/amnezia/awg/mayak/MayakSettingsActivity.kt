@@ -126,6 +126,18 @@ class MayakSettingsActivity : AppCompatActivity() {
             startActivity(Intent(this, MayakSupportActivity::class.java))
             MayakTransitions.applyAxis(this)
         }
+        // «Проверить связь» сама ничего не проверяет: подъём туннеля живёт на главном экране (там
+        // разрешение VPN, состояние подключения и выбранная страна). Отсюда — только просьба:
+        // возвращаемся на главный экран с флагом, и проверку заводит он. Заводить второй владелец
+        // туннеля значило бы держать два места, которые могут поднять VPN, — а такое расходится.
+        findViewById<MaterialButton>(R.id.mayak_settings_check_link).setOnClickListener {
+            startActivity(
+                Intent(this, MayakActivity::class.java)
+                    .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                    .putExtra(MayakActivity.EXTRA_RUN_LINK_CHECK, true)
+            )
+            finish()
+        }
         findViewById<MaterialButton>(R.id.mayak_settings_send_log).setOnClickListener { sendLog(it as MaterialButton) }
         // «Поделиться логом» видна, только пока на диске лежит недоставленный лог с прошлой неудачной
         // попытки (0.3.99) — состояние могло смениться, пока экран был закрыт (пришли на новую сессию
