@@ -78,6 +78,12 @@
         <item name="materialAlertDialogTheme">@style/Mayak.Dialog</item>
         <item name="colorPrimary">@color/mayak_primary</item>
         <item name="colorOnPrimary">@color/mayak_on_primary</item>
+        <!-- ПЛАТФОРМЕННЫЕ виджеты (списки-переключатели в диалогах, курсор, выделение текста) берут
+             цвет не из colorPrimary, а отсюда. Без этих строк радиокнопки в «Фильтрации» и «Языке»
+             оставались сиреневыми даже после отключения динамических цветов (17-08). -->
+        <item name="colorControlActivated">@color/mayak_primary</item>
+        <item name="android:colorControlActivated">@color/mayak_primary</item>
+        <item name="android:colorAccent">@color/mayak_primary</item>
         <!-- Панели ПРОЗРАЧНЫЕ, под ними наш собственный фон (градиент/шапка экрана). Так во всех
              версиях Android одно и то же поведение: окно рисуется от края до края, а отступы под
              панели считает код (MayakSystemBars). Раньше здесь стоял непрозрачный mayak_statusbar —
