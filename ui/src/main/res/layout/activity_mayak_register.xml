@@ -42,14 +42,9 @@
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/mayak_reg_back"
-                    style="@style/Mayak.Button.Text"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
+                    android:layout_marginStart="-12dp"
+                    style="@style/Mayak.Button.Text.Icon48"
                     android:contentDescription="@string/mayak_back"
-                    android:minWidth="0dp"
-                    android:minHeight="0dp"
-                    android:paddingStart="6dp"
-                    android:paddingEnd="6dp"
                     android:text=""
                     app:icon="@drawable/ic_arrow_back"
                     app:iconSize="24dp"
@@ -353,14 +348,9 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/mayak_reg_captcha_back"
-                style="@style/Mayak.Button.Text"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_marginStart="-12dp"
+                style="@style/Mayak.Button.Text.Icon48"
                 android:contentDescription="@string/mayak_back"
-                android:minWidth="0dp"
-                android:minHeight="0dp"
-                android:paddingStart="6dp"
-                android:paddingEnd="6dp"
                 android:text=""
                 app:icon="@drawable/ic_arrow_back"
                 app:iconSize="24dp"

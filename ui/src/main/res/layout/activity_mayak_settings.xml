@@ -212,7 +212,7 @@
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
+                            android:layout_marginTop="4dp"
                             android:text="@string/mayak_settings_ipv6_hint"
                             android:textColor="@color/mayak_on_surface"
                             android:alpha="0.8"
@@ -233,7 +233,7 @@
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
+                            android:layout_marginTop="4dp"
                             android:text="@string/mayak_settings_force_fallback_hint"
                             android:textColor="@color/mayak_on_surface"
                             android:alpha="0.8"
@@ -257,7 +257,7 @@
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="6dp"
+                            android:layout_marginTop="4dp"
                             android:text="@string/mayak_settings_split_hint"
                             android:textColor="@color/mayak_on_surface"
                             android:alpha="0.8"
@@ -319,7 +319,7 @@
                             android:id="@+id/mayak_settings_dns_desc"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="6dp"
+                            android:layout_marginTop="4dp"
                             android:visibility="gone"
                             android:textColor="@color/mayak_on_surface"
                             android:textAppearance="@style/Mayak.Tagline" />
@@ -327,7 +327,7 @@
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
+                            android:layout_marginTop="4dp"
                             android:text="@string/mayak_settings_dns_hint"
                             android:textColor="@color/mayak_on_surface"
                             android:alpha="0.8"
@@ -382,7 +382,7 @@
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
+                            android:layout_marginTop="4dp"
                             android:text="@string/mayak_settings_autoconnect_hint"
                             android:textColor="@color/mayak_on_surface"
                             android:alpha="0.8"
@@ -404,7 +404,7 @@
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
+                            android:layout_marginTop="4dp"
                             android:text="@string/mayak_settings_killswitch_hint"
                             android:textColor="@color/mayak_on_surface"
                             android:alpha="0.8"
@@ -423,7 +423,7 @@
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
+                            android:layout_marginTop="4dp"
                             android:text="@string/mayak_settings_applock_hint"
                             android:textColor="@color/mayak_on_surface"
                             android:alpha="0.8"
@@ -497,7 +497,7 @@
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
+                            android:layout_marginTop="4dp"
                             android:text="@string/mayak_settings_notify_account_hint"
                             android:textColor="@color/mayak_on_surface"
                             android:alpha="0.8"
@@ -516,7 +516,7 @@
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
+                            android:layout_marginTop="4dp"
                             android:text="@string/mayak_settings_notify_service_hint"
                             android:textColor="@color/mayak_on_surface"
                             android:alpha="0.8"
@@ -538,7 +538,7 @@
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
+                            android:layout_marginTop="4dp"
                             android:text="@string/mayak_settings_notify_news_hint"
                             android:textColor="@color/mayak_on_surface"
                             android:alpha="0.8"
@@ -557,7 +557,7 @@
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
+                            android:layout_marginTop="4dp"
                             android:text="@string/mayak_settings_notify_quiet_hint"
                             android:textColor="@color/mayak_on_surface"
                             android:alpha="0.8"
@@ -617,7 +617,7 @@
                             android:id="@+id/mayak_theme_group"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="6dp"
+                            android:layout_marginTop="4dp"
                             app:singleSelection="true"
                             app:selectionRequired="true">
 
@@ -677,7 +677,7 @@
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
+                            android:layout_marginTop="4dp"
                             android:text="@string/mayak_settings_speed_hint"
                             android:textColor="@color/mayak_on_surface"
                             android:alpha="0.8"
@@ -698,7 +698,7 @@
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
+                            android:layout_marginTop="4dp"
                             android:text="@string/mayak_settings_haptics_hint"
                             android:textColor="@color/mayak_on_surface"
                             android:alpha="0.8"
@@ -719,7 +719,7 @@
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
+                            android:layout_marginTop="4dp"
                             android:text="@string/mayak_settings_show_presets_hint"
                             android:textColor="@color/mayak_on_surface"
                             android:alpha="0.8"
@@ -1009,6 +1009,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
+                android:layout_marginStart="20dp"
+                android:layout_marginEnd="20dp"
                 android:text="@string/mayak_settings_reset" />
 
             <!-- Выход из аккаунта -->
@@ -1018,6 +1020,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
+                android:layout_marginStart="20dp"
+                android:layout_marginEnd="20dp"
                 android:text="@string/mayak_logout" />
 
             <!-- Удаление аккаунта. Требование Google Play: путь удаления должен начинаться В приложении,
@@ -1030,6 +1034,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
+                android:layout_marginStart="20dp"
+                android:layout_marginEnd="20dp"
                 android:textColor="@color/mayak_on_bg_muted"
                 android:text="@string/mayak_delete_account" />
         </LinearLayout>
@@ -1048,20 +1054,14 @@
         android:gravity="start|center_vertical"
         android:background="@color/mayak_bg_grad_top"
         android:elevation="4dp"
-        android:paddingStart="20dp"
+        android:paddingStart="8dp"
         android:paddingEnd="20dp"
         android:paddingTop="4dp"
         android:paddingBottom="8dp">
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/mayak_settings_back"
-            style="@style/Mayak.Button.Text"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:minWidth="0dp"
-            android:minHeight="0dp"
-            android:paddingStart="6dp"
-            android:paddingEnd="6dp"
+            style="@style/Mayak.Button.Text.Icon48"
             android:contentDescription="@string/mayak_back"
             app:icon="@drawable/ic_arrow_back"
             app:iconTint="@color/mayak_on_bg"

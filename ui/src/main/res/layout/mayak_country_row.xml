@@ -9,7 +9,7 @@
     android:layout_height="wrap_content"
     android:orientation="horizontal"
     android:gravity="center_vertical"
-    android:minHeight="40dp"
+    android:minHeight="48dp"
     android:paddingStart="@dimen/mayak_space_3"
     android:paddingEnd="@dimen/mayak_space_3"
     android:paddingTop="@dimen/mayak_space_1"

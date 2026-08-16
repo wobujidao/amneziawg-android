@@ -21,8 +21,8 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:gravity="center_horizontal"
-            android:paddingStart="@dimen/mayak_space_6"
-            android:paddingEnd="@dimen/mayak_space_6"
+            android:paddingStart="@dimen/mayak_space_5"
+            android:paddingEnd="@dimen/mayak_space_5"
             android:paddingTop="@dimen/mayak_space_2"
             android:paddingBottom="@dimen/mayak_space_7">
 

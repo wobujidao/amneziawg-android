@@ -162,7 +162,6 @@
                         style="@style/Mayak.Button.Outlined"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
                         android:hyphenationFrequency="normal"
                         app:iconGravity="textStart"
                         android:text="@string/mayak_privacy_policy" />
@@ -172,7 +171,7 @@
                         style="@style/Mayak.Button.Outlined"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
+                        android:layout_marginTop="8dp"
                         app:iconGravity="textStart"
                         android:text="@string/mayak_terms" />
 
@@ -199,20 +198,14 @@
         android:gravity="start|center_vertical"
         android:background="@color/mayak_bg_grad_top"
         android:elevation="4dp"
-        android:paddingStart="20dp"
+        android:paddingStart="8dp"
         android:paddingEnd="20dp"
         android:paddingTop="4dp"
         android:paddingBottom="8dp">
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/mayak_about_back"
-            style="@style/Mayak.Button.Text"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:minWidth="0dp"
-            android:minHeight="0dp"
-            android:paddingStart="6dp"
-            android:paddingEnd="6dp"
+            style="@style/Mayak.Button.Text.Icon48"
             android:contentDescription="@string/mayak_back"
             app:icon="@drawable/ic_arrow_back"
             app:iconTint="@color/mayak_on_bg"
