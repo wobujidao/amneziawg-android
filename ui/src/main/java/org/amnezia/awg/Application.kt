@@ -20,7 +20,6 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStoreFile
-import com.google.android.material.color.DynamicColors
 import org.amnezia.awg.backend.Backend
 import org.amnezia.awg.backend.GoBackend
 import org.amnezia.awg.backend.AwgQuickBackend
@@ -98,7 +97,13 @@ class Application : android.app.Application() {
     override fun onCreate() {
         Log.i(TAG, USER_AGENT)
         super.onCreate()
-        DynamicColors.applyToActivitiesIfAvailable(this)
+        // 🔴 Динамические цвета Material You ОТКЛЮЧЕНЫ (17-08). Строка досталась от апстрима и
+        // перекрашивала colorPrimary всех экранов в цвет ОБОЕВ телефона: галочки в списке
+        // приложений, радиокнопки выбора фильтрации и языка выходили сиренево-голубыми вместо
+        // нашей бирюзы, причём у каждого человека своего оттенка. Наш интерфейс — брендовый
+        // (тёмно-синий + бирюза, docs/DESIGN-SYSTEM.md), и цвет в нём не должен зависеть от
+        // картинки на рабочем столе. Кнопки этого не показывали только потому, что им цвет задан
+        // явным backgroundTint — то есть половина экрана была брендовой, половина случайной.
         rootShell = RootShell(applicationContext)
         toolsInstaller = ToolsInstaller(applicationContext, rootShell)
         preferencesDataStore = PreferenceDataStoreFactory.create { applicationContext.preferencesDataStoreFile("settings") }
