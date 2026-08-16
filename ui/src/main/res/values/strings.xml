@@ -396,6 +396,10 @@
     <string name="mayak_status_device_limit">Device limit reached</string>
     <string name="mayak_device_limit_msg">Your account already has the maximum number of devices, so this one can\'t be added. Open “My devices”, disconnect one you no longer use, and try again.</string>
     <string name="mayak_access_expired_msg">Your access to the service has ended, so connecting is unavailable. Renew it in your personal cabinet and everything will work again.</string>
+    <!-- Отдельный текст для пробного: продлевать нечего, надо выбрать тариф. -->
+    <string name="mayak_trial_expired">The trial period has ended</string>
+    <string name="mayak_trial_expired_msg">Your trial access has ended, so connecting is unavailable. Choose a plan in your personal cabinet — your devices and settings are kept, and everything will work again straight away.</string>
+    <string name="mayak_settings_subscription_trial_expired">Trial access ended on %1$s</string>
     <!-- 402 no_plan: the account never had a plan. Telling this person to “renew” sends them looking
          for a button that does not exist for them — the fix is to pick a plan. -->
     <string name="mayak_status_no_plan">Access is not open yet</string>

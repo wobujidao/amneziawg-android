@@ -50,7 +50,8 @@ object MayakAccessLine {
         val text = when {
             st.access == "none" -> ctx.getString(R.string.mayak_settings_subscription_none)
             st.access == "expired" -> ctx.getString(
-                R.string.mayak_settings_subscription_expired,
+                if (st.trial) R.string.mayak_settings_subscription_trial_expired
+                else R.string.mayak_settings_subscription_expired,
                 until?.let { formatDate(it) } ?: "",
             )
             until != null && days != null && days <= COUNTDOWN_FROM_DAYS -> ctx.getString(

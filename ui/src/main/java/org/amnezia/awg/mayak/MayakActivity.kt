@@ -912,10 +912,19 @@ class MayakActivity : AppCompatActivity() {
         connectedDir = null
         renderState(ConnState.DISCONNECTED)
         setStatus(getString(R.string.mayak_status_access_expired))
+        // 🔴 Пробному «продлите» говорить нельзя: продлевать нечего, человек ещё ни разу не платил —
+        // ему надо ВЫБРАТЬ тариф. Это самый денежный экран приложения (пробный кончился, человек жмёт
+        // «Подключиться»), и слово, не совпадающее с нужным действием, стоит тут дороже всего.
+        // Кабинет развёл эти два случая ещё 08-08 — приложение отстало.
+        // Признак берём из последней сверки доступа (loadAccessLine): своего запроса тут делать
+        // нельзя — диалог обязан появиться сразу, в том числе когда сети уже нет.
+        val trial = lastAccessTrial == true
         AlertDialog.Builder(this)
-            .setTitle(getString(R.string.mayak_status_access_expired))
-            .setMessage(getString(R.string.mayak_access_expired_msg))
-            .setPositiveButton(getString(R.string.mayak_open_cabinet)) { _, _ -> openUrl(MayakHostList.cabinetUrl(this)) }
+            .setTitle(getString(if (trial) R.string.mayak_trial_expired else R.string.mayak_status_access_expired))
+            .setMessage(getString(if (trial) R.string.mayak_trial_expired_msg else R.string.mayak_access_expired_msg))
+            .setPositiveButton(getString(if (trial) R.string.mayak_choose_plan else R.string.mayak_open_cabinet)) { _, _ ->
+                openUrl(MayakHostList.cabinetUrl(this))
+            }
             .setNegativeButton(getString(R.string.mayak_cancel), null)
             .show()
     }
@@ -1291,12 +1300,21 @@ class MayakActivity : AppCompatActivity() {
      * кабинет — туда, где доступ продлевают. Ошибку глотаем: главный экран не должен зависеть от
      * того, ответило ли ядро про аккаунт.
      */
+    /**
+     * Был ли доступ ПРОБНЫМ на момент последней сверки (loadAccessLine). null — ещё не спрашивали:
+     * тогда говорим нейтральное «продлите», как раньше, а не гадаем.
+     */
+    private var lastAccessTrial: Boolean? = null
+
     private fun loadAccessLine() {
         val view = findViewById<TextView?>(R.id.mayak_access) ?: return
         if (!session.hasToken()) { view.visibility = View.GONE; return }
         val b = backend ?: return
         lifecycleScope.launch {
             val st = runCatching { session.accountStatus(b) }.getOrNull() ?: return@launch
+            // Запоминаем ВИД доступа: отказ «доступ закончился» приходит от /connect, где этого
+            // признака нет, а текст отказа у пробного и у платившего должен быть разный.
+            lastAccessTrial = st.trial
             val access = MayakAccessLine.of(this@MayakActivity, st)
             view.text = access.text
             view.setTextColor(
