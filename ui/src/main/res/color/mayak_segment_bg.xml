@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Фон сегмента переключателя (тема: светлая/тёмная). Выбранный сегмент рисовался стандартным
+     СЕРЫМ Material поверх нашей палитры — тем же чужим цветом, что и диалоги до 17-08.
+     Берём тот же оттенок, которым подсвечена выбранная страна в списке. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:color="@color/mayak_row_selected_bg" android:state_checked="true" />
+    <item android:color="@android:color/transparent" />
+</selector>

@@ -303,6 +303,9 @@
     <!-- Сегмент переключателя темы (Авто/Свет/Тёмная) в MaterialButtonToggleGroup: компактный,
          иконка по центру, без текста. Заменяет вертикальную стопку из трёх RadioButton (экономит ~90dp). -->
     <style name="Mayak.Button.Segment" parent="Widget.Material3.Button.OutlinedButton">
+        <!-- Выбранный сегмент красился стандартным серым Material — чужой цвет посреди нашей
+             палитры (17-08). Берём тот же оттенок, что у выбранной страны в списке. -->
+        <item name="backgroundTint">@color/mayak_segment_bg</item>
         <item name="strokeColor">@color/mayak_outline</item>
         <item name="iconTint">@color/mayak_on_surface</item>
         <item name="iconGravity">textStart</item>
