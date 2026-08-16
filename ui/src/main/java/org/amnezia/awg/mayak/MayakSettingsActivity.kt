@@ -49,6 +49,13 @@ class MayakSettingsActivity : AppCompatActivity() {
     /** Настоящая почта учётки со слов ядра; null — ещё не спрашивали ИЛИ почты у неё нет вовсе. */
     private var accountEmail: String? = null
 
+    /** Что ядро ответило про почту дословно (null — ещё не отвечало, "" — почты нет). */
+    private var accountEmailFromCore: String? = null
+
+    /** Доступ ПРОБНЫЙ по последней сверке; null — ещё не спрашивали. От этого зависит текст про почту:
+     *  привязка доводит пробный срок до полного, а платившему обещать этим нечего. */
+    private var accountTrial: Boolean? = null
+
     /** Выключатели уведомлений с ядра (SPEC-0047); null — ещё не ответило или ручки там нет. */
     private var notifyPrefs: org.amnezia.awg.mayak.core.NotificationPrefs? = null
 
@@ -817,6 +824,11 @@ class MayakSettingsActivity : AppCompatActivity() {
     private fun loadSubscription() {
         lifecycleScope.launch {
             val st = runCatching { session.accountStatus(backend()) }.getOrNull() ?: return@launch
+            // Признак «пробный» приезжает ЗДЕСЬ, а строка про почту рисуется в другом запросе —
+            // поэтому, узнав его, перерисовываем и её: иначе прибавка к пробному сроку показывалась
+            // бы через раз, в зависимости от того, чей ответ пришёл вторым.
+            accountTrial = st.trial
+            if (accountEmailFromCore != null) showAccountEmail(fromCore = accountEmailFromCore)
             val line = findViewById<TextView>(R.id.mayak_settings_subscription)
             // Текст один на всё приложение (MayakAccessLine) — тот же, что на главном экране.
             val access = MayakAccessLine.of(this@MayakSettingsActivity, st, withDevices = true)
@@ -848,7 +860,8 @@ class MayakSettingsActivity : AppCompatActivity() {
             // правки», а не «номера больше нет», и сохранённый номер оно не стирает (AccountNumber.remember).
             showAccountNumber(org.amnezia.awg.mayak.core.AccountNumber.display(store))
             accountEmail = info.email?.takeIf { it.isNotBlank() }
-            showAccountEmail(fromCore = info.email.orEmpty())
+            accountEmailFromCore = info.email.orEmpty()
+            showAccountEmail(fromCore = accountEmailFromCore)
         }
     }
 
@@ -894,7 +907,10 @@ class MayakSettingsActivity : AppCompatActivity() {
             }
             // Ядро ответило «почты нет» — это не пустота экрана, а осмысленное состояние.
             fromCore != null -> {
-                row.text = getString(R.string.mayak_settings_account_no_email)
+                row.text = getString(
+                    if (accountTrial == true) R.string.mayak_settings_account_no_email_trial
+                    else R.string.mayak_settings_account_no_email
+                )
                 row.visibility = View.VISIBLE
             }
             else -> row.visibility = View.GONE

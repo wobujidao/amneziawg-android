@@ -89,7 +89,7 @@
     <string name="mayak_reg_done_title">Your account number</string>
     <!-- ⚠️ 16-08: было «We show the number once» — номер всегда виден в «Настройках»
          (MayakSettingsActivity.showAccountNumber). Один раз показывается пароль. -->
-    <string name="mayak_reg_done_warning">Write down the number and the password. We will not show the password anywhere again: the account has no email address, so there would be no way to restore access. The number always stays in Settings. If you want recovery, add an email in your personal cabinet.</string>
+    <string name="mayak_reg_done_warning">Write down the number and the password. We will not show the password anywhere again: the account has no email address, so there would be no way to restore access. The number always stays in Settings. Add an email in your personal cabinet — you get recovery, and the trial period becomes full.</string>
     <string name="mayak_reg_no_session">The account was created, but we could not sign you in automatically. Write down the number and the password — the sign-in screen opens next with the number already filled in.</string>
     <!-- Число дней согласуется с существительным: «1 days» — брак, который видно на первом же
          экране новичка (поймано живым прогоном 13-08). Поэтому plurals, а не строка с %d. -->
@@ -437,6 +437,7 @@
     <!-- У учётки почты нет вовсе (анонимная регистрация, подарочная, из бота) — говорим прямо и
          называем путь: привязать её можно в кабинете, кнопка стоит рядом. -->
     <string name="mayak_settings_account_no_email">Email: not linked — you can add one in your personal cabinet</string>
+    <string name="mayak_settings_account_no_email_trial">Email: not linked. Add it in your cabinet — you will be able to recover access if you forget the password, and the trial period becomes full</string>
     <string name="mayak_row_connected_dot_desc">traffic goes through this country</string>
     <string name="mayak_onboarding_title">How it works, briefly</string>
     <string name="mayak_onboarding_1_title">One button</string>
