@@ -544,6 +544,10 @@
     <string name="mayak_about">О приложении</string>
     <string name="mayak_settings_logs">Диагностика (логи)</string>
     <string name="mayak_settings_appearance">Внешний вид</string>
+    <!-- Заголовок раздела «Аккаунт» и подписи для голосового доступа к складным разделам (17-08). -->
+    <string name="mayak_settings_account_section">Аккаунт</string>
+    <string name="mayak_settings_section_expand">Развернуть раздел</string>
+    <string name="mayak_settings_section_collapse">Свернуть раздел</string>
     <string name="mayak_settings_network">Сеть</string>
     <string name="mayak_settings_ipv6">Использовать IPv6</string>
     <string name="mayak_settings_ipv6_hint">Приносит IPv6 через туннель туда, где оператор его не даёт. Значок «IPv6» загорается, только когда он реально работает. Выключите, если что-то перестало открываться.</string>

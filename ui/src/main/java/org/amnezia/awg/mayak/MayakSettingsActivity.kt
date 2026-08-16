@@ -4,10 +4,16 @@ package org.amnezia.awg.mayak
 
 import android.content.Intent
 import android.os.Bundle
+import android.widget.ImageView
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import android.view.View
+import android.view.ViewGroup
+// Переходы берём ПЛАТФОРМЕННЫЕ (android.transition), а не androidx: библиотеки androidx.transition
+// в зависимостях модуля нет, и её появление ради одной анимации складывания — лишний вес.
+import android.transition.AutoTransition
+import android.transition.TransitionManager
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
@@ -76,6 +82,17 @@ class MayakSettingsActivity : AppCompatActivity() {
             header.post { v.updatePadding(top = baseTop + header.height, bottom = baseBottom + bars.bottom) }
             insets
         }
+
+        // Складные разделы (правка владельца 17-08: «меню очень растянуто вниз»). Раскрыт только
+        // «Аккаунт» — за ним сюда и приходят: номер для поддержки, срок доступа, кабинет.
+        wireSection(R.id.mayak_sec_account_head, R.id.mayak_sec_account_body, R.id.mayak_sec_account_chevron, open = true)
+        wireSection(R.id.mayak_sec_network_head, R.id.mayak_sec_network_body, R.id.mayak_sec_network_chevron)
+        wireSection(R.id.mayak_sec_filtering_head, R.id.mayak_sec_filtering_body, R.id.mayak_sec_filtering_chevron)
+        wireSection(R.id.mayak_sec_protection_head, R.id.mayak_sec_protection_body, R.id.mayak_sec_protection_chevron)
+        wireSection(R.id.mayak_sec_notify_head, R.id.mayak_sec_notify_body, R.id.mayak_sec_notify_chevron)
+        wireSection(R.id.mayak_sec_appearance_head, R.id.mayak_sec_appearance_body, R.id.mayak_sec_appearance_chevron)
+        wireSection(R.id.mayak_sec_diag_head, R.id.mayak_sec_diag_body, R.id.mayak_sec_diag_chevron)
+        wireSection(R.id.mayak_sec_referral_head, R.id.mayak_sec_referral_body, R.id.mayak_sec_referral_chevron)
 
         findViewById<MaterialButton>(R.id.mayak_settings_back).setOnClickListener {
             finish(); MayakTransitions.applyAxisReverse(this)
@@ -294,10 +311,98 @@ class MayakSettingsActivity : AppCompatActivity() {
         // «Диагностика и помощь» лежит на самом дне списка, и с места отказа до неё не дойти). Секция
         // и так на экране — просто сразу докручиваем к ней, отдельного пункта меню заводить не нужно.
         if (intent?.getBooleanExtra(EXTRA_OPEN_DIAGNOSTICS, false) == true) {
-            val scroll = findViewById<ScrollView>(R.id.mayak_settings_scroll)
-            val card = findViewById<View>(R.id.mayak_settings_diagnostics_card)
-            scroll.post { scroll.smoothScrollTo(0, card.top) }
+            // Раздел теперь складной — мало доскроллить до него, надо ещё и раскрыть: иначе человек
+            // с неудачным подключением приезжает к закрытой строке «Помощь и поддержка».
+            openSection(R.id.mayak_sec_diag_head, R.id.mayak_sec_diag_body, R.id.mayak_sec_diag_chevron)
+            scrollSectionToTop(findViewById(R.id.mayak_sec_diag_head))
         }
+    }
+
+    /**
+     * Раздел-гармошка: по заголовку карточку складываем и раскладываем.
+     *
+     * Зачем: экран настроек был одним свитком на шесть экранов прокрутки — у каждого тумблера рядом
+     * абзац пояснения, и человек, которому нужен номер аккаунта, пролистывал мимо всего (правка
+     * владельца 17-08). Свёрнутый раздел — одна строка, весь список умещается на первом экране.
+     *
+     * Состояние НЕ запоминаем между заходами: экран должен открываться одинаково, а не «как я его
+     * оставил в прошлый раз» — иначе человек, вернувшийся через неделю, видит другой экран и ищет
+     * заново. Исключение — «Аккаунт»: он раскрыт всегда.
+     */
+    private fun wireSection(headId: Int, bodyId: Int, chevronId: Int, open: Boolean = false) {
+        val head = findViewById<View>(headId) ?: return
+        val body = findViewById<View>(bodyId) ?: return
+        val chevron = findViewById<ImageView>(chevronId)
+        setSectionOpen(head, body, chevron, open)
+        head.setOnClickListener {
+            val shown = body.visibility != View.VISIBLE
+            // Складывание анимируем: скачок высоты на пол-экрана читается как «экран моргнул».
+            (findViewById<View>(R.id.mayak_settings_content) as? ViewGroup)?.let {
+                TransitionManager.beginDelayedTransition(it, AutoTransition().setDuration(160))
+            }
+            setSectionOpen(head, body, chevron, shown)
+            MayakHaptics.tap(head)
+            if (shown) scrollSectionToTop(head)
+        }
+    }
+
+    /**
+     * Раскрыли раздел — подвести его заголовок под шапку.
+     *
+     * Иначе раскрытие «Помощи» после раскрытого «Аккаунта» уводит содержимое за нижний край, и
+     * человек, только что нажавший на заголовок, видит ровно то же, что и до нажатия. Ждём конца
+     * анимации складывания: до неё высоты ещё старые и прокрутка уедет не туда.
+     */
+    private fun scrollSectionToTop(head: View) {
+        val scroll = findViewById<ScrollView>(R.id.mayak_settings_scroll) ?: return
+        val content = findViewById<View>(R.id.mayak_settings_content) ?: return
+        val header = findViewById<View>(R.id.mayak_settings_header)
+        // Карточка раздела — прямой ребёнок колонки контента; заголовок лежит внутри неё.
+        var card: View = head
+        while (card.parent !== content) card = card.parent as? View ?: return
+        scroll.postDelayed({
+            // Шапка закреплена ПОВЕРХ прокрутки, поэтому вычитаем её высоту: без этого заголовок
+            // раздела уезжает ровно под неё.
+            scroll.smoothScrollTo(0, (card.top - (header?.height ?: 0)).coerceAtLeast(0))
+        }, 200)
+    }
+
+    /** Шеврон: 90° — свёрнуто (смотрит вниз), 270° — раскрыто (смотрит вверх). */
+    private fun setSectionOpen(head: View, body: View, chevron: ImageView?, open: Boolean) {
+        body.visibility = if (open) View.VISIBLE else View.GONE
+        chevron?.rotation = if (open) 270f else 90f
+        // Голосовому доступу нужно СЛОВО, а не поворот картинки: иначе строка «Сеть» ничем не
+        // отличается от обычного заголовка и непонятно, что по ней можно нажать.
+        head.contentDescription = getString(
+            if (open) R.string.mayak_settings_section_collapse else R.string.mayak_settings_section_expand
+        )
+    }
+
+    /** Раскрыть раздел и подвести к нему экран (приход по EXTRA_OPEN_DIAGNOSTICS). */
+    private fun openSection(headId: Int, bodyId: Int, chevronId: Int) {
+        val head = findViewById<View>(headId) ?: return
+        val body = findViewById<View>(bodyId) ?: return
+        setSectionOpen(head, body, findViewById(chevronId), true)
+    }
+
+    /** Первый onResume идёт сразу за onCreate — там всё уже запрошено, второй раз ходить незачем. */
+    private var firstResume = true
+
+    /**
+     * Возврат на экран — перечитать учётку.
+     *
+     * Отсюда есть кнопка «Открыть кабинет», а в кабинете человек делает ровно то, что меняет эти
+     * строки: привязывает почту, платит, продлевает. Возвращался он на ЗАСТЫВШИЙ экран — «Почта: не
+     * привязана» и прежний срок, хотя на сервере уже другое (снято живьём 17-08: привязка почты
+     * подняла пробный с 3 дней до 7, приложение об этом не узнало до перезапуска). Два лёгких
+     * запроса на возврат — честная цена за экран, который не врёт.
+     */
+    override fun onResume() {
+        super.onResume()
+        if (firstResume) { firstResume = false; return }
+        if (!session.hasToken()) return
+        loadSubscription()
+        loadAccountCard()
     }
 
     /** Диалог маскировки (SPEC-0018 F2): выбор пресета иконки+имени. Применение — MayakDisguise.apply
@@ -872,12 +977,16 @@ class MayakSettingsActivity : AppCompatActivity() {
      *  Вместе с кнопкой показываем и ПОДПИСЬ: без неё на экране просто возникает новая кнопка,
      *  а объяснение («отправить не вышло, лог сохранён») живёт в тосте и через 3 секунды пропадает. */
     private fun refreshShareLogButton() {
-        val visible = if (DiagLogPending.exists(this)) View.VISIBLE else View.GONE
+        val pending = DiagLogPending.exists(this)
+        val visible = if (pending) View.VISIBLE else View.GONE
         findViewById<MaterialButton>(R.id.mayak_settings_share_log).visibility = visible
         findViewById<TextView>(R.id.mayak_settings_share_log_hint)?.apply {
             visibility = visible
             text = getString(R.string.mayak_settings_share_log_hint, BuildConfig.MAYAK_SUPPORT_EMAIL)
         }
+        // Несданный лог на диске — единственная кнопка, которая появляется САМА. Внутри свёрнутого
+        // раздела её никто не увидит, поэтому раздел в этом случае раскрываем.
+        if (pending) openSection(R.id.mayak_sec_diag_head, R.id.mayak_sec_diag_body, R.id.mayak_sec_diag_chevron)
     }
 
     /** Отдать сохранённый лог системному диалогу «Поделиться» — человек сам решает, в какой мессенджер. */

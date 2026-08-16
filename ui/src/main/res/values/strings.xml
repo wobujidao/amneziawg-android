@@ -321,6 +321,10 @@
     <string name="mayak_about">About</string>
     <string name="mayak_settings_logs">Diagnostics (logs)</string>
     <string name="mayak_settings_appearance">Appearance</string>
+    <!-- Заголовок раздела «Аккаунт» и подписи для голосового доступа к складным разделам (17-08). -->
+    <string name="mayak_settings_account_section">Account</string>
+    <string name="mayak_settings_section_expand">Expand section</string>
+    <string name="mayak_settings_section_collapse">Collapse section</string>
     <string name="mayak_settings_network">Network</string>
     <string name="mayak_settings_ipv6">Use IPv6</string>
     <string name="mayak_settings_ipv6_hint">Brings IPv6 through the tunnel where your carrier doesn\'t give it. The IPv6 badge lights up only when it really works. Turn off if it causes issues.</string>

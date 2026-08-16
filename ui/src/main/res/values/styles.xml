@@ -107,6 +107,47 @@
         <item name="strokeWidth">1dp</item>
     </style>
 
+    <!-- Карточка СКЛАДНОГО раздела: те же поля по бокам, но сверху и снизу вдвое меньше. Свёрнутый
+         раздел — это строка меню, а не карточка с содержимым: с полными 20dp он занимал 88dp пустоты
+         на заголовок в три слова. 12dp + 48dp строки = 72dp, как двухстрочный пункт списка Material. -->
+    <style name="Mayak.Card.Section">
+        <item name="contentPaddingTop">12dp</item>
+        <item name="contentPaddingBottom">12dp</item>
+    </style>
+
+    <!-- Заголовок складного раздела настроек: название слева, шеврон справа, вся строка — кнопка.
+         Экран настроек был свитком на шесть экранов прокрутки (правка владельца 17-08), теперь
+         каждая карточка складывается. parent="" обязателен: имя с точкой иначе наследует
+         несуществующий стиль «Mayak» (ошибка AAPT). -->
+    <style name="Mayak.SectionHead" parent="">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:orientation">horizontal</item>
+        <item name="android:gravity">center_vertical</item>
+        <!-- 48dp — минимальная цель нажатия по Material: строку жмут пальцем, а не курсором. -->
+        <item name="android:minHeight">48dp</item>
+        <item name="android:background">?attr/selectableItemBackground</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+    </style>
+
+    <style name="Mayak.SectionHead.Title" parent="">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textAppearance">@style/Mayak.CardTitle</item>
+    </style>
+
+    <!-- Шеврон «вправо», повёрнутый кодом: 90° — раздел свёрнут (смотрит вниз), 270° — раскрыт. -->
+    <style name="Mayak.SectionHead.Chevron" parent="">
+        <item name="android:layout_width">24dp</item>
+        <item name="android:layout_height">24dp</item>
+        <item name="android:src">@drawable/ic_chevron_right</item>
+        <item name="android:tint">@color/mayak_outline</item>
+        <item name="android:rotation">90</item>
+        <item name="android:importantForAccessibility">no</item>
+    </style>
+
     <!-- Строка листа «Подробности подключения»: слева колонка label/value, справа — опц. кнопка копирования.
          parent="" обязателен: имя с точкой иначе наследует несуществующий стиль «Mayak» (ошибка AAPT). -->
     <style name="Mayak.DetailRow" parent="">
