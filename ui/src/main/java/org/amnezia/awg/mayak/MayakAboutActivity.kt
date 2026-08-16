@@ -53,8 +53,15 @@ class MayakAboutActivity : AppCompatActivity() {
 
         // «Основано на»: версию движка gradle читает ИЗ go.mod при сборке (BuildConfig.AWG_GO_VERSION).
         // Раньше тут стояла руками написанная константа — и она отстала на версию (аудит 31-07, п. 19).
-        findViewById<TextView>(R.id.mayak_about_basedon).text =
-            getString(R.string.mayak_based_on_body, BuildConfig.AWG_GO_VERSION)
+        //
+        // Версия ПРОТОКОЛА строкой ниже — из той же величины, а не второй константой: 16-08 движок
+        // подняли до 3.1, а рядом так и осталось «Протокол: AmneziaWG 3.0» — ровно та же беда, что
+        // и в п. 19, просто в соседней строке. Одна правда — один источник.
+        findViewById<TextView>(R.id.mayak_about_basedon).text = getString(
+            R.string.mayak_based_on_body,
+            BuildConfig.AWG_GO_VERSION,
+            protocolVersion(BuildConfig.AWG_GO_VERSION),
+        )
 
         findViewById<MaterialButton>(R.id.mayak_about_oss).setOnClickListener {
             AlertDialog.Builder(this)
@@ -81,4 +88,23 @@ class MayakAboutActivity : AppCompatActivity() {
         runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
     }
 
+    companion object {
+        /**
+         * Версия ПРОТОКОЛА из версии движка: «v3.1.20260814» → «3.1». Третье число — дата сборки
+         * движка, к протоколу отношения не имеет, и на экране ему делать нечего.
+         *
+         * Не разобралось — возвращаем пусто, и строка скажет «Протокол: AmneziaWG» без числа.
+         * Врать номером хуже, чем его не назвать (тот же принцип, что и у версии движка: не нашли —
+         * не выдумываем).
+         */
+        @JvmStatic
+        fun protocolVersion(engineVersion: String): String {
+            val parts = engineVersion.trimStart('v', 'V').split('.')
+            if (parts.size < 2) return ""
+            val major = parts[0].takeWhile { it.isDigit() }
+            val minor = parts[1].takeWhile { it.isDigit() }
+            if (major.isEmpty() || minor.isEmpty()) return ""
+            return "$major.$minor"
+        }
+    }
 }

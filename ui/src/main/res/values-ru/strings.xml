@@ -769,7 +769,7 @@
     <string name="mayak_based_on">Основано на</string>
     <string name="mayak_engine">Движок</string>
     <string name="mayak_protocol">Протокол</string>
-    <string name="mayak_based_on_body">Форк официального клиента AmneziaWG (amneziawg-android).\nДвижок: amneziawg-go %1$s.\nПротокол: AmneziaWG 3.0 — обфусцированный WireGuard.\nОснован на WireGuard® (не аффилирован с WireGuard LLC и не одобрен ею).</string>
+    <string name="mayak_based_on_body">Форк официального клиента AmneziaWG (amneziawg-android).\nДвижок: amneziawg-go %1$s.\nПротокол: AmneziaWG %2$s — обфусцированный WireGuard.\nОснован на WireGuard® (не аффилирован с WireGuard LLC и не одобрен ею).</string>
     <string name="mayak_license">Лицензия</string>
     <string name="mayak_license_line">Apache-2.0. © участники AmneziaWG и WireGuard LLC. «Mayak Networks» — форк с собственным интерфейсом.</string>
     <string name="mayak_oss_licenses">Открытый код / лицензии</string>
