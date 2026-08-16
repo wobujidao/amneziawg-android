@@ -131,7 +131,7 @@ object MayakDevices {
 
     /** «5 минут назад», «вчера», «12 авг.» — словами системы, на языке телефона. */
     private fun ago(ms: Long): CharSequence =
-        DateUtils.getRelativeTimeSpanString(ms, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS)
+        MayakTime.ago(ms)
 
     /**
      * Подтверждение с ЦЕНОЙ действия (правило проекта: опасная кнопка спрашивает и называет цену).

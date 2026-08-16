@@ -402,9 +402,9 @@ class MayakSupportActivity : AppCompatActivity() {
         MayakTransitions.applyAxis(this)
     }
 
-    private fun ago(ms: Long): CharSequence = android.text.format.DateUtils.getRelativeTimeSpanString(
-        ms, System.currentTimeMillis(), android.text.format.DateUtils.MINUTE_IN_MILLIS
-    )
+    // Время события приходит с СЕРВЕРА, а часы у телефона свои: без общей функции свежая
+    // запись показывалась как «через 0 минут» (MayakTime).
+    private fun ago(ms: Long): CharSequence = MayakTime.ago(ms)
 
     companion object {
         private const val PREFS = "mayak_support"
