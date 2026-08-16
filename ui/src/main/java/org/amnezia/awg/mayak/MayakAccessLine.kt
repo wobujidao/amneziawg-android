@@ -22,8 +22,20 @@ object MayakAccessLine {
     /** Обратный отсчёт имеет смысл только вблизи конца: «осталось 3652 дня» — шум. */
     private const val COUNTDOWN_FROM_DAYS = 30
 
-    /** С какого остатка строка становится тревожной (красной). */
+    /** С какого остатка строка становится тревожной (красной) у ОПЛАЧЕННОГО доступа. */
     private const val WARN_FROM_DAYS = 3
+
+    /**
+     * С какого остатка тревожен ПРОБНЫЙ доступ — только последний день.
+     *
+     * Пробный без почты длится ровно три дня (решение владельца 16-08, `registration.anon_trial_days`),
+     * а общий порог тревоги — тоже три. Значит человек, только что заведший учётку, видел на первом
+     * же экране красную строку «осталось 3 дня» ещё до первого подключения (снято на эмуляторе
+     * 16-08). Цвет, который горит всегда, ничего не сообщает; и «пробный кончается» — это не
+     * поломка, а замысел. Тревога остаётся там, где она значит дело: последний день и всё, что
+     * после.
+     */
+    private const val TRIAL_WARN_FROM_DAYS = 1
 
     /** [text] — что показать человеку, [alarming] — красить ли тревожно (кончается/кончился). */
     data class Line(val text: String, val alarming: Boolean)
@@ -42,19 +54,33 @@ object MayakAccessLine {
                 until?.let { formatDate(it) } ?: "",
             )
             until != null && days != null && days <= COUNTDOWN_FROM_DAYS -> ctx.getString(
-                R.string.mayak_settings_subscription_until,
+                if (st.trial) R.string.mayak_settings_subscription_trial_until
+                else R.string.mayak_settings_subscription_until,
                 formatDate(until),
                 ctx.resources.getQuantityString(R.plurals.mayak_days, days, days),
             )
-            until != null -> ctx.getString(R.string.mayak_settings_subscription_until_plain, formatDate(until))
+            until != null -> ctx.getString(
+                if (st.trial) R.string.mayak_settings_subscription_trial_until_plain
+                else R.string.mayak_settings_subscription_until_plain,
+                formatDate(until),
+            )
             // Доступ без срока (выдан админом бессрочно) — «до какого числа» тут не существует.
             else -> ctx.getString(R.string.mayak_settings_subscription_active)
         }
         val devices = if (withDevices && st.deviceLimit > 0) {
             "\n" + ctx.getString(R.string.mayak_settings_devices_used, st.devicesUsed, st.deviceLimit)
         } else ""
-        val alarming = st.access != "active" || (days != null && days <= WARN_FROM_DAYS)
-        return Line(text + devices, alarming)
+        return Line(text + devices, alarming(st.access, days, st.trial))
+    }
+
+    /**
+     * Красить ли строку тревожно. Вынесено из [of] отдельной ЧИСТОЙ функцией нарочно: решение про
+     * цвет — это правило продукта, и проверять его надо тестом, а не глазами на эмуляторе (для
+     * [of] нужен Context, а значит Robolectric, которого в проекте нет).
+     */
+    fun alarming(access: String, days: Int?, trial: Boolean): Boolean {
+        val warnFrom = if (trial) TRIAL_WARN_FROM_DAYS else WARN_FROM_DAYS
+        return access != "active" || (days != null && days <= warnFrom)
     }
 
     /** Дата в языке телефона («2 авг. 2026 г.»). Год оставляем: без него «до 2 авг.» двусмысленно. */

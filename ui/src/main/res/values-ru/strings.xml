@@ -581,6 +581,11 @@
     <string name="mayak_dns_save_err">Не удалось сохранить: %1$s</string>
     <string name="mayak_settings_subscription_until">Доступ до %1$s · осталось %2$s</string>
     <string name="mayak_settings_subscription_until_plain">Доступ до %1$s</string>
+    <!-- Пробный доступ называем пробным: он короткий по замыслу, и человеку важно понимать, что
+         срок кончается не «у него что-то сломалось», а потому что это проба. Слово то же, что на
+         экране регистрации («Пробный доступ уже включён: 3 дня»). -->
+    <string name="mayak_settings_subscription_trial_until">Пробный доступ до %1$s · осталось %2$s</string>
+    <string name="mayak_settings_subscription_trial_until_plain">Пробный доступ до %1$s</string>
     <string name="mayak_settings_subscription_active">Доступ активен</string>
     <string name="mayak_settings_subscription_expired">Доступ закончился %1$s</string>
     <string name="mayak_settings_subscription_none">Доступ пока не выдан</string>

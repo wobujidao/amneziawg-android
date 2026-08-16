@@ -360,6 +360,10 @@
     <string name="mayak_dns_save_err">Couldn\'t save: %1$s</string>
     <string name="mayak_settings_subscription_until">Access until %1$s · %2$s left</string>
     <string name="mayak_settings_subscription_until_plain">Access until %1$s</string>
+    <!-- Пробный доступ называем пробным: он короткий по замыслу, и человеку важно понимать, что
+         срок кончается не «у него что-то сломалось», а потому что это проба. -->
+    <string name="mayak_settings_subscription_trial_until">Trial access until %1$s · %2$s left</string>
+    <string name="mayak_settings_subscription_trial_until_plain">Trial access until %1$s</string>
     <string name="mayak_settings_subscription_active">Access is active</string>
     <string name="mayak_settings_subscription_expired">Access ended on %1$s</string>
     <string name="mayak_settings_subscription_none">No access yet</string>
