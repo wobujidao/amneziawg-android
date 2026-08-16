@@ -216,8 +216,12 @@
         <item name="materialThemeOverlay">@style/Mayak.TextInput.Overlay</item>
     </style>
 
-    <!-- Цвет вводимого текста и курсора в полях (читаемый в обоих режимах) -->
-    <style name="Mayak.TextInput.Overlay">
+    <!-- Цвет вводимого текста и курсора в полях (читаемый в обоих режимах).
+         🔴 parent ОБЯЗАТЕЛЕН. Без него имя с точкой наследует Mayak.TextInput — то есть в
+         materialThemeOverlay уезжает СТИЛЬ ВИДЖЕТА вместо темы-накладки, и Material перестаёт
+         рисовать рамку: поле превращается в подчёркнутую строку без коробки (снято живьём 17-08
+         на экране «Написать в поддержку» — поле выглядело сломанным рядом с обведёнными кнопками). -->
+    <style name="Mayak.TextInput.Overlay" parent="ThemeOverlay.Material3.TextInputEditText.OutlinedBox">
         <item name="colorOnSurface">@color/mayak_field_on</item>
         <item name="android:textColorPrimary">@color/mayak_field_on</item>
         <item name="colorPrimary">@color/mayak_outline</item>
