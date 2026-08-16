@@ -816,6 +816,8 @@
     <string name="mayak_msg_subscription_expired">Your access has ended</string>
     <string name="mayak_msg_subscription_expired_body">Grace days left: %1$s. Renew so that everything keeps working.</string>
     <string name="mayak_msg_subscription_expired_body_plain">Renew your access so that everything keeps working.</string>
+    <string name="mayak_msg_trial_expired">The trial period has ended</string>
+    <string name="mayak_msg_trial_expired_body">Your devices and settings are kept — pick a plan and everything will work again.</string>
     <string name="mayak_msg_access_revoked">Access turned off</string>
     <string name="mayak_msg_access_revoked_body">Renew your access or write to us — we will sort it out.</string>
     <!-- ⚠️ 16-08: сумма приходит с сервера БЕЗ знака валюты (usermsg.rub()), а «Refunded: 500»

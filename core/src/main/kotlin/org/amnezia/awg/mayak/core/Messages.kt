@@ -40,6 +40,8 @@ object MessageActions {
 object MessageKinds {
     const val SUBSCRIPTION_EXPIRING = "subscription_expiring"
     const val SUBSCRIPTION_EXPIRED = "subscription_expired"
+    /** Кончился ПРОБНЫЙ доступ: ни подписки («продлить» нечего), ни льготных дней. */
+    const val TRIAL_EXPIRED = "trial_expired"
     const val ACCESS_REVOKED = "access_revoked"
     const val PAYMENT_RECEIPT = "payment_receipt"
     const val PAYMENT_REFUND = "payment_refund"

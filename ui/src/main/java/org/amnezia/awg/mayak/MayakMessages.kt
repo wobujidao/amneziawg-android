@@ -472,6 +472,7 @@ object MayakMessages {
         val res = when (kind) {
             MessageKinds.SUBSCRIPTION_EXPIRING -> R.string.mayak_msg_subscription_expiring
             MessageKinds.SUBSCRIPTION_EXPIRED -> R.string.mayak_msg_subscription_expired
+            MessageKinds.TRIAL_EXPIRED -> R.string.mayak_msg_trial_expired
             MessageKinds.ACCESS_REVOKED -> R.string.mayak_msg_access_revoked
             MessageKinds.PAYMENT_RECEIPT -> R.string.mayak_msg_payment_receipt
             MessageKinds.PAYMENT_REFUND -> R.string.mayak_msg_payment_refund
@@ -514,6 +515,10 @@ object MayakMessages {
         MessageKinds.SUBSCRIPTION_EXPIRED ->
             m.param("grace_days")?.let { context.getString(R.string.mayak_msg_subscription_expired_body, it) }
                 ?: context.getString(R.string.mayak_msg_subscription_expired_body_plain)
+
+        // У пробного ни льготных дней, ни подписки — поэтому и текст свой, без «продлите»
+        // (сервер разводит их по признаку «платил хоть раз», internal/usermsg.TrialExpired).
+        MessageKinds.TRIAL_EXPIRED -> context.getString(R.string.mayak_msg_trial_expired_body)
 
         MessageKinds.ACCESS_REVOKED -> context.getString(R.string.mayak_msg_access_revoked_body)
 

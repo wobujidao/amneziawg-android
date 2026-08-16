@@ -846,6 +846,8 @@
     <string name="mayak_msg_subscription_expired">Доступ закончился</string>
     <string name="mayak_msg_subscription_expired_body">Осталось льготных дней: %1$s. Продлите, чтобы всё продолжало работать.</string>
     <string name="mayak_msg_subscription_expired_body_plain">Продлите доступ, чтобы всё продолжало работать.</string>
+    <string name="mayak_msg_trial_expired">Пробный период закончился</string>
+    <string name="mayak_msg_trial_expired_body">Устройства и настройки сохранены — выберите тариф, и всё заработает снова.</string>
     <string name="mayak_msg_access_revoked">Доступ отключён</string>
     <string name="mayak_msg_access_revoked_body">Продлите доступ или напишите нам — разберёмся.</string>
     <!-- ⚠️ 16-08, ревизия текстов. Две беды на этих строках сразу.
