@@ -68,7 +68,7 @@
                     android:insetBottom="0dp"
                     android:paddingStart="@dimen/mayak_space_3"
                     android:paddingEnd="@dimen/mayak_space_3"
-                    app:icon="@drawable/ic_settings"
+                    app:icon="@drawable/ic_language"
                     app:iconTint="@color/mayak_on_bg"
                     app:iconSize="18dp"
                     android:text="@string/mayak_language" />

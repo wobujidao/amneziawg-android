@@ -42,7 +42,6 @@
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/mayak_reg_back"
-                    android:layout_marginStart="-12dp"
                     style="@style/Mayak.Button.Text.Icon48"
                     android:contentDescription="@string/mayak_back"
                     android:text=""
@@ -348,7 +347,6 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/mayak_reg_captcha_back"
-                android:layout_marginStart="-12dp"
                 style="@style/Mayak.Button.Text.Icon48"
                 android:contentDescription="@string/mayak_back"
                 android:text=""
