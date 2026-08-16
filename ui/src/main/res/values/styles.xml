@@ -68,6 +68,11 @@
         <item name="colorSurfaceContainerLowest">@color/mayak_surface</item>
         <item name="colorSurfaceContainerHigh">@color/mayak_surface</item>
         <item name="colorSurfaceContainerHighest">@color/mayak_surface</item>
+        <!-- Material подмешивает в приподнятые поверхности (наши карточки) «тональную» примесь
+             colorSurfaceTint = colorPrimary. Пока цвета были из обоев, примесь была случайной; став
+             нашей бирюзой, она заметно высветлила карточки. Карточка должна быть ровно того цвета,
+             который задан палитрой, поэтому примесь выключена. -->
+        <item name="elevationOverlayEnabled">false</item>
         <!-- Диалоги AppCompat (а ими построены все наши подтверждения) берут фон окна отсюда,
              а не из ролей выше. Без этой пары «Мои устройства» и все вопросы-подтверждения
              оставались серыми. -->
