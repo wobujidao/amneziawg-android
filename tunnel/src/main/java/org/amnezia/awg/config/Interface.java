@@ -63,6 +63,10 @@ public final class Interface {
     private final Optional<String> specialJunkI4;
     private final Optional<String> specialJunkI5;
     private final Optional<String> headerProtectionKey;
+    // AWG 3.1: случайная длина пакетов рукопожатия. Парная настройка — включаем ровно тогда, когда
+    // её включил сервер линии (он присылает флаг в ответе /connect). Значение по умолчанию false
+    // = директивы в .conf нет и в UAPI ничего не уходит, поведение байт-в-байт прежнее.
+    private final boolean randomTrailers;
 
     private Interface(final Builder builder) {
         // Defensively copy to ensure immutability even if the Builder is reused.
@@ -91,6 +95,7 @@ public final class Interface {
         specialJunkI4 = builder.specialJunkI4;
         specialJunkI5 = builder.specialJunkI5;
         headerProtectionKey = builder.headerProtectionKey;
+        randomTrailers = builder.randomTrailers;
     }
 
     /**
@@ -180,6 +185,9 @@ public final class Interface {
                 case "headerprotectionkey":
                     builder.parseHeaderProtectionKey(attribute.getValue());
                     break;
+                case "randomtrailers":
+                    builder.parseRandomTrailers(attribute.getValue());
+                    break;
                 default:
                     throw new BadConfigException(Section.INTERFACE, Location.TOP_LEVEL,
                             Reason.UNKNOWN_ATTRIBUTE, attribute.getKey());
@@ -217,7 +225,8 @@ public final class Interface {
                 && specialJunkI3.equals(other.specialJunkI3)
                 && specialJunkI4.equals(other.specialJunkI4)
                 && specialJunkI5.equals(other.specialJunkI5)
-                && headerProtectionKey.equals(other.headerProtectionKey);
+                && headerProtectionKey.equals(other.headerProtectionKey)
+                && randomTrailers == other.randomTrailers;
     }
 
     /**
@@ -478,6 +487,7 @@ public final class Interface {
         hash = 31 * hash + specialJunkI4.hashCode();
         hash = 31 * hash + specialJunkI5.hashCode();
         hash = 31 * hash + headerProtectionKey.hashCode();
+        hash = 31 * hash + (randomTrailers ? 1 : 0);
         return hash;
     }
 
@@ -534,6 +544,7 @@ public final class Interface {
         specialJunkI4.ifPresent(i4 -> sb.append("I4 = ").append(i4).append('\n'));
         specialJunkI5.ifPresent(i5 -> sb.append("I5 = ").append(i5).append('\n'));
         headerProtectionKey.ifPresent(hpk -> sb.append("HeaderProtectionKey = ").append(hpk).append('\n'));
+        if (randomTrailers) sb.append("RandomTrailers = true\n");
         sb.append("PrivateKey = ").append(keyPair.getPrivateKey().toBase64()).append('\n');
         return sb.toString();
     }
@@ -565,6 +576,9 @@ public final class Interface {
         specialJunkI4.ifPresent(i4 -> sb.append("i4=").append(i4).append('\n'));
         specialJunkI5.ifPresent(i5 -> sb.append("i5=").append(i5).append('\n'));
         headerProtectionKey.ifPresent(hpk -> sb.append("header_protection_key=").append(hpk).append('\n'));
+        // Имя ключа в UAPI движка — random_trailers (amneziawg-go/v3 device/uapi.go), в .conf у
+        // awg-tools он же зовётся RandomTrailers. Разные имена одного и того же, не опечатка.
+        if (randomTrailers) sb.append("random_trailers=true\n");
         return sb.toString();
     }
 
@@ -620,6 +634,7 @@ public final class Interface {
         private Optional<String> specialJunkI5 = Optional.empty();
         // Defaults to not present.
         private Optional<String> headerProtectionKey = Optional.empty();
+        private boolean randomTrailers;
 
 
         public Builder addAddress(final InetNetwork address) {
@@ -872,6 +887,24 @@ public final class Interface {
 
         public Builder parseHeaderProtectionKey(final String headerProtectionKey) throws BadConfigException {
             return setHeaderProtectionKey(headerProtectionKey == null ? "" : headerProtectionKey.trim());
+        }
+
+        /**
+         * Разбор директивы RandomTrailers (AWG 3.1). Пусто = выключено; принимаем ровно те же
+         * написания, что и awg-tools — true/false, 1/0.
+         */
+        public Builder parseRandomTrailers(final String value) throws BadConfigException {
+            if (value == null || value.trim().isEmpty()) return setRandomTrailers(false);
+            final String v = value.trim().toLowerCase(java.util.Locale.ROOT);
+            if ("true".equals(v) || "1".equals(v)) return setRandomTrailers(true);
+            if ("false".equals(v) || "0".equals(v)) return setRandomTrailers(false);
+            throw new BadConfigException(Section.INTERFACE, Location.TOP_LEVEL,
+                    Reason.INVALID_VALUE, value);
+        }
+
+        public Builder setRandomTrailers(final boolean randomTrailers) {
+            this.randomTrailers = randomTrailers;
+            return this;
         }
 
         public Builder parsePrivateKey(final String privateKey) throws BadConfigException {

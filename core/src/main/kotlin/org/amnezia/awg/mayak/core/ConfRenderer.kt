@@ -71,6 +71,12 @@ object ConfRenderer {
                 }
                 sb.appendLine("HeaderProtectionKey = ${o.headerProtectionKey}")
             }
+            // AWG 3.1: случайная длина пакетов рукопожатия. Пишем ТОЛЬКО когда сервер сказал «да» —
+            // настройка парная, и включённая в одностороннем порядке она ломает связь совсем.
+            // false = директивы нет вовсе, .conf байт-в-байт как раньше.
+            if (o.randomTrailers) {
+                sb.appendLine("RandomTrailers = true")
+            }
         }
 
         sb.appendLine()
