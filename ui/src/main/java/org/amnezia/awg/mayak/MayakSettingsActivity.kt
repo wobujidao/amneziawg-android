@@ -120,7 +120,7 @@ class MayakSettingsActivity : AppCompatActivity() {
         // Номер аккаунта: сначала из хранилища (мгновенно, работает и без сети), потом — освежить.
         showAccountNumber(org.amnezia.awg.mayak.core.AccountNumber.display(store))
         findViewById<MaterialButton>(R.id.mayak_settings_cabinet).setOnClickListener {
-            openUrl(MayakHostList.cabinetUrl(this))
+            MayakCabinet.open(this)
         }
         // Список устройств и отключение лишнего — прямо здесь. После отключения перечитываем строку
         // «Устройства: N из M»: иначе она показывала бы прежнее число, и человек решил бы, что не сработало.

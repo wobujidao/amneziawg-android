@@ -229,7 +229,7 @@ class MayakMessagesActivity : AppCompatActivity() {
      */
     private fun runAction(m: UserMessage) {
         when (m.action) {
-            MessageActions.BILLING, MessageActions.GROUP -> openUrl(MayakHostList.cabinetUrl(this))
+            MessageActions.BILLING, MessageActions.GROUP -> MayakCabinet.open(this)
 
             MessageActions.SUPPORT -> {
                 val ticket = m.actionParam.trim().toLongOrNull() ?: 0L

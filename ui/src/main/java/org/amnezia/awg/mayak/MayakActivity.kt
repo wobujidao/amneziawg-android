@@ -641,7 +641,7 @@ class MayakActivity : AppCompatActivity() {
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.mayak_forgot_title))
             .setMessage(getString(R.string.mayak_forgot_no_email))
-            .setPositiveButton(getString(R.string.mayak_open_cabinet)) { _, _ -> openUrl(MayakHostList.cabinetUrl(this)) }
+            .setPositiveButton(getString(R.string.mayak_open_cabinet)) { _, _ -> MayakCabinet.open(this) }
             .setNegativeButton(getString(R.string.mayak_cancel), null)
             .show()
     }
@@ -897,7 +897,7 @@ class MayakActivity : AppCompatActivity() {
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.mayak_status_no_plan))
             .setMessage(getString(R.string.mayak_no_plan_msg))
-            .setPositiveButton(getString(R.string.mayak_choose_plan)) { _, _ -> openUrl(MayakHostList.cabinetUrl(this)) }
+            .setPositiveButton(getString(R.string.mayak_choose_plan)) { _, _ -> MayakCabinet.open(this) }
             .setNegativeButton(getString(R.string.mayak_cancel), null)
             .show()
     }
@@ -923,7 +923,7 @@ class MayakActivity : AppCompatActivity() {
             .setTitle(getString(if (trial) R.string.mayak_trial_expired else R.string.mayak_status_access_expired))
             .setMessage(getString(if (trial) R.string.mayak_trial_expired_msg else R.string.mayak_access_expired_msg))
             .setPositiveButton(getString(if (trial) R.string.mayak_choose_plan else R.string.mayak_open_cabinet)) { _, _ ->
-                openUrl(MayakHostList.cabinetUrl(this))
+                MayakCabinet.open(this)
             }
             .setNegativeButton(getString(R.string.mayak_cancel), null)
             .show()
@@ -975,7 +975,7 @@ class MayakActivity : AppCompatActivity() {
         setStatus(getString(R.string.mayak_err_email_not_verified))
         AlertDialog.Builder(this)
             .setMessage(getString(R.string.mayak_err_email_not_verified))
-            .setPositiveButton(getString(R.string.mayak_open_cabinet)) { _, _ -> openUrl(MayakHostList.cabinetUrl(this)) }
+            .setPositiveButton(getString(R.string.mayak_open_cabinet)) { _, _ -> MayakCabinet.open(this) }
             .setNegativeButton(getString(R.string.mayak_cancel), null)
             .show()
     }
@@ -1323,7 +1323,7 @@ class MayakActivity : AppCompatActivity() {
                     if (access.alarming) R.color.mayak_red else R.color.mayak_on_bg_muted,
                 )
             )
-            view.setOnClickListener { openUrl(MayakHostList.cabinetUrl(this@MayakActivity)) }
+            view.setOnClickListener { MayakCabinet.open(this@MayakActivity) }
             view.visibility = View.VISIBLE
         }
     }
