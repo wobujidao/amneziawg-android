@@ -123,6 +123,10 @@ object MayakLiveness {
         val app = context.applicationContext
         if (GoTunnel.connectedSinceElapsed == null) return // туннеля нет — сторожить нечего
         if (!hasNetwork) {
+            // Пишем в лог ИМЕННО отсюда: в присланных людьми логах видно только строку «живость: X → Y»,
+            // и по ней не отличить «сторож дотикал» от «пришёл системный сигнал». А разница — вся суть
+            // правки: в Doze сторож не тикает вовсе.
+            Log.i(TAG, "сети нет (системный сигнал, не такт сторожа) → ${GoTunnel.LIVE_NO_NETWORK}")
             apply(app, GoTunnel.LIVE_NO_NETWORK)
             return
         }
