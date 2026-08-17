@@ -1468,7 +1468,16 @@ class MayakActivity : AppCompatActivity() {
     // чтобы не дёргать UI при активном подключении.
     private fun loadDirections(forceRefresh: Boolean = false) {
         val b = backend ?: return
-        if (!session.hasCachedDirections()) setStatus(getString(R.string.mayak_status_loading))
+        // 🔴 Статус-строка принадлежит СОСТОЯНИЮ ТУННЕЛЯ, а не загрузке списка стран.
+        // Найдено 17-08 на эмуляторе: при холодном старте процесса с ЖИВЫМ туннелем (смена языка,
+        // перезапуск приложения поверх работающего VPN) showHome() честно ставил «Защищено» и заводил
+        // таймер, а следом эта строка затирала статус на «Загружаю страны…». На экране получалось
+        // «Загружаю страны…» рядом с бегущим таймером 00:01:40 и синей кнопкой — человек читает это
+        // как «не подключено», хотя трафик уже идёт через туннель. Показываем загрузку только когда
+        // подключения нет: в состояниях CONNECTED/CONNECTING статус занят и врать ему нельзя.
+        if (!session.hasCachedDirections() && connState == ConnState.DISCONNECTED) {
+            setStatus(getString(R.string.mayak_status_loading))
+        }
         lifecycleScope.launch {
             try {
                 // 1) мгновенный показ кэша (быстрый UI), если список ещё пуст
