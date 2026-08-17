@@ -1931,7 +1931,7 @@ class MayakActivity : AppCompatActivity() {
     }
 
     /** Исход одной ступени: имя для человека, поднялась ли, сколько заняла. */
-    private class RungResult(val route: String, val ok: Boolean?, val ms: Long)
+    private class RungResult(val route: String, val ok: Boolean, val ms: Long)
 
     private fun doLinkCheck(d: Direction) {
         val b = backend ?: return
@@ -1958,7 +1958,19 @@ class MayakActivity : AppCompatActivity() {
                 suspend fun step(no: Int, route: String, run: suspend () -> String?) {
                     setStatus(getString(R.string.mayak_check_running, routeLabel(route), no, total))
                     val t0 = SystemClock.elapsedRealtime()
-                    val ip = runCatching { run() }.getOrNull()
+                    // Отмену НЕ глотаем: runCatching поймал бы и её, ступень записалась бы «не
+                    // поднялась», а проверка пошла бы поднимать туннель на следующей — уже после
+                    // того, как человек нажал «отменить». Всё остальное ловим: неудача ступени —
+                    // это результат проверки, а не её ошибка.
+                    val ip = try {
+                        run()
+                    } catch (e: kotlinx.coroutines.CancellationException) {
+                        MayakFallbackTransport.stop()
+                        runCatching { tunnel.down() }
+                        throw e
+                    } catch (_: Exception) {
+                        null
+                    }
                     results += RungResult(route, ip != null, SystemClock.elapsedRealtime() - t0)
                     // Гасим ОБЯЗАТЕЛЬНО и всегда: следующая ступень поднимается своим конфигом, а
                     // `up()` поверх поднятого туннеля — no-op («Tunnel already up»), то есть без
@@ -1994,7 +2006,12 @@ class MayakActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 MayakFallbackTransport.stop()
                 runCatching { tunnel.down() }
-                fail(getString(R.string.mayak_status_no_egress))
+                // Сюда попадает НЕ провал ступени (он записан результатом), а поломка до неё: ядро
+                // не отдало конфиг, кончился доступ, нет мест под устройства. Называем причину
+                // человеческим текстом — тем же, что и обычное подключение. Раньше здесь стояло
+                // «ни один путь не вышел в интернет», и человеку с кончившимся сроком приложение
+                // объясняло его беду устройством нашей сети.
+                fail(humanError(e))
             } finally {
                 linkCheckJob = null
                 renderState(ConnState.DISCONNECTED)
@@ -2011,7 +2028,7 @@ class MayakActivity : AppCompatActivity() {
      */
     private suspend fun sendLinkCheckReport(d: Direction, results: List<RungResult>) {
         val lines = results.joinToString("\n") { r ->
-            val verdict = if (r.ok == true) getString(R.string.mayak_check_ok, "%.1f".format(r.ms / 1000.0))
+            val verdict = if (r.ok) getString(R.string.mayak_check_ok, "%.1f".format(r.ms / 1000.0))
             else getString(R.string.mayak_check_failed)
             "• ${routeLabel(r.route)} — $verdict"
         }
@@ -2019,7 +2036,7 @@ class MayakActivity : AppCompatActivity() {
             put("link_check", "1")
             put("link_check_direction", d.name)
             results.forEach { r ->
-                put("link_check_${r.route}", if (r.ok == true) "ok" else "fail")
+                put("link_check_${r.route}", if (r.ok) "ok" else "fail")
                 put("link_check_${r.route}_ms", r.ms.toString())
             }
         }
