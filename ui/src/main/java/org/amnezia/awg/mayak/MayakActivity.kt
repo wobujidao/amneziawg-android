@@ -54,6 +54,7 @@ import org.amnezia.awg.mayak.core.AppVersionInfo
 import org.amnezia.awg.mayak.core.Direction
 import org.amnezia.awg.mayak.core.Fallback
 import org.amnezia.awg.mayak.core.FallbackDecision
+import org.amnezia.awg.mayak.core.LivenessDecision
 import org.amnezia.awg.mayak.core.HostProvider
 import org.amnezia.awg.mayak.core.LadderTelemetry
 import org.amnezia.awg.mayak.core.Onboarding
@@ -3053,7 +3054,13 @@ class MayakActivity : AppCompatActivity() {
                     val live = when {
                         !MayakNet.hasNetwork(this@MayakActivity) -> GoTunnel.LIVE_NO_NETWORK
                         misses == 0 -> GoTunnel.LIVE_OK // сервер ответил — трафик через туннель идёт
-                        misses >= PING_MISSES_TO_WARN -> GoTunnel.LIVE_NO_TRAFFIC
+                        // Порог зависит от того, пришёл ли фоновый сторож к тому же выводу САМ (по
+                        // росту rx и возрасту рукопожатия). Если пришёл — хватает одного промаха:
+                        // считать свои четыре заново значит подарить человеку лишние полминуты
+                        // «Защищено» ровно тогда, когда он смотрит на незагружающуюся страницу
+                        // (замерено в диаг-логе #28: 36 с между «сторож знает» и «начали чинить»).
+                        misses >= LivenessDecision.missesBeforeSelfHeal(MayakLiveness.watchdogSaysNoTraffic) ->
+                            GoTunnel.LIVE_NO_TRAFFIC
                         else -> GoTunnel.liveness // один-два промаха на мобильной сети — норма, не пугаем
                     }
                     MayakLiveness.apply(this@MayakActivity, live) // общее состояние: экран + шторка разом
@@ -3414,9 +3421,8 @@ class MayakActivity : AppCompatActivity() {
         // Период пинга сервера текущего подключения (обновление показателя на главном экране).
         private const val PING_INTERVAL_MS = 5_000L
 
-        /** Сколько подряд пропущенных пингов считаем «трафик не идёт» (4 × 5с = ~20с). Меньше —
-         *  ловили бы обычные провалы мобильной сети и пугали зря. */
-        private const val PING_MISSES_TO_WARN = 4
+        // Сколько промахов пинга считаем «трафик не идёт» — теперь в LivenessDecision (:core):
+        // порог зависит от того, видит ли фоновый сторож то же самое, и проверяется тестом на JVM.
         private const val SPEED_INTERVAL_MS = 1_000L
 
 

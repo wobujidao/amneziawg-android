@@ -161,6 +161,12 @@ class Application : android.app.Application() {
     private fun onNetworkChange(oldType: NetworkType, newType: NetworkType) {
         Log.i(TAG, "onNetworkChange called: $oldType -> $newType")
         
+        // Статус говорим ЧЕСТНО и сразу. Этот колбэк приходит мгновенно и в Doze, а такт сторожа
+        // живости — обычный `delay(3с)`, который спящий Android замораживает: в живом логе (диаг
+        // #37) между потерей Wi-Fi и словом «сети нет» прошло полторы минуты, и всё это время в
+        // шторке стояло «Защищено». Туннель при этом НЕ трогаем — см. длинный комментарий ниже.
+        org.amnezia.awg.mayak.MayakLiveness.onNetworkChanged(this, newType != NetworkType.NONE)
+
         if (newType == NetworkType.NONE) {
             Log.i(TAG, "Network lost, waiting for new connection...")
             return
