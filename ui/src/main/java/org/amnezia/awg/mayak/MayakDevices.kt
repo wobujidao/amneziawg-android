@@ -11,6 +11,7 @@ package org.amnezia.awg.mayak
 
 import android.app.Activity
 import android.text.format.DateUtils
+import android.view.Gravity
 import android.view.View
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -125,7 +126,23 @@ object MayakDevices {
         val second = listOf(mine, when_).filter { it.isNotBlank() }.joinToString(" · ")
         val sub = v.findViewById<TextView>(R.id.device_seen)
         if (second.isBlank()) sub.visibility = View.GONE else sub.text = second
-        v.findViewById<MaterialButton>(R.id.device_revoke).setOnClickListener { onRevoke() }
+        val revoke = v.findViewById<MaterialButton>(R.id.device_revoke)
+        revoke.setOnClickListener { onRevoke() }
+        // КРУПНЫЙ СИСТЕМНЫЙ ШРИФТ: строка перестраивается в столбик. Замер на эмуляторе 18-08 при
+        // 200 %: кнопка «Отключить» съедала половину ширины, колонке текста оставалось два слова, и
+        // подпись обрывалась на «это устройство…» — исчезало ровно то, по чему выбирают, какое
+        // устройство отключать. Порог 1.3 — там, где текст перестаёт помещаться рядом с кнопкой;
+        // при обычном шрифте ветка не срабатывает и диалог выглядит как прежде.
+        if (activity.resources.configuration.fontScale >= 1.3f) {
+            val rowLayout = v as LinearLayout
+            rowLayout.orientation = LinearLayout.VERTICAL
+            val textCol = rowLayout.getChildAt(0)
+            textCol.layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            )
+            (revoke.layoutParams as LinearLayout.LayoutParams).gravity = Gravity.END
+        }
         return v
     }
 

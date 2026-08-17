@@ -109,7 +109,12 @@
     <!-- Круглая кнопка подключения (Happ-стиль), СВЕТЛАЯ -->
     <color name="mayak_circle_fill_off">#EEF1F7</color>
     <color name="mayak_circle_ring_off">#C2CCDD</color>
-    <color name="mayak_circle_icon_off">#8A98B5</color>
+    <!-- Значок выключенного состояния. Был #8A98B5 — 2,6:1 к заливке круга, то есть НИЖЕ порога
+         3:1 для графики (WCAG 1.4.11): на светлой теме единственный орган управления приложением
+         еле виден при слабом зрении или на солнце. #6B7CA1 даёт 3,7:1 к краю и 4,2:1 к центру
+         градиента и остаётся приглушённым — «выключено» читается по-прежнему тихо.
+         В тёмной теме менять нечего: там #7E8EB0 = 4,3:1. -->
+    <color name="mayak_circle_icon_off">#6B7CA1</color>
     <color name="mayak_circle_fill_pending">#D6EEFB</color>
     <color name="mayak_circle_glow_in">#9CE0FF</color>
     <color name="mayak_circle_glow_out">#4FC3F7</color>

@@ -24,18 +24,23 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:ellipsize="end"
-            android:maxLines="2"
+            android:maxLines="3"
             android:textColor="@color/mayak_on_surface"
             android:textAppearance="@style/Mayak.CardTitle"
             tools:text="Pixel 5 · это устройство" />
 
+        <!-- Строк у подписи 4, а у имени 3 (было по 2): при системном шрифте 200 % подпись
+             обрезалась на «это устройство…», и человек переставал видеть, КОГДА устройство
+             добавлено и когда выходило на связь — то есть ровно то, по чему выбирают, какое
+             отключать (замер на эмуляторе 18-08). При обычном шрифте обе строки короткие, вид
+             прежний; список диалога прокручивается, поэтому лишняя высота не мешает. -->
         <TextView
             android:id="@+id/device_seen"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
             android:ellipsize="end"
-            android:maxLines="2"
+            android:maxLines="4"
             android:textColor="@color/mayak_on_surface_muted"
             android:textAppearance="@style/Mayak.Tagline"
             tools:text="подключалось 4 часа назад" />
