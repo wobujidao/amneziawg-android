@@ -197,6 +197,15 @@
             android:label="@string/mayak_about"
             android:theme="@style/MayakTheme" />
 
+        <!-- «Какие данные мы собираем» (17-08): раскрытие ВНУТРИ приложения — 152-ФЗ и анкета
+             Google Data Safety. Открывается с экрана регистрации (там даётся согласие) и из
+             «О приложении». Читается без интернета — в отличие от политики, которая живёт в вебе. -->
+        <activity
+            android:name="org.amnezia.awg.mayak.MayakDataActivity"
+            android:exported="false"
+            android:label="@string/mayak_data_title"
+            android:theme="@style/MayakTheme" />
+
         <!-- Редактор пресета сплит-туннеля (SPEC-0028): полноэкранный, имя+режим+список приложений -->
         <activity
             android:name="org.amnezia.awg.mayak.MayakPresetEditorActivity"

@@ -72,6 +72,10 @@ class MayakAboutActivity : AppCompatActivity() {
         }
 
         // Правовые разделы открываем в вебе (единый источник истины — кабинет mayakvpn.ru).
+        findViewById<MaterialButton>(R.id.mayak_about_data).setOnClickListener {
+            startActivity(Intent(this, MayakDataActivity::class.java))
+            MayakTransitions.applyAxis(this)
+        }
         findViewById<MaterialButton>(R.id.mayak_about_privacy).setOnClickListener {
             openUrl(MayakHostList.privacyUrl(this))
         }

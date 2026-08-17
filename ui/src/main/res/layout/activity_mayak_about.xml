@@ -157,6 +157,18 @@
                     <!-- hyphenationFrequency: на крупном системном шрифте (200 %) слово
                          «конфиденциальности» шире кнопки и рвалось по буквам (замер 15-08);
                          с дефисацией перенос читаемый. На обычном шрифте не влияет. -->
+                    <!-- Раскрытие «что мы собираем» ВНУТРИ приложения — стоит первым: политику
+                         открывает браузер, а этот экран читается всегда, даже когда сеть режут. -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/mayak_about_data"
+                        style="@style/Mayak.Button.Outlined"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:hyphenationFrequency="normal"
+                        app:iconGravity="textStart"
+                        android:text="@string/mayak_data_link" />
+
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/mayak_about_privacy"
                         style="@style/Mayak.Button.Outlined"

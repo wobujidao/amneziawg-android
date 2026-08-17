@@ -145,6 +145,10 @@ class MayakRegisterActivity : AppCompatActivity() {
         findViewById<MaterialButton>(R.id.mayak_reg_copy_password).setOnClickListener { copyPassword() }
         inviteField.doAfterTextChanged { inviteLayout.error = null }
         findViewById<MaterialButton>(R.id.mayak_reg_invite_paste).setOnClickListener { pasteInvite() }
+        findViewById<MaterialButton>(R.id.mayak_reg_data).setOnClickListener {
+            startActivity(Intent(this, MayakDataActivity::class.java))
+            MayakTransitions.applyAxis(this)
+        }
         findViewById<MaterialButton>(R.id.mayak_reg_policy).setOnClickListener {
             openUrl(MayakHostList.privacyUrl(this))
         }

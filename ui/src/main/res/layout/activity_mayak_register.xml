@@ -150,6 +150,20 @@
                             android:textColor="@color/mayak_on_surface"
                             app:buttonTint="@color/mayak_outline" />
 
+                        <!-- «Какие данные мы собираем» — ВНУТРИ приложения, отдельным экраном, и
+                             стоит ВЫШЕ ссылки на политику намеренно. Политика открывается в браузере
+                             на cabinet.mayaknetworks.com, то есть ровно там, куда человек с
+                             заблокированной сетью может и не дойти — а согласие он даёт здесь и
+                             сейчас. Требование 152-ФЗ (осведомлённое согласие) и анкеты Google
+                             Data Safety закрывается тем, что читается без интернета. -->
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/mayak_reg_data"
+                            style="@style/Mayak.Button.Text"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:textColor="@color/mayak_outline"
+                            android:text="@string/mayak_data_link" />
+
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/mayak_reg_policy"
                             style="@style/Mayak.Button.Text"
