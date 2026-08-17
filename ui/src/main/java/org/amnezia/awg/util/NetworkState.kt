@@ -119,6 +119,12 @@ class NetworkState(
                             handler.post {
                                 onNetworkChange(oldNetworkType, newNetworkType)
                             }
+                        } else {
+                            // Та же оговорка, что и веткой выше: событие родит «сеть стала валидной»,
+                            // и без прежнего типа она сообщит «CELLULAR -> CELLULAR» — то есть смены
+                            // сети в паре снова не будет видно. Ровно этот случай (Wi-Fi → сота, первый
+                            // колбэк невалидированный) и приходит с живых телефонов чаще всего.
+                            pendingOldType = oldNetworkType
                         }
                     } else if (!validated && isValidated) {
                         // Same network became validated
@@ -230,6 +236,7 @@ class NetworkState(
         isListenerBound = false
         currentNetwork = null
         currentNetworkType = NetworkType.NONE
+        pendingOldType = null // иначе после переподписки «прежним типом» считался бы тип из прошлой жизни
         validated = false
     }
 

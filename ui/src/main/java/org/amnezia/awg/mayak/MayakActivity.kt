@@ -39,6 +39,7 @@ import java.io.IOException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
@@ -1976,7 +1977,12 @@ class MayakActivity : AppCompatActivity() {
                         run()
                     } catch (e: kotlinx.coroutines.CancellationException) {
                         MayakFallbackTransport.stop()
-                        runCatching { tunnel.down() }
+                        // NonCancellable обязателен: tunnel.down() — suspend-функция, а корутина уже
+                        // отменена, и обычный вызов бросит CancellationException ДО тела. runCatching
+                        // её проглотит, и туннель ОСТАНЕТСЯ ПОДНЯТЫМ на испытуемой ступени, пока экран
+                        // рисует «Отключено» (ревью 18-08). Для человека это ключ VPN в шторке и весь
+                        // трафик в проверочный туннель без моста — то самое «защищено, а интернета нет».
+                        withContext(NonCancellable) { runCatching { tunnel.down() } }
                         throw e
                     } catch (_: Exception) {
                         null
@@ -2011,7 +2017,8 @@ class MayakActivity : AppCompatActivity() {
                 }
                 sendLinkCheckReport(d, results)
             } catch (e: kotlinx.coroutines.CancellationException) {
-                runCatching { tunnel.down() }
+                // См. выше: в отменённой корутине suspend-вызов не выполнится без NonCancellable.
+                withContext(NonCancellable) { runCatching { tunnel.down() } }
                 throw e
             } catch (e: Exception) {
                 MayakFallbackTransport.stop()
