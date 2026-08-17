@@ -38,6 +38,9 @@ class NetworkState(
 ) {
     private var currentNetwork: Network? = null
     private var currentNetworkType: NetworkType = NetworkType.NONE
+    // Тип сети ДО появления нынешней — держим, пока система не подтвердит её валидность. Нужен
+    // только чтобы событие называлось честно («NONE -> CELLULAR», а не «CELLULAR -> CELLULAR»).
+    private var pendingOldType: NetworkType? = null
     private var validated: Boolean = false
     private var isListenerBound = false
 
@@ -75,11 +78,32 @@ class NetworkState(
                 val isValidated = networkCapabilities.hasCapability(NET_CAPABILITY_VALIDATED)
 
                 if (currentNetwork == null) {
-                    // First network connection
+                    // Сеть появилась, когда её не было вовсе. Это либо первый запуск, либо ВОЗВРАТ
+                    // после полной потери (лифт, метро, режим полёта) — и второе важнее.
+                    //
+                    // 🔴 Правка 18-08. Апстримная ветка молчала: она только запоминала сеть и НЕ
+                    // звала onNetworkChange. Из-за этого приложение узнавало о возвращении сети не
+                    // от системы, а от собственного сторожа с тактом delay(3с), который спящий
+                    // Android замораживает — те самые «минуты без интернета» из присланных логов.
+                    // Иногда спасала случайность: если первый колбэк приходил невалидированным,
+                    // событие рождала следующая ветка. Но она сообщала «CELLULAR -> CELLULAR» —
+                    // потерю сети из этой пары не видно (ровно так это и выглядело в логе #28).
+                    // Теперь возврат называется своим именем: NONE -> CELLULAR.
+                    val oldNetworkType = currentNetworkType
                     currentNetwork = network
                     currentNetworkType = newNetworkType
                     validated = isValidated
                     Log.d(TAG, "Initial network: $newNetworkType, validated: $validated")
+                    if (isValidated) {
+                        Log.d(TAG, "Network changed: $oldNetworkType -> $newNetworkType")
+                        handler.post {
+                            onNetworkChange(oldNetworkType, newNetworkType)
+                        }
+                    } else {
+                        // Валидации ещё нет — событие родит ветка «сеть стала валидной» ниже.
+                        // Отдаём ей ПРЕЖНИЙ тип, иначе она сообщит «CELLULAR -> CELLULAR».
+                        pendingOldType = oldNetworkType
+                    }
                 } else {
                     if (currentNetwork != network || currentNetworkType != newNetworkType) {
                         // Network changed (e.g., WiFi to Cellular or vice versa)
@@ -99,9 +123,11 @@ class NetworkState(
                     } else if (!validated && isValidated) {
                         // Same network became validated
                         validated = true
-                        Log.d(TAG, "Network validated: $newNetworkType")
+                        val from = pendingOldType ?: currentNetworkType
+                        pendingOldType = null
+                        Log.d(TAG, "Network validated: $newNetworkType (было: $from)")
                         handler.post {
-                            onNetworkChange(currentNetworkType, newNetworkType)
+                            onNetworkChange(from, newNetworkType)
                         }
                     }
                 }
@@ -121,6 +147,7 @@ class NetworkState(
                     val oldType = currentNetworkType
                     currentNetwork = null
                     currentNetworkType = NetworkType.NONE
+                    pendingOldType = null // сеть потеряна — «прежним типом» теперь считается NONE
                     validated = false
                     Log.d(TAG, "Network lost: $oldType -> NONE")
                     handler.post {
