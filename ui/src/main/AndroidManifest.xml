@@ -248,6 +248,15 @@
             android:name=".activity.MainActivity"
             android:exported="false" />
 
+        <!-- Стоковый экран для телевизоров СНЯТ 19-08 (адверсариальное ревью). Он оставался
+             android:exported="true" — то есть открытым наружу — при том что строкой выше у
+             обычного стокового экрана стоит exported="false" и объяснено, почему: любое приложение
+             на устройстве могло запустить его и показать человеку чужой логотип AmneziaWG, список
+             туннелей и предложение импортировать произвольный конфиг. Для продукта, который
+             публично не называет себя VPN, это раскрытие одним intent'ом.
+             Продукт — телефоны; телевизоры мы не выпускали и не проверяли, поэтому лаунчер-экран
+             для них не нужен вовсе. Класс TvMainActivity в коде остаётся (апстрим), но снаружи
+             больше не запускается.
         <activity
             android:name=".activity.TvMainActivity"
             android:exported="true"
@@ -257,6 +266,7 @@
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
         </activity>
+        -->
 
         <activity
             android:name=".activity.SettingsActivity"
