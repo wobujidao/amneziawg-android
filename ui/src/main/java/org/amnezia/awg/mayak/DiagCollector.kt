@@ -241,10 +241,56 @@ object DiagCollector {
             val ours = raw.lineSequence()
                 .filter { it.contains("AmneziaWG") || it.contains("Mayak/") }
                 .joinToString("\n")
-            tail(scrubSecrets(ours), MAX_LOG_BYTES)
+            tail(scrubSecrets(collapseRepeats(ours)), MAX_LOG_BYTES)
         } catch (e: Exception) {
             "не удалось собрать logcat: ${e.message}"
         }
+    }
+
+    /** Начало строки logcat в формате threadtime: «08-16 21:03:44.512  1234  5678 » — время, pid, tid. */
+    private val LOGCAT_HEAD = Regex("""^(\d\d-\d\d \d\d:\d\d:\d\d\.\d\d\d)\s+\d+\s+\d+\s+""")
+
+    /**
+     * Схлопывает ПОДРЯД ИДУЩИЕ одинаковые строки в одну плюс отметку о повторах.
+     *
+     * Повод — присланный лог с устройства vivo (16-08): при пропаже сети движок писал
+     * `Failed to send data packets: network is unreachable` ТРИДЦАТЬ раз в одну миллисекунду.
+     * Лог у нас кольцевой и обрезан потолком в 256 КиБ, поэтому такая очередь одинаковых строк
+     * выдавливает из него ровно тот контекст, ради которого лог и прислали: что было ДО обрыва.
+     * Тридцать копий одной строки не говорят ничего сверх первой — а место занимают как тридцать.
+     *
+     * Сравниваем строки БЕЗ времени, pid и tid: у повторов они разные, а смысл один. Отметку пишем
+     * с временем последнего повтора — по ней видно, сколько длилась очередь (одна миллисекунда и
+     * пять минут — разные истории).
+     */
+    internal fun collapseRepeats(log: String): String {
+        val out = StringBuilder()
+        var prevKey: String? = null
+        var repeats = 0
+        var lastTime = ""
+        fun flush() {
+            if (repeats > 0) {
+                out.append("    [то же самое ещё ").append(repeats).append(" раз")
+                if (lastTime.isNotEmpty()) out.append(", до ").append(lastTime)
+                out.append("]\n")
+            }
+            repeats = 0
+        }
+        for (line in log.lineSequence()) {
+            val head = LOGCAT_HEAD.find(line)
+            val key = if (head != null) line.substring(head.value.length) else line
+            if (prevKey != null && key == prevKey) {
+                repeats++
+                if (head != null) lastTime = head.groupValues[1]
+                continue
+            }
+            flush()
+            out.append(line).append('\n')
+            prevKey = key
+            lastTime = ""
+        }
+        flush()
+        return out.toString().trimEnd('\n')
     }
 
     // Регэкспы возможных секретов в логе (приватные ключи, токены). Движок ключ не логирует (проверено),
