@@ -1,0 +1,23 @@
+# Dependabot для приложения. Заведён 18-08 вместе с `security.yml`.
+#
+# 🔴 До этого дня зависимости приложения не смотрел НИКТО: Dependabot настроен в монорепозитории
+# (`gomod` + `github-actions`), а сюда, в форк, он никогда не заглядывал. Между тем внутри приложения
+# живут androidx, Material, Firebase, BouncyCastle и корутины — и у них выходят CVE, как у всех.
+# Разбор — `docs/research/2026-08-18-sast-dast-sca-scs-chto-u-nas-est.md` в монорепозитории.
+#
+# `gradle` понимает каталог версий `gradle/libs.versions.toml` — именно там у нас объявлены версии.
+version: 2
+updates:
+  - package-ecosystem: "gradle"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+
+  # Шаги сборки прибиты по SHA — а значит без бота они не обновятся никогда, и мы навсегда останемся
+  # на версии с однажды найденной в ней дырой. Бот двигает и SHA, и комментарий с меткой.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5

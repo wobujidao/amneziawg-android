@@ -167,12 +167,22 @@
                         app:helperText="@string/mayak_totp_helper"
                         android:hint="@string/mayak_totp_hint">
 
+                        <!-- inputType=textVisiblePassword, а НЕ text: обычный текст клавиатура
+                             ЗАПОМИНАЕТ (словарь подсказок), и одноразовый код с резервным ключом
+                             оседали в её истории; заодно там же живут автозамена и подсказки, которые
+                             в коде только мешают. И НЕ number: резервный ключ у нас шестнадцатеричный,
+                             четыре группы по пять символов через дефис (accounts/totp2fa.go) —
+                             цифровая клавиатура его просто не даёт ввести.
+                             autofillHints: было «password», и это прямо приглашало менеджер паролей
+                             подставить сюда ПАРОЛЬ ОТ АККАУНТА — вход отказал бы, а счётчик попыток
+                             сработал. smsOTPCode — стандартная подсказка «это одноразовый код».
+                             Нашёл mobsfscan 18-08, правило про кэш клавиатуры у чувствительного поля. -->
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/mayak_totp"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:inputType="text"
-                            android:autofillHints="password"
+                            android:inputType="textVisiblePassword"
+                            android:autofillHints="smsOTPCode"
                             android:imeOptions="actionDone"
                             android:maxLines="1" />
                     </com.google.android.material.textfield.TextInputLayout>

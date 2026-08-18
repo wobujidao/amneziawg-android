@@ -1,0 +1,59 @@
+# Настройки mobsfscan — мобильного сканера (команда MobSF, правила по OWASP MASVS).
+# Гоняется в `.github/workflows/security.yml`; локально: mobsfscan --type android ui/src core/src tunnel/src
+#
+# 🔴 ПРАВИЛО ПРОЕКТА: молчаливого игнора не бывает. Каждая строка ниже — с причиной, почему находка
+# принята. Не знаешь причины — не добавляй, а чини. (CLAUDE.md, раздел про сканеры в CI.)
+
+# INFO у mobsfscan — это не находки, а перечень «приложение не делает X». Половина неприменима к
+# нашей модели, и все они относятся к классу «сканер не видит, что X сделан иначе»:
+#   • android_certificate_pinning / android_ssl_pinning — пиннинг у нас ЕСТЬ, но живёт в
+#     res/xml/network_security_config (и стережётся тестом NetworkSecurityConfigPinTest), а правило
+#     ищет его в КОДЕ;
+#   • android_root_detection / android_safetynet — проверку root и аттестацию Google мы не делаем
+#     СОЗНАТЕЛЬНО: это инструмент против владельца устройства, а мы продаём приватность;
+#   • android_prevent_screenshot — запрет скриншотов сломал бы человеку возможность прислать нам
+#     экран поломки, а защищает он от того, кто уже держит телефон в руках;
+#   • android_logging / android_kotlin_logging — логи у нас нужны (диагностика «как у людей»),
+#     секреты из них вычищаются перед отправкой (DiagCollector.scrubSecrets);
+#   • android_detect_tapjacking, android_certificate_transparency — принято к сведению, отдельные
+#     задачи в docs/APP-BACKLOG.md, а не повод держать конвейер красным.
+# ⚠️ severity-filter — это БЕЛЫЙ СПИСОК: остаётся только перечисленное (mobsfscan.py:290,
+# `if issue_severity not in severity_filter: skip`). Первый заход поставил сюда INFO и добился
+# ровно обратного — в отчёте остался один шум.
+severity-filter:
+  - ERROR
+  - WARNING
+
+ignore-rules:
+  # Правило ругается на любое присвоение visibility в разметке/коде: «скрытый элемент может
+  # утечь». Все совпадения — в АПСТРИМНОМ коде Amnezia (TvMainActivity, AddTunnelsSheet,
+  # TunnelDetailFragment), и это обычное показать/скрыть блок интерфейса, без данных.
+  - android_kotlin_hiddenui
+
+  # «Захардкоженный ключ» — ложное срабатывание на РАЗБОР чужого ключа: в Interface.java и Peer.java
+  # апстрим парсит публичный ключ пира из текста конфига (base64), и регулярка сканера видит в этом
+  # присвоение ключа. Настоящих ключей в коде нет — за этим отдельно следит gitleaks в том же
+  # workflow и сторож секретов в монорепозитории.
+  - hardcoded_api_key
+
+  # Random в NetworkBackgroundView — это ДЕКОРАЦИЯ: точки и линии фона главного экрана. Криптографии
+  # там нет и быть не должно; SecureRandom на анимации только съел бы батарею.
+  - android_kotlin_insecure_random
+
+  # SHA-1 в WsDatagramClient — это рукопожатие WebSocket, где алгоритм ПРЕДПИСАН RFC 6455
+  # (Sec-WebSocket-Accept). Заменить его нельзя: сервер по другому хэшу нас не узнает. Криптозащитой
+  # это поле не является — оно доказывает лишь, что собеседник понял протокол.
+  - android_kotlin_sha1
+
+  # «Перехват задачи, StrandHogg 2.0». Правило срабатывает по формуле targetSdk < 29 И активность
+  # exported (manifest.py:474). Наш targetSdk = 36 — но объявлен он в ui/build.gradle.kts, как у
+  # любого нынешнего проекта, а сканер читает СЫРОЙ манифест и Gradle не видит вовсе: получает 0,
+  # 0 < 29 — и находка. То есть это артефакт разбора, а не наша дыра.
+  # Саму защиту мы при этом ПОСТАВИЛИ (android:taskAffinity="" на <application>) — она бесплатна и
+  # прикрывает старые телефоны, где системной заплатки Google нет: minSdk у нас 24.
+  - android_task_hijacking2
+
+  # allowBackup: правило смотрит манифест МОДУЛЯ tunnel, где флаг не задан. В СОБРАННОМ приложении
+  # он android:allowBackup="false" (задан в ui/src/main/AndroidManifest.xml, проверено по
+  # packaged_manifests), и это же стережёт тест MayakNoBackupTest.
+  - android_manifest_missing_explicit_allow_backup

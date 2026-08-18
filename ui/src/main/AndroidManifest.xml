@@ -45,8 +45,17 @@
         android:label="@string/permission_label"
         android:protectionLevel="dangerous" />
 
+    <!-- taskAffinity="" — защита от перехвата задачи (StrandHogg, MASVS-PLATFORM). Без неё чужое
+         приложение объявляет у себя нашу affinity и подсовывает СВОЙ экран поверх нашей задачи:
+         человек нажимает наш значок, а вводит пароль в чужую форму. У нас экран входа с паролем и
+         кодом 2FA, то есть цель ровно та, ради которой этот приём и придумали. Пустая строка =
+         «эта задача ничья», подставиться в неё нельзя.
+         Нашёл mobsfscan 18-08 (правило android_task_hijacking2), когда сканеры приложения завели
+         впервые. Проверено на эмуляторе: переходы между экранами, «Назад» и список недавних задач
+         ведут себя как прежде (одна карточка, а не по одной на экран). -->
     <application
         android:name=".Application"
+        android:taskAffinity=""
         android:allowBackup="false"
         android:banner="@mipmap/banner"
         android:enableOnBackInvokedCallback="true"
