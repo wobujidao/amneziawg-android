@@ -375,36 +375,59 @@ object MayakMessages {
         if (nm.getNotificationChannel(CHANNEL_QUIET_ID_OLD) != null) {
             runCatching { nm.deleteNotificationChannel(CHANNEL_QUIET_ID_OLD) }
         }
-        if (nm.getNotificationChannel(CHANNEL_ID) == null) {
-            nm.createNotificationChannel(
-                NotificationChannel(
-                    CHANNEL_ID,
-                    context.getString(R.string.mayak_messages_channel_name),
-                    NotificationManager.IMPORTANCE_DEFAULT,
-                ).apply {
-                    // lockscreenVisibility здесь НЕ ставим: система такое присвоение от приложения
-                    // молча игнорирует (поле правит только она сама — в дампе остаётся
-                    // VISIBILITY_NO_OVERRIDE, проверено 12-08). Приватность задаёт само уведомление.
-                    description = context.getString(R.string.mayak_messages_channel_desc)
-                }
-            )
+        // Имя и описание освежаем и у УЖЕ СОЗДАННОГО канала: система замораживает их на момент
+        // первого создания, поэтому смена языка приложения и правка текста в новой версии до
+        // человека иначе не доезжают вовсе (разбор — MayakNotification.ensureChannel).
+        upsert(
+            nm, CHANNEL_ID,
+            context.getString(R.string.mayak_messages_channel_name),
+            context.getString(R.string.mayak_messages_channel_desc),
+        ) {
+            // lockscreenVisibility здесь НЕ ставим: система такое присвоение от приложения
+            // молча игнорирует (поле правит только она сама — в дампе остаётся
+            // VISIBILITY_NO_OVERRIDE, проверено 12-08). Приватность задаёт само уведомление.
         }
-        if (nm.getNotificationChannel(CHANNEL_QUIET_ID) == null) {
-            nm.createNotificationChannel(
-                NotificationChannel(
-                    CHANNEL_QUIET_ID,
-                    context.getString(R.string.mayak_messages_channel_quiet_name),
-                    // DEFAULT со снятым звуком, а НЕ LOW: нам нужно «молча», но видно (значок в
-                    // статус-баре, обычная строка в шторке). LOW система с Android 11 прячет из
-                    // статус-бара, и вместе с «Не беспокоить» человека сообщение исчезало совсем.
-                    NotificationManager.IMPORTANCE_DEFAULT,
-                ).apply {
-                    description = context.getString(R.string.mayak_messages_channel_quiet_desc)
-                    setSound(null, null)
-                    enableVibration(false)
-                }
-            )
+        upsert(
+            nm, CHANNEL_QUIET_ID,
+            context.getString(R.string.mayak_messages_channel_quiet_name),
+            context.getString(R.string.mayak_messages_channel_quiet_desc),
+        ) {
+            setSound(null, null)
+            enableVibration(false)
         }
+    }
+
+    /**
+     * Создать канал или освежить у существующего имя с описанием.
+     *
+     * Существующему передаём ТОТ ЖЕ объект, лишь поправив имя и описание: важность, звук и всё
+     * прочее, что человек настроил руками, остаётся его. Новый заводим с IMPORTANCE_DEFAULT —
+     * DEFAULT со снятым звуком, а НЕ LOW: нам нужно «молча», но видно (значок в статус-баре,
+     * обычная строка в шторке). LOW система с Android 11 прячет из статус-бара, и вместе с
+     * «Не беспокоить» человека сообщение исчезало совсем.
+     */
+    @androidx.annotation.RequiresApi(Build.VERSION_CODES.O)
+    private fun upsert(
+        nm: NotificationManager,
+        id: String,
+        name: String,
+        desc: String,
+        tune: NotificationChannel.() -> Unit,
+    ) {
+        val existing = nm.getNotificationChannel(id)
+        if (existing != null) {
+            if (existing.name == name && existing.description == desc) return
+            existing.name = name
+            existing.description = desc
+            nm.createNotificationChannel(existing)
+            return
+        }
+        nm.createNotificationChannel(
+            NotificationChannel(id, name, NotificationManager.IMPORTANCE_DEFAULT).apply {
+                description = desc
+                tune()
+            }
+        )
     }
 
     private fun notifId(id: Long): Int = NOTIF_BASE + (id % 1000).toInt()

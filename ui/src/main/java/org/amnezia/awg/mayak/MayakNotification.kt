@@ -36,16 +36,51 @@ object MayakNotification {
         return "${MayakFlags.emojiForCode(dir.flagCode())} ${dir.displayLabel()}"
     }
 
+    /**
+     * Освежить имя и описание канала, если он УЖЕ заведён. Зовётся при открытии приложения.
+     *
+     * Зачем отдельная дверь: сам канал заводится только при первом подключении (до него человеку
+     * нечего настраивать, и лишней строки в системных настройках он не увидит). А вот освежить
+     * НАЗВАНИЕ у уже существующего канала надо раньше: иначе смена языка и переписанный в новой
+     * версии текст ждут следующего подключения, которого может не случиться неделю.
+     */
+    fun refreshChannel(ctx: Context) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        val nm = ctx.getSystemService(NotificationManager::class.java) ?: return
+        if (nm.getNotificationChannel(CHANNEL_ID) == null) return
+        ensureChannel(ctx)
+    }
+
     private fun ensureChannel(ctx: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val nm = ctx.getSystemService(NotificationManager::class.java) ?: return
-        if (nm.getNotificationChannel(CHANNEL_ID) != null) return
+        val name = ctx.getString(R.string.mayak_notif_channel_name)
+        val desc = ctx.getString(R.string.mayak_notif_channel_desc)
+        val existing = nm.getNotificationChannel(CHANNEL_ID)
+        if (existing != null) {
+            // 🔴 Раньше здесь стоял просто `return`, и имя канала застывало НАВСЕГДА — таким, каким
+            // его создали в первый раз. Два следствия, оба видны человеку:
+            //   • сменил язык приложения — в системном списке каналов остаётся прежний язык
+            //     (найдено 18-08 на эмуляторе: телефон по-русски, приложение по-английски,
+            //     канал по-русски);
+            //   • переписали текст в новой версии — до УЖЕ УСТАНОВЛЕННЫХ приложений он не доедет
+            //     вовсе. Ровно этим 0.5.29 и занималась: канал назывался «VPN status», а приложение
+            //     умеет прятаться под другое имя, и такая надпись отменяла маскировку.
+            // Имя и описание — единственное, что система разрешает приложению менять у живого
+            // канала. Передаём ТОТ ЖЕ объект: так важность, звук и всё, что человек настроил
+            // руками, остаётся его.
+            if (existing.name == name && existing.description == desc) return
+            existing.name = name
+            existing.description = desc
+            nm.createNotificationChannel(existing)
+            return
+        }
         val ch = NotificationChannel(
             CHANNEL_ID,
-            ctx.getString(R.string.mayak_notif_channel_name),
+            name,
             NotificationManager.IMPORTANCE_LOW, // статус: без звука/вибро/всплытия
         ).apply {
-            description = ctx.getString(R.string.mayak_notif_channel_desc)
+            description = desc
             setShowBadge(false)
         }
         nm.createNotificationChannel(ch)
