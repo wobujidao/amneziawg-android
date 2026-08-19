@@ -16,7 +16,7 @@ import org.junit.Test
  */
 class WsUdpShimTest {
 
-    private val token = "LetuNRcdPCaFBeEbsUT0Idc6EhAGw9HDlWWS3kt39s0="
+    private val token = "d3MtYnJpZGdlLXRva2VuLWZha2UtMDAwMDAwMDAwMDA="
 
     @Test
     fun `датаграммы движка доходят до моста и возвращаются`() {

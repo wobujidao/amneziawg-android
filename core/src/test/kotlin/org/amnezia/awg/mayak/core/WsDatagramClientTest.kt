@@ -21,8 +21,10 @@ import org.junit.Test
  */
 class WsDatagramClientTest {
 
-    /** Боевой токен моста — base64, то есть ASCII. Тест держит ту же форму. */
-    private val TOKEN = "LetuNRcdPCaFBeEbsUT0Idc6EhAGw9HDlWWS3kt39s0="
+    /** Заведомо ФАЛЬШИВЫЙ токен моста: боевой — base64 из 44 символов, тест держит ту же форму.
+     *  Значение читаемое (base64 от «ws-bridge-token-fake-…») намеренно — 19-08 сузили исключения
+     *  .gitleaks.toml до конкретных строк, и по такому значению видно без раздумий, что оно не живое. */
+    private val TOKEN = "d3MtYnJpZGdlLXRva2VuLWZha2UtMDAwMDAwMDAwMDA="
 
     private var server: FakeWsServer? = null
 
