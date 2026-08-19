@@ -517,7 +517,7 @@
     <string name="mayak_support_err_long">Too long: keep it to %1$d characters — we can go into the rest in the thread.</string>
     <string name="mayak_support_err_rate">Too many messages in a row. You can send again in about %1$d min — what has arrived is already with us.</string>
     <string name="mayak_support_err_rate_soon">Too many messages in a row. Try a bit later — what has arrived is already with us.</string>
-    <string name="mayak_support_err_channel_off">The form does not work on our side right now. Your text is not lost — send it by mail, the address is below.</string>
+    <string name="mayak_support_err_channel_off">The form does not work on our side right now. Your text is not lost — send it by email, the address is below.</string>
     <string name="mayak_support_err_retry">It did not go through. The text is kept — press “Try again”.</string>
     <string name="mayak_support_err_offline">No connection to the server. The text is kept — try again when the network is back.</string>
     <string name="mayak_support_err_login">Sign in to your account: then we see your plan and devices and answer to the point.</string>
@@ -535,10 +535,10 @@
     <string name="mayak_support_reply_hint">Add to the ticket</string>
     <string name="mayak_support_reply_sent">Sent</string>
     <string name="mayak_support_other_title">Other ways</string>
-    <string name="mayak_support_email_line">Support mail: %1$s</string>
+    <string name="mayak_support_email_line">Support email: %1$s</string>
     <string name="mayak_support_copy_email">Copy the address</string>
     <string name="mayak_support_email_copied">Address copied: %1$s</string>
-    <string name="mayak_support_mail_fallback">Write by mail</string>
+    <string name="mayak_support_mail_fallback">Write by email</string>
     <string name="mayak_support_need_login">The form works after you sign in — then we see your plan and devices and answer to the point. Without signing in, write to us by mail: the address is below.</string>
     <string name="mayak_support_login">Sign in</string>
     <!-- «Какие данные мы собираем» — раскрытие ВНУТРИ приложения (152-ФЗ + анкета Google Data
