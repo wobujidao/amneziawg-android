@@ -4,7 +4,16 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:installLocation="internalOnly">
 
-    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- 🔴 КАМЕРА СНЯТА 19-08 (аудит, A4). Разрешение пришло от апстрима ради импорта конфига по
+         QR-коду; экран этого импорта живёт в TunnelListFragment внутри .activity.MainActivity, а она
+         exported="false" и из нашего интерфейса не открывается ни одной кнопкой (единственный, кто
+         её запускал, — апстримная .QuickTileService, а она в манифесте не объявлена вовсе). То есть
+         разрешение было в боевом APK и в карточке Play, а дороги к нему не было.
+         `tools:node="remove"` обязателен: библиотека zxing-android-embedded объявляет CAMERA в СВОЁМ
+         манифесте, и без явного снятия слияние вернуло бы её обратно. Проверка — по СОБРАННОМУ
+         манифесту прод-варианта, а не по этому файлу.
+         Понадобится QR — вернуть строку вместе с экраном, который его показывает. -->
+    <uses-permission android:name="android.permission.CAMERA" tools:node="remove" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- READ_PHONE_STATE УБРАНО 2026-07-31 (решение владельца от 29-07 «только на бету, перед релизом
@@ -17,13 +26,15 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- самообновление (Вариант Б): установка скачанного APK из приложения -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
-    <uses-permission
-        android:name="android.permission.SYSTEM_ALERT_WINDOW"
-        android:minSdkVersion="34" />
-    <uses-permission
-        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
-        android:maxSdkVersion="28"
-        tools:ignore="ScopedStorage" />
+    <!-- 🔴 СНЯТЫ 19-08 (аудит, A4) — оба разрешения апстримные и вели в недостижимый код.
+         SYSTEM_ALERT_WINDOW («Поверх других окон») читается ровно в одном месте —
+         org.amnezia.awg.QuickTileService, апстримной плитке, которой в манифесте НЕТ (в шторке
+         живёт наша MayakQuickTileService, а она overlay не спрашивает).
+         WRITE_EXTERNAL_STORAGE (Android 7–9) нужен апстримному экспорту через DownloadsFileSaver —
+         его зовут LogViewerActivity и ZipExporterPreference, обе доступны только из
+         .activity.SettingsActivity ← .activity.MainActivity (exported="false", кнопки к ним нет).
+         Для продукта, продающего приватность, «Поверх других окон» и «Хранилище» в карточке Play —
+         это ещё и позиционирование. -->
 
     <uses-feature
         android:name="android.hardware.touchscreen"
@@ -57,6 +68,7 @@
         android:name=".Application"
         android:taskAffinity=""
         android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
         android:banner="@mipmap/banner"
         android:enableOnBackInvokedCallback="true"
         android:icon="@mipmap/ic_launcher"

@@ -26,12 +26,12 @@ object ConfRenderer {
     fun render(cfg: ClientConfig, privateKeyBase64: String): String {
         val sb = StringBuilder()
         sb.appendLine("[Interface]")
-        sb.appendLine("PrivateKey = $privateKeyBase64")
+        sb.appendLine("PrivateKey = ${oneLine("PrivateKey", privateKeyBase64)}")
         // dual-stack (SPEC-0014): при наличии address_v6 кладём v4 и v6 в одну строку Address;
         // форк парсит IPv6 сам. DNS/AllowedIPs (IPv6-резолверы + ::/0) ядро уже складывает в свои поля.
         val address = if (cfg.addressV6.isNotBlank()) "${cfg.address}, ${cfg.addressV6}" else cfg.address
-        sb.appendLine("Address = $address")
-        if (cfg.dns.isNotBlank()) sb.appendLine("DNS = ${cfg.dns}")
+        sb.appendLine("Address = ${oneLine("Address", address)}")
+        if (cfg.dns.isNotBlank()) sb.appendLine("DNS = ${oneLine("DNS", cfg.dns)}")
         if (cfg.mtu > 0) sb.appendLine("MTU = ${cfg.mtu}")
 
         cfg.obfuscation?.let { o ->
@@ -85,9 +85,9 @@ object ConfRenderer {
 
         sb.appendLine()
         sb.appendLine("[Peer]")
-        sb.appendLine("PublicKey = ${cfg.serverPubkey}")
-        sb.appendLine("Endpoint = ${cfg.endpoint}")
-        sb.appendLine("AllowedIPs = ${cfg.allowedIps}")
+        sb.appendLine("PublicKey = ${oneLine("PublicKey", cfg.serverPubkey)}")
+        sb.appendLine("Endpoint = ${oneLine("Endpoint", cfg.endpoint)}")
+        sb.appendLine("AllowedIPs = ${oneLine("AllowedIPs", cfg.allowedIps)}")
         if (cfg.persistentKeepalive > 0) {
             sb.appendLine("PersistentKeepalive = ${cfg.persistentKeepalive}")
         }
@@ -95,7 +95,28 @@ object ConfRenderer {
     }
 
     private fun appendIfPresent(sb: StringBuilder, key: String, value: String) {
-        if (value.isNotBlank()) sb.appendLine("$key = $value")
+        if (value.isNotBlank()) sb.appendLine("$key = ${oneLine(key, value)}")
+    }
+
+    /**
+     * Значение директивы .conf не смеет содержать перевод строки.
+     *
+     * 🔴 Зачем (аудит 19-08, A4). Строгий формат стоял РОВНО у одного поля из двадцати —
+     * `HeaderProtectionKey`, — и мотив назван в комментарии выше: перевод строки в недоверенном
+     * значении дописывает в .conf произвольную директиву. У `Address`, `DNS`, `Endpoint`,
+     * `AllowedIPs`, H1–H4 и I1–I5 той же защиты не было, хотя приходят они тем же ответом ядра.
+     * Сегодня эксплуатируемость низкая (значения задаёт наше же ядро), но защита была
+     * асимметричной — а асимметричная защита при беглом чтении выглядит как сплошная.
+     *
+     * Fail-closed НАМЕРЕННО, как у ключа заголовка: битое значение роняет рендер исключением, а не
+     * уезжает в движок «поправленным». Человек видит честный отказ подключения, а не туннель,
+     * который поднялся и не работает.
+     */
+    private fun oneLine(key: String, value: String): String {
+        // Само значение в текст сообщения НЕ кладём: часть из них — секреты, а сообщение уходит
+        // в лог и в диаг-лог.
+        require(value.none { it == '\n' || it == '\r' }) { "перевод строки в значении $key" }
+        return value
     }
 
     /**

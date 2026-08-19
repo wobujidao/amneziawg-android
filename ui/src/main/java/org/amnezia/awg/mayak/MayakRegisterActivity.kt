@@ -281,9 +281,18 @@ class MayakRegisterActivity : AppCompatActivity() {
         // система ещё и показывает превью содержимого. Альтернатива — заставить человека переписать
         // 24 символа руками — хуже: он придумает «1234qwer» и потеряет доступ к аккаунту навсегда.
         val cm = getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
-        cm?.setPrimaryClip(
-            android.content.ClipData.newPlainText(getString(R.string.mayak_reg_password_hint), pw)
-        )
+        val clip = android.content.ClipData.newPlainText(getString(R.string.mayak_reg_password_hint), pw)
+        // 🔴 Пометка «в буфере секрет» (аудит 19-08, A4). Комментарий выше проблему НАЗЫВАЛ, а
+        // штатное лекарство не применялось: на Android 13+ система показывает всплывающее превью
+        // скопированного, и пароль от учётки был виден на экране целиком, а редакторы буфера
+        // читали его как обычный текст. С этим флагом система показывает «•••••» и не кладёт
+        // значение в историю буфера.
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            clip.description.extras = android.os.PersistableBundle().apply {
+                putBoolean(android.content.ClipDescription.EXTRA_IS_SENSITIVE, true)
+            }
+        }
+        cm?.setPrimaryClip(clip)
         android.widget.Toast.makeText(this, R.string.mayak_reg_password_copied, android.widget.Toast.LENGTH_SHORT).show()
     }
 

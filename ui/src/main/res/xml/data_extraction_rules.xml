@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Что приложению НЕ разрешено выносить с телефона (аудит безопасности 19-08, A4).
+
+  🔴 Зачем, если рядом уже стоит allowBackup="false". На Android 12+ (targetSdk 36) этот флаг
+  выключает только ОБЛАЧНУЮ копию. Перенос на новый телефон (device-to-device) — отдельный канал,
+  и по умолчанию он забирает данные приложения целиком. Ключа из Android Keystore он не переносит,
+  поэтому сами секреты не утекают (KeystoreSecureStore.get() на новом устройстве вернёт null), —
+  но в plaintext-настройках mayak_ui_prefs лежит то, чего человеку хватит на неприятность:
+  список приложений раздельного туннелирования (то есть чем он пользуется) и выученные адреса ядра.
+  Для продукта, который продаёт приватность, «оно уехало само» — неправильный ответ по умолчанию.
+
+  Исключаем ВСЁ и в обеих секциях: домен root — корень данных приложения, остальные домены названы
+  явно, потому что путать их дороже, чем перечислить. Внешнего хранилища мы не используем вовсе.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" />
+        <exclude domain="file" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="external" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" />
+        <exclude domain="file" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="external" />
+    </device-transfer>
+</data-extraction-rules>

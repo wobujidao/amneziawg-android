@@ -5,8 +5,10 @@
 package org.amnezia.awg.util
 
 import android.content.ClipData
+import android.content.ClipDescription
 import android.content.ClipboardManager
 import android.os.Build
+import android.os.PersistableBundle
 import android.view.View
 import android.widget.TextView
 import androidx.core.content.getSystemService
@@ -29,7 +31,16 @@ object ClipboardUtils {
             return
         }
         val service = view.context.getSystemService<ClipboardManager>() ?: return
-        service.setPrimaryClip(ClipData.newPlainText(data.second, data.first))
+        val clip = ClipData.newPlainText(data.second, data.first)
+        // Помечаем скопированное как чувствительное (аудит 19-08, A4): отсюда копируют приватные
+        // ключи и адреса туннеля, а на Android 13+ система показывает превью содержимого буфера
+        // всем, кто смотрит на экран, и складывает значение в историю буфера.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            clip.description.extras = PersistableBundle().apply {
+                putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true)
+            }
+        }
+        service.setPrimaryClip(clip)
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
             Snackbar.make(view, view.context.getString(R.string.copied_to_clipboard, data.second), Snackbar.LENGTH_LONG).show()
         }

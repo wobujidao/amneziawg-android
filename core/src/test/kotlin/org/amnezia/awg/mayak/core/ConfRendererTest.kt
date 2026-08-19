@@ -5,6 +5,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Test
 
 class ConfRendererTest {
@@ -353,5 +354,63 @@ class ConfRendererTest {
         assertEquals("https://b.example", hp.current())
         hp.rotate()
         assertEquals("https://a.example", hp.current())
+    }
+
+    /**
+     * Сторож на инъекцию перевода строки (аудит 19-08, A4).
+     *
+     * До этого дня строгий формат стоял ровно у одного поля из двадцати — HeaderProtectionKey.
+     * У остальных значений ответа ядра перевод строки дописал бы в .conf чужую директиву
+     * (например `MTU`, `DNS` или второй `[Peer]`), и рендер отдал бы это движку молча.
+     */
+    @Test
+    fun `перевод строки в значении роняет рендер, а не уезжает в конфиг`() {
+        val ok = ClientConfig(
+            address = "10.8.0.2",
+            dns = "1.1.1.1",
+            mtu = 1280,
+            serverPubkey = "c2VydmVyLXB1YmtleS1mYWtlLTQ0LWNoYXJzLTAwMDAwMDA=",
+            endpoint = "203.0.113.7:51820",
+            allowedIps = "0.0.0.0/0",
+            persistentKeepalive = 25,
+        )
+        // Здоровый конфиг рендерится как раньше — сторож не мешает работе.
+        assertTrue(ConfRenderer.render(ok, priv).contains("Endpoint = 203.0.113.7:51820"))
+
+        val broken = listOf(
+            ok.copy(address = "10.8.0.2\nDNS = 8.8.8.8"),
+            ok.copy(addressV6 = "fd00::2\nMTU = 500"),
+            ok.copy(dns = "1.1.1.1\r\nMTU = 500"),
+            ok.copy(endpoint = "203.0.113.7:51820\n[Peer]"),
+            ok.copy(allowedIps = "0.0.0.0/0\nEndpoint = 198.51.100.1:51820"),
+            ok.copy(serverPubkey = "c2VydmVyLXB1YmtleS1mYWtlLTQ0LWNoYXJzLTAwMDAwMDA=\nMTU = 500"),
+            ok.copy(
+                obfuscation = Obfuscation(
+                    jc = 4, jmin = 8, jmax = 80, s1 = 15, s2 = 15, s3 = 0, s4 = 0,
+                    i1 = "<b 0xf1>\nMTU = 500",
+                ),
+            ),
+            ok.copy(
+                obfuscation = Obfuscation(
+                    jc = 4, jmin = 8, jmax = 80, s1 = 15, s2 = 15, s3 = 0, s4 = 0,
+                    h1 = "1148714835\nMTU = 500",
+                ),
+            ),
+        )
+        for (cfg in broken) {
+            try {
+                val conf = ConfRenderer.render(cfg, priv)
+                fail("рендер обязан был отказать, а вернул:\n$conf")
+            } catch (e: IllegalArgumentException) {
+                assertTrue(e.message.orEmpty().startsWith("перевод строки в значении "))
+            }
+        }
+        // Приватный ключ подставляем мы сами, но проверка стоит и на нём — на случай чужого источника.
+        try {
+            ConfRenderer.render(ok, "$priv\nMTU = 500")
+            fail("рендер обязан был отказать на приватном ключе с переводом строки")
+        } catch (e: IllegalArgumentException) {
+            assertTrue(e.message.orEmpty().startsWith("перевод строки в значении "))
+        }
     }
 }
