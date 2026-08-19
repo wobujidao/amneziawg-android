@@ -540,6 +540,14 @@
          Safety). Обязано сходиться с web/privacy.html, раздел 2: это одно обещание, а не два. -->
     <string name="mayak_data_title">What we collect</string>
     <string name="mayak_data_intro">Short and without legal language. The full text is behind the button below.</string>
+    <!-- Раскрытие про САМ системный интерфейс (19-08). Google отклонил обновление со словами
+         «сведений недостаточно, чтобы оценить соответствие требованиям VpnService»: их требование к
+         prominent disclosure звучит дословно — объяснить, ЗАЧЕМ приложению нужен VpnService и КАК он
+         используется, а этот экран рассказывал только про данные. Поэтому блок идёт ПЕРВЫМ, до «Что
+         мы собираем». Слово «VPN» здесь разрешено решением владельца 19-08 ровно для этих двух строк
+         (сторож MayakNoVpnWordTest знает их поимённо); во всём остальном запрет остаётся в силе. -->
+    <string name="mayak_data_vpn_head">Why the app needs the system permission</string>
+    <string name="mayak_data_vpn_body">The connection works through Android’s VpnService — this is what asks your permission the first time you connect. It is required to route traffic from the apps you choose into our encrypted channel: without it a protected connection is not possible. We do not read or store the contents of your traffic, and we do not record which sites you open. You can withdraw the permission at any time: turn the connection off in the app, or revoke access in Android settings.</string>
     <string name="mayak_data_collect_head">What we collect</string>
     <string name="mayak_data_collect_body">• Your account number and password. The password is kept only as an irreversible fingerprint — we never see it.\n\n• Your email — only if you gave it or linked it later. The account works without one.\n\n• About the device: model, app and system version, install identifier. Needed to tie access to your device and keep strangers off it.\n\n• Technical records of requests to our servers: network address and time. Needed to run the service and withstand attacks.\n\n• Once a week, anonymous counters: version, model, language, how many connections there were. No name, no precise location, no advertising identifiers.\n\n• How many bytes went through per day — to watch server load and plan limits. Volume only: no addresses, no app names.\n\n• A technical connection log. It is sent when you press “Send log” or “Check the connection” yourself — and also automatically when a connection attempt fails: without that we never learn what actually breaks for people, and fix it blind. The log itself is encrypted with a key the server does not have; only the technical wrapper (version, carrier, network type) and the reason for sending stay readable.</string>
     <string name="mayak_data_never_head">What we never collect</string>

@@ -35,6 +35,36 @@
                 android:textColor="@color/mayak_on_bg"
                 android:textSize="15sp" />
 
+            <!-- ЗАЧЕМ СИСТЕМНОЕ РАЗРЕШЕНИЕ — ПЕРВЫМ: Google требует, чтобы раскрытие объясняло,
+                 зачем приложению VpnService и как он используется (отказ 19-08). -->
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Mayak.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/mayak_data_vpn_head"
+                        android:textAppearance="@style/Mayak.CardTitle" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:lineSpacingExtra="4dp"
+                        android:text="@string/mayak_data_vpn_body"
+                        android:textColor="@color/mayak_on_surface"
+                        android:textSize="15sp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
             <!-- ЧТО СОБИРАЕМ -->
             <com.google.android.material.card.MaterialCardView
                 style="@style/Mayak.Card"
