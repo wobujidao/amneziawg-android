@@ -1885,6 +1885,28 @@ class MayakActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Страна не выбрана — но сказать «сначала выберите страну» можно только когда выбирать ЕСТЬ ИЗ
+     * ЧЕГО.
+     *
+     * Пустой список и невыбранная страна — разные беды с одинаковым признаком (`selectedDir == null`),
+     * и до 20-08 обе получали один текст. На медленной сети (а у наших людей она такая по
+     * определению) человек открывает приложение, жмёт большой круг раньше, чем доедет список, и
+     * читает «Сначала выберите страну» — то есть указание сделать невозможное, под пустым списком.
+     * Поймано дважды подряд на эмуляторе 20-08, оба раза принято за поломку списка.
+     *
+     * Поэтому: список пуст → это НАША загрузка не доехала, говорим про загрузку и повторяем её
+     * (провалится — прежняя ветка покажет причину и кнопку повтора). Список есть → текст прежний.
+     */
+    private fun noCountryYet() {
+        if (directions.isEmpty()) {
+            setStatus(getString(R.string.mayak_status_loading))
+            loadDirections(forceRefresh = true)
+        } else {
+            setStatus(getString(R.string.mayak_select_country_first))
+        }
+    }
+
     /** Тап по кругу: подключиться к выбранной стране или отключиться. */
     private fun toggleConnect() {
         when (connState) {
@@ -1892,7 +1914,7 @@ class MayakActivity : AppCompatActivity() {
             ConnState.CONNECTING -> cancelConnect() // тап во время подключения = ОТМЕНА (а не «игнор»/повторный коннект)
             ConnState.DISCONNECTED -> {
                 val d = selectedDir
-                if (d == null) { setStatus(getString(R.string.mayak_select_country_first)); return }
+                if (d == null) { noCountryYet(); return }
                 connectTo(d)
             }
         }
@@ -1935,7 +1957,7 @@ class MayakActivity : AppCompatActivity() {
 
     /** Объяснить, что сейчас будет, и спросить. Проверка занимает до минуты и рвёт подключение. */
     private fun offerLinkCheck() {
-        val d = selectedDir ?: run { setStatus(getString(R.string.mayak_select_country_first)); return }
+        val d = selectedDir ?: run { noCountryYet(); return }
         com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
             .setTitle(R.string.mayak_check_title)
             .setMessage(getString(R.string.mayak_check_intro, d.name))
