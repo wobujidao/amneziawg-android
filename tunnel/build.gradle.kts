@@ -3,7 +3,17 @@
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 
 val pkg: String = providers.gradleProperty("amneziawgPackageName").get()
-val cmakeAndroidPackageName: String = providers.environmentVariable("ANDROID_PACKAGE_NAME").getOrElse(pkg)
+// 🔴 Каталоги, куда движок пишет на устройстве, зовутся по applicationId УСТАНОВЛЕННОГО приложения,
+// а не по namespace. До 20-08 здесь стоял namespace (`org.amnezia.awg`), и в собранную .so уезжал
+// путь `/data/data/org.amnezia.awg/cache/amneziawg` — каталог пакета, которого на телефоне нет.
+// Итог виден в диаг-логах КАЖДОГО человека при КАЖДОМ подключении:
+//   E AmneziaWG/mayak: UAPIOpen: mkdir /data/data/org.amnezia.awg: permission denied
+// Туннель при этом работает (управляющий сокет движка на Android не используется), но красная
+// строка в логе стоит первой, и разбор чужой поломки начинается с неё — то есть с ложного следа.
+// applicationId берём той же настройкой, что и модуль ui (`mayakApplicationId`), а `.debug` ниже
+// повторяет его `applicationIdSuffix`.
+val appId: String = providers.gradleProperty("mayakApplicationId").get()
+val cmakeAndroidPackageName: String = providers.environmentVariable("ANDROID_PACKAGE_NAME").getOrElse(appId)
 
 plugins {
     alias(libs.plugins.android.library)
