@@ -833,8 +833,15 @@ class MayakActivity : AppCompatActivity() {
                 presetsSyncedLang = null
                 ruAutoCheckedThisProcess = false
                 homeWarmedThisProcess = false
+                // Тот же случай, и до 20-08 его тут не было: на экране входа мы уже ходили за
+                // version.json (за ПОРОГОМ, nudge=false) и этим сжигали бюджет «раз на процесс».
+                // Человек, поставивший APK постарше и вошедший, предложения обновиться в этой
+                // сессии не видел ВООБЩЕ — только со следующего холодного старта. Проверено живьём
+                // 20-08 на эмуляторе: 0.5.33 после входа молчит, после перезапуска зовёт обновиться.
+                updateCheckedThisProcess = false
                 hideTotpField()
                 showHome(); loadDirections(forceRefresh = true)
+                checkAppUpdate() // мягкий нудж: на экране входа его намеренно не показывали
                 refreshRuDirect() // OTA-подтяжка РФ-списка split-туннеля после входа
                 maybeAutoEnableRuPreset() // авто-РФ-пресет при первом запуске (в фоне, best-effort)
             } catch (e: MayakApiException) {
