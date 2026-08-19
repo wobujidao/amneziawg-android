@@ -20,6 +20,7 @@ package org.amnezia.awg.mayak
 import android.app.Activity
 import android.content.Intent
 import android.net.Uri
+import android.util.Log
 import android.widget.Toast
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
@@ -30,6 +31,8 @@ import org.amnezia.awg.mayak.core.HostProvider
 import org.amnezia.awg.mayak.core.MayakBackend
 
 object MayakCabinet {
+
+    private const val TAG = "Mayak/Cabinet"
 
     /**
      * Сколько ждём ссылку, прежде чем открыть кабинет обычным адресом.
@@ -64,11 +67,29 @@ object MayakCabinet {
             val link = withTimeoutOrNull(LINK_TIMEOUT_MS) {
                 runCatching { session.cabinetLink(backend) }.getOrNull()
             }
-            openUrl(activity, link?.takeIf { it.isNotBlank() } ?: plain)
+            // Ссылка ПРИШЛА ОТ СЕРВЕРА, и это одноразовый вход в кабинет. До 19-08 (аудит, A3) её
+            // отдавали в браузер сырой строкой: скомпрометированное ядро увело бы этот вход на чужой
+            // домен, а `http://` — ещё и открытым текстом (cleartext запрещён нашему процессу, но не
+            // браузеру, которому мы отдали интент). Не прошла проверку — открываем обычный адрес:
+            // главное правило этого файла, дорога к оплате не упирается в нашу служебную беду.
+            val fromServer = link?.takeIf { it.isNotBlank() }
+            val safe = fromServer?.takeIf { MayakHostList.ownHttpsUrl(it) }
+            if (fromServer != null && safe == null) {
+                Log.w(TAG, "ядро прислало ссылку не своего контура или без https — открываю кабинет обычным адресом")
+            }
+            openUrl(activity, safe ?: plain)
         }
     }
 
     private fun openUrl(activity: Activity, url: String) {
+        // Последний рубеж на ЕДИНСТВЕННОМ выходе наружу: сюда приходит и адрес из cabinetUrl (он уже
+        // отфильтрован), и всё, что допишут потом. Проверка здесь, а не только у вызывающего, —
+        // чтобы новый вызов не мог её обойти по невнимательности.
+        if (!MayakHostList.ownHttpsUrl(url)) {
+            Log.w(TAG, "ссылка не нашего контура или не https — наружу не отдаю")
+            Toast.makeText(activity, R.string.mayak_err_bad_link, Toast.LENGTH_LONG).show()
+            return
+        }
         runCatching {
             activity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
         }.onFailure {

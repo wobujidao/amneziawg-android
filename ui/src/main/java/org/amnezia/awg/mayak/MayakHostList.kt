@@ -68,10 +68,20 @@ object MayakHostList {
      * Чистая установка этого не показывает (сохранённого нет) — поэтому проверка на эмуляторе была
      * зелёной. Сверяем с ВШИТЫМИ адресами сборки: они единственные, кто заведомо знает свой контур.
      */
-    fun ownContour(url: String): Boolean {
+    fun ownContour(url: String): Boolean = ownContour(url, bakedHosts + bakedCabinet)
+
+    /**
+     * Тот же ответ, но со списком вшитых адресов АРГУМЕНТОМ.
+     *
+     * Зачем отдельная форма (19-08): юнит-тесты AGP гоняются на buildType `debug`
+     * (`:ui:testDebugUnitTest`), а в нём `MAYAK_PROD_TARGET=false` — то есть сторож, зовущий
+     * `ownContour(url)`, проверял бы ТОЛЬКО дев-список и про боевой контур молчал. Со списком
+     * аргументом один тест накрывает оба.
+     */
+    internal fun ownContour(url: String, baked: List<String>): Boolean {
         val host = hostOf(url) ?: return false
-        for (baked in bakedHosts + bakedCabinet) {
-            val own = hostOf(baked) ?: continue
+        for (b in baked) {
+            val own = hostOf(b) ?: continue
             if (host == own) return true
             // Домен контура: любое имя внутри него своё (api./cabinet./mayaknetworks.com).
             // У адреса-IP «своих поддоменов» не бывает — там только точное совпадение выше.
@@ -81,9 +91,31 @@ object MayakHostList {
         return false
     }
 
+    /**
+     * Ссылку, ПРИШЕДШУЮ ОТ СЕРВЕРА, наружу отдаём только если это `https` и наш контур.
+     *
+     * 🔴 Зачем (аудит 19-08, A3). Одноразовый вход в кабинет (`POST /v1/client/cabinet-link`)
+     * открывался в браузере как есть, сырой строкой из ответа. Схему никто не смотрел: `http://`
+     * увёл бы этот вход открытым текстом — `network_security_config` запрещает cleartext НАШЕМУ
+     * процессу, но не браузеру, которому мы отдали интент. Проверка стоит здесь, а не у вызывающего,
+     * чтобы её нельзя было забыть на новом месте.
+     */
+    fun ownHttpsUrl(url: String): Boolean = ownHttpsUrl(url, bakedHosts + bakedCabinet)
+
+    internal fun ownHttpsUrl(url: String, baked: List<String>): Boolean =
+        url.trim().startsWith("https://", ignoreCase = true) && ownContour(url, baked)
+
     private fun hostOf(url: String): String? {
-        val noScheme = url.trim().substringAfter("://", url.trim())
-        val hostPort = noScheme.substringBefore('/').substringBefore('?')
+        val trimmed = url.trim()
+        val noScheme = trimmed.substringAfter("://", trimmed)
+        // Отрезаем ВСЁ, что идёт после хоста. '#' и '\\' здесь не формальность (найдено при правке
+        // A3 19-08): без них `https://evil.com#api.mayaknetworks.com` и `https://evil.com\.mayak…`
+        // давали «хост», который заканчивается на нашу зону, — то есть чужая страница проходила
+        // проверку за свою. Браузер в обоих случаях идёт на evil.com.
+        val authority = noScheme.substringBefore('/').substringBefore('\\')
+            .substringBefore('?').substringBefore('#')
+        // До '@' стоит ЛОГИН, а не хост: `https://api.mayaknetworks.com@evil.com` ведёт на evil.com.
+        val hostPort = authority.substringAfterLast('@')
         val host = if (hostPort.startsWith("[")) hostPort.substringAfter('[').substringBefore(']')
         else hostPort.substringBefore(':')
         return host.lowercase().takeIf { it.isNotBlank() }
@@ -132,8 +164,16 @@ object MayakHostList {
      */
     fun cabinetUrl(context: Context): String {
         val learned = MayakPrefs.learnedCabinet(context).trim().removeSuffix("/")
-        val host = learned.ifEmpty { bakedCabinet }
-        return if (host.startsWith("http")) host else "https://$host"
+        // 🔴 ownContour — ровно как у siteUrl ниже (аудит 19-08, A3: у соседа фильтр стоял, здесь
+        // его забыли). Выученный адрес кабинета уходит не только в браузер: от него строится
+        // appCaptchaUrl, а это WebView шага регистрации — то есть чужая страница получила бы наш
+        // JS-мост. Уборка dropForeignContour срабатывает только при следующем старте, а решение
+        // нужно здесь и сейчас.
+        val host = learned.takeIf { it.isNotEmpty() && ownContour(it) } ?: bakedCabinet
+        // https ЖЁСТКО: startsWith("http") пропускал бы и `http://` — а по этому адресу человек
+        // вводит пароль от кабинета.
+        return if (host.startsWith("https://", ignoreCase = true)) host
+        else "https://" + host.substringAfter("://", host)
     }
 
     /**
@@ -217,12 +257,16 @@ object MayakHostList {
         runCatching { MayakDelivery.refresh(context, backend) }
         val list = backend.hosts() ?: return
         // Кабинет приходит тем же ответом; пустое поле (старое ядро) не затираем — останется зашитый.
-        list.cabinet.trim().removeSuffix("/").takeIf { it.isNotEmpty() }?.let {
+        // ownContour ЗДЕСЬ, а не только на чтении (аудит 19-08, A3): чужой адрес не должен даже
+        // ложиться в память — он переживает перезапуск и читается не одним местом. Новый домен
+        // приезжает не отсюда, а ПОДПИСАННЫМ delivery-документом (MayakDelivery) — там доверие даёт
+        // подпись, а не совпадение зоны.
+        list.cabinet.trim().removeSuffix("/").takeIf { it.isNotEmpty() && ownContour(it) }?.let {
             if (it != MayakPrefs.learnedCabinet(context)) MayakPrefs.setLearnedCabinet(context, it)
         }
         // Сайт (роль `site` того же реестра) — адрес справочного центра. Ядро отдаёт его с самого
         // заведения реестра, а приложение поле игнорировало: справки в приложении не было вовсе.
-        list.site.trim().removeSuffix("/").takeIf { it.isNotEmpty() }?.let {
+        list.site.trim().removeSuffix("/").takeIf { it.isNotEmpty() && ownContour(it) }?.let {
             if (it != MayakPrefs.learnedSite(context)) MayakPrefs.setLearnedSite(context, it)
         }
         val urls = list.api.mapNotNull { h ->
