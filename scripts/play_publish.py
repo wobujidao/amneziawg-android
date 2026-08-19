@@ -48,6 +48,13 @@ def main():
     ap.add_argument("--package", default="mayaknetworks.app")
     ap.add_argument("--sa", default=os.path.expanduser("~/.mayak-secrets/mayak-play-publisher.json"))
     ap.add_argument("--notes", default="")
+    ap.add_argument("--notes-en", default="", help="заметки к релизу на английском (en-US)")
+    # --no-review — «залить, но НЕ отправлять на проверку». Нужен, когда сборка готова раньше, чем
+    # что-то ещё в консоли (19-08: Play отклонил анкету VpnService, заполнить её может только человек).
+    # Правка применяется к треку и ждёт в консоли; владелец отправляет ВСЁ одной кнопкой, и Google
+    # смотрит свежую сборку вместе с исправленной анкетой, а не две вещи двумя проверками.
+    ap.add_argument("--no-review", action="store_true",
+                    help="применить правку, но не отправлять на проверку (кнопка остаётся человеку)")
     a = ap.parse_args()
 
     with open(os.path.expanduser(a.sa)) as f:
@@ -80,12 +87,18 @@ def main():
     # 200 с любой длиной), а только на commit — причём кодом 403, который читается как «нет прав».
     # 03-08 это стоило получаса поисков не там. Проверяем сами и падаем сразу с понятным текстом.
     NOTES_MAX = 500
-    if a.notes and len(a.notes) > NOTES_MAX:
-        sys.exit(f"заметки к релизу {len(a.notes)} символов, Play принимает не больше {NOTES_MAX}; "
-                 f"сократите --notes (в CHANGELOG.md текст длиннее — это нормально, для Play нужна выжимка)")
+    for label, text in (("--notes", a.notes), ("--notes-en", a.notes_en)):
+        if text and len(text) > NOTES_MAX:
+            sys.exit(f"заметки к релизу ({label}) {len(text)} символов, Play принимает не больше {NOTES_MAX}; "
+                     f"сократите текст (в CHANGELOG.md он длиннее — это нормально, для Play нужна выжимка)")
     rel = {"status": "completed", "versionCodes": [str(vcode)]}
+    notes = []
     if a.notes:
-        rel["releaseNotes"] = [{"language": "ru-RU", "text": a.notes}]
+        notes.append({"language": "ru-RU", "text": a.notes})
+    if a.notes_en:
+        notes.append({"language": "en-US", "text": a.notes_en})
+    if notes:
+        rel["releaseNotes"] = notes
     r = requests.put(
         f"{BASE}/{pkg}/edits/{edit_id}/tracks/{a.track}",
         headers={**h, "Content-Type": "application/json"},
@@ -102,7 +115,12 @@ def main():
     # Пробуем сначала обычный путь (правильный для нормального состояния), и только на этой
     # конкретной ошибке повторяем с флагом. Тело ответа печатаем ВСЕГДА: без него 403 не отличить
     # от протухших прав сервис-аккаунта, а это разные починки (03-08).
-    r = requests.post(f"{BASE}/{pkg}/edits/{edit_id}:commit", headers=h, timeout=120)
+    if a.no_review:
+        print("commit: --no-review → правка применяется БЕЗ отправки на проверку")
+        r = requests.post(f"{BASE}/{pkg}/edits/{edit_id}:commit?changesNotSentForReview=true",
+                          headers=h, timeout=120)
+    else:
+        r = requests.post(f"{BASE}/{pkg}/edits/{edit_id}:commit", headers=h, timeout=120)
     if r.status_code == 403 and "changesNotSentForReview" in r.text:
         print("commit: приложение ещё не проверено Google → повторяю с changesNotSentForReview=true")
         r = requests.post(
