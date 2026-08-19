@@ -84,6 +84,20 @@
                             android:textAppearance="@style/Mayak.Tagline"
                             android:textColor="@color/mayak_on_surface_muted" />
 
+                        <!-- Срок пробного ДО кнопки. Число приходит с сервера (GET /v1/public/captcha,
+                             поле anon_trial_days) — не пришло, строка не показывается вовсе: лучше
+                             промолчать, чем назвать срок, которого нет. -->
+                        <TextView
+                            android:id="@+id/mayak_reg_trial_hint"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/mayak_space_2"
+                            android:textAppearance="@style/Mayak.Tagline"
+                            android:textColor="@color/mayak_on_surface"
+                            android:visibility="gone"
+                            tools:text="Пробный доступ — 3 дня."
+                            tools:visibility="visible" />
+
                         <com.google.android.material.textfield.TextInputLayout
                             android:id="@+id/mayak_reg_password_layout"
                             style="@style/Mayak.TextInput"

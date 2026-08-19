@@ -40,6 +40,12 @@ data class LoginResponse(
 data class CaptchaInfo(
     val enabled: Boolean = false,
     val sitekey: String = "",
+    /**
+     * Сколько дней пробного доступа даёт учётка БЕЗ почты. Число живёт настройкой панели
+     * (`registration.anon_trial_days`), владелец его крутит — поэтому в разметку словами не пишем.
+     * Ноль = сервер не сказал; тогда экран про срок молчит, а не называет выдуманное.
+     */
+    @SerialName("anon_trial_days") val anonTrialDays: Int = 0,
 )
 
 /**

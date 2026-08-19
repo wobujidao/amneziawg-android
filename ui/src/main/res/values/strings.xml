@@ -93,6 +93,11 @@
     <string name="mayak_reg_no_session">The account was created, but we could not sign you in automatically. Write down the number and the password — the sign-in screen opens next with the number already filled in.</string>
     <!-- Число дней согласуется с существительным: «1 days» — брак, который видно на первом же
          экране новичка (поймано живым прогоном 13-08). Поэтому plurals, а не строка с %d. -->
+    <!-- Срок пробного ДО кнопки: см. пояснение в values-ru. -->
+    <plurals name="mayak_reg_trial_hint">
+        <item quantity="one">Trial access — %1$d day. Link an email in your account area and the trial becomes full.</item>
+        <item quantity="other">Trial access — %1$d days. Link an email in your account area and the trial becomes full.</item>
+    </plurals>
     <plurals name="mayak_reg_trial_days">
         <item quantity="one">Trial access is already on: %1$d day.</item>
         <item quantity="other">Trial access is already on: %1$d days.</item>

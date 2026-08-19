@@ -88,6 +88,7 @@ class MayakRegisterActivity : AppCompatActivity() {
     private lateinit var inviteField: TextInputEditText
     private lateinit var consent: MaterialCheckBox
     private lateinit var submit: MaterialButton
+    private lateinit var trialHint: TextView
     private lateinit var error: TextView
     private lateinit var browser: MaterialButton
     private lateinit var web: WebView
@@ -105,6 +106,7 @@ class MayakRegisterActivity : AppCompatActivity() {
         inviteField = findViewById(R.id.mayak_reg_invite)
         consent = findViewById(R.id.mayak_reg_consent)
         submit = findViewById(R.id.mayak_reg_submit)
+        trialHint = findViewById(R.id.mayak_reg_trial_hint)
         error = findViewById(R.id.mayak_reg_error)
         browser = findViewById(R.id.mayak_reg_browser)
         web = findViewById(R.id.mayak_reg_web)
@@ -116,6 +118,7 @@ class MayakRegisterActivity : AppCompatActivity() {
             signedIn = it.getBoolean(K_SIGNED_IN)
             inviteResult = it.getString(K_INVITE_RESULT).orEmpty()
         }
+        showTrialHint()
         // Пришёл по ссылке-приглашению и ставил из Play — код уже известен, руками вводить нечего.
         // При установке APK с сайта метки нет, и поле просто останется пустым (см. MayakInstallReferrer).
         if (savedInstanceState == null) {
@@ -517,6 +520,28 @@ class MayakRegisterActivity : AppCompatActivity() {
     }
 
     // ===== Шаг 2 → шаг 3 =====
+
+    /**
+     * Назвать срок пробного ДО кнопки «Создать аккаунт».
+     *
+     * Зачем. До 20-08 экран говорил про срок только ПОСЛЕ создания учётки («Пробный доступ уже
+     * включён: 3 дня»), то есть человек соглашался, не зная цены решения. На сайте ту же
+     * несправедливость закрыли 19-08, в приложении она осталась — а приложение и есть главная
+     * дорога новичка (регистрация без почты живёт только здесь).
+     *
+     * Число берём у сервера той же ручкой, что и ключ капчи (`/v1/public/captcha`, поле
+     * `anon_trial_days`): владелец крутит его в панели, и вписанное словами разъехалось бы молча.
+     * Молчим при любой беде — сети нет, сервер не ответил, ноль в ответе: пустая строка честнее
+     * выдуманного срока, а без неё экран остаётся ровно таким, каким был.
+     */
+    private fun showTrialHint() {
+        lifecycleScope.launch {
+            val days = runCatching { backend.publicCaptcha().anonTrialDays }.getOrDefault(0)
+            if (days <= 0) return@launch
+            trialHint.text = resources.getQuantityString(R.plurals.mayak_reg_trial_hint, days, days)
+            trialHint.visibility = View.VISIBLE
+        }
+    }
 
     private suspend fun sendRegistration(password: String, captchaToken: String) {
         try {
