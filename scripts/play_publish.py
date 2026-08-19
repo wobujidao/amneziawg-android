@@ -44,7 +44,8 @@ def access_token(sa: dict) -> str:
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("aab")
-    ap.add_argument("--track", default="internal")
+    ap.add_argument("--track", default="internal",
+                    help="трек или несколько через запятую, напр. internal,production")
     ap.add_argument("--package", default="mayaknetworks.app")
     ap.add_argument("--sa", default=os.path.expanduser("~/.mayak-secrets/mayak-play-publisher.json"))
     ap.add_argument("--notes", default="")
@@ -99,13 +100,18 @@ def main():
         notes.append({"language": "en-US", "text": a.notes_en})
     if notes:
         rel["releaseNotes"] = notes
-    r = requests.put(
-        f"{BASE}/{pkg}/edits/{edit_id}/tracks/{a.track}",
-        headers={**h, "Content-Type": "application/json"},
-        data=json.dumps({"track": a.track, "releases": [rel]}), timeout=60,
-    )
-    r.raise_for_status()
-    print(f"track={a.track} set")
+    # Треков можно назвать несколько через запятую, и это НЕ украшение: бандл заливается один раз, а
+    # присвоение идёт в ОДНОЙ правке. Повторный запуск скрипта ради второго трека упирается в отказ
+    # «version code уже использован» — Play не принимает тот же код второй раз, а собирать новый код
+    # ради той же сборки значит выложить людям и тестировщикам разные файлы под одной версией.
+    for track in [t.strip() for t in a.track.split(",") if t.strip()]:
+        r = requests.put(
+            f"{BASE}/{pkg}/edits/{edit_id}/tracks/{track}",
+            headers={**h, "Content-Type": "application/json"},
+            data=json.dumps({"track": track, "releases": [rel]}), timeout=60,
+        )
+        r.raise_for_status()
+        print(f"track={track} set")
 
     # 4) commit
     #
@@ -130,7 +136,7 @@ def main():
     if not r.ok:
         print(f"commit failed {r.status_code}: {r.text[:800]}", file=sys.stderr)
     r.raise_for_status()
-    print(f"committed edit={edit_id} versionCode={vcode} track={a.track}")
+    print(f"committed edit={edit_id} versionCode={vcode} tracks={a.track}")
 
 
 if __name__ == "__main__":
