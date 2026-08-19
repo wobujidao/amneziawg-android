@@ -15,7 +15,7 @@ Requires: pyjwt, requests (present on nl3).
 Note: listing edits do NOT require screenshots to commit; the "app content" forms (data safety,
 rating, VPN declaration) are UI-only and separate — see docs/assets/play/forms.md.
 """
-import argparse, json, os, sys, time
+import argparse, json, os, re, sys, time
 import jwt
 import requests
 
@@ -23,66 +23,62 @@ TOKEN_URI = "https://oauth2.googleapis.com/token"
 SCOPE = "https://www.googleapis.com/auth/androidpublisher"
 BASE = "https://androidpublisher.googleapis.com/androidpublisher/v3/applications"
 UPLOAD = "https://androidpublisher.googleapis.com/upload/androidpublisher/v3/applications"
-# Per-language listing copy. en-US is the app's DEFAULT language (must be complete → icon shows in
-# console/store); ru-RU is the primary market. Same images for both.
-LISTINGS = {
-    "ru-RU": {
-        "title": "Mayak Networks",
-        "short": "Быстрый и надёжный VPN: свободный доступ, выбор локаций, стабильное соединение",
-        "full": """Mayak Networks — быстрый и надёжный VPN для стабильного доступа в интернет.
+# 🔴 Тексты витрины СЮДА НЕ ЗАШИВАЮТСЯ (19-08). До этой правки они лежали здесь константой и
+# протухли: в консоли с 26-07 стоит текст без слова «VPN» (директива владельца «публично мы не VPN,
+# а Сети»), а в скрипте оставался прежний — «Быстрый и надёжный VPN… мимо VPN…», да ещё со СНЯТЫМ
+# дев-доменом mayakvpn.ru в поддержке и в ссылке на политику. Запуск скрипта молча вернул бы на
+# живую витрину и запрещённые формулировки, и мёртвый домен, и нерабочую ссылку на политику
+# (её Google проверяет). Источник правды теперь ОДИН — docs/assets/play/listing-text.md в монорепо,
+# он же зеркало консоли; разъехаться им больше негде.
+LISTING_DOC = "listing-text.md"   # лежит рядом с картинками, путь задаётся --assets
 
-⚡ Скорость
-Современный протокол на базе WireGuard/AmneziaWG: мгновенное подключение и высокая скорость. Приложение само выбирает оптимальный маршрут.
+# Слова, которых на витрине быть не должно. Это не вкусовщина: с 01.09.2025 в РФ наказуема реклама
+# средств обхода блокировок, и штрафуют владельца материалов. «VpnService» — НАЗВАНИЕ системного
+# интерфейса Android, его Google требует упоминать прямым текстом («Document use of the VpnService
+# in the Google Play listing»), поэтому оно разрешено; отдельное рекламное «VPN» — нет.
+FORBIDDEN = ("обход", "обойт", "блокировк", "заблокирован", "dpi", "тспу",
+             "bypass", "circumvent", "mayakvpn.ru")
 
-🛡️ Стабильность
-Маяк продолжает работать даже при временной недоступности сервера — подключается по последней рабочей конфигурации. Соединение остаётся с вами, когда оно нужнее всего.
 
-🌍 Ваш выбор
-Несколько локаций на выбор. Меняйте точку подключения одним касанием.
+def _clean(text: str) -> str:
+    return text.strip("\n").strip()
 
-🔒 Безопасность
-Трафик защищён современным шифрованием.
 
-🔀 Раздельное туннелирование (split-tunnel)
-Выберите приложения, которые будут работать напрямую, мимо VPN (например банковские сервисы) — остальной трафик остаётся защищённым.
-
-🎭 Гибкая настройка
-При желании смените иконку и имя приложения по своему вкусу.
-
-Простой, быстрый и надёжный VPN. Свободный доступ — ваш выбор.
-
-Поддержка: support@mayakvpn.ru
-Политика конфиденциальности: https://mayakvpn.ru/privacy""",
-    },
-    "en-US": {
-        "title": "Mayak Networks",
-        "short": "Fast, reliable VPN: free access, choice of locations, stable connection",
-        "full": """Mayak Networks is a fast and reliable VPN for stable internet access.
-
-⚡ Speed
-A modern protocol based on WireGuard/AmneziaWG: instant connection and high speed. The app picks the optimal route for you.
-
-🛡️ Stability
-Mayak keeps working even when a server is temporarily unavailable — it reconnects using the last working configuration. Your connection stays with you when you need it most.
-
-🌍 Your choice
-Several locations to choose from. Switch your connection point with a single tap.
-
-🔒 Security
-Your traffic is protected with modern encryption.
-
-🔀 Split tunneling
-Choose which apps go directly, bypassing the VPN (for example banking apps) — the rest of your traffic stays protected.
-
-🎭 Flexible
-If you like, change the app icon and name to your taste.
-
-Simple, fast and reliable VPN. Free access — your choice.
-
-Support: support@mayakvpn.ru
-Privacy policy: https://mayakvpn.ru/privacy""",
-    },
-}
+def load_listings(assets_dir: str) -> dict:
+    """Читает тексты витрины из listing-text.md. Не распарсилось — падаем, а не «берём умолчание»:
+    молчаливый откат витрины на старый текст — ровно то, ради чего эта функция и написана."""
+    path = os.path.join(assets_dir, LISTING_DOC)
+    if not os.path.isfile(path):
+        sys.exit(f"нет файла с текстами витрины: {path}")
+    with open(path, encoding="utf-8") as f:
+        doc = f.read()
+    out = {}
+    # Разделы вида «## Русский (ru-RU)» — язык берём из скобок, название раздела роли не играет.
+    chunks = re.split(r"^##\s+.*?\(([a-z]{2}-[A-Z]{2})\)\s*$", doc, flags=re.M)
+    for lang, body in zip(chunks[1::2], chunks[2::2]):
+        fields = {}
+        for head, value in re.findall(r"^###\s+([^\n(]+?)\s*(?:\([^)]*\))?\s*$\n(.*?)(?=^###\s|\Z)",
+                                      body, flags=re.M | re.S):
+            fields[head.strip().lower()] = _clean(value)
+        try:
+            out[lang] = {"title": fields["название"],
+                         "short": fields["краткое описание"],
+                         "full": fields["полное описание"]}
+        except KeyError as e:
+            sys.exit(f"{path}: в разделе {lang} не найден заголовок {e}")
+    if not out:
+        sys.exit(f"{path}: не нашёл ни одного языкового раздела вида «## … (ru-RU)»")
+    for lang, c in out.items():
+        for field, text in c.items():
+            low = text.lower()
+            for word in FORBIDDEN:
+                if word in low:
+                    sys.exit(f"{lang}/{field}: запрещённое слово «{word}» — витрина не заливается")
+            # «VPN» отдельным словом запрещено, «VpnService» — разрешено (требование Google).
+            if re.search(r"(?<![a-zA-Zа-яА-Я])vpn(?!service)(?![a-zA-Zа-яА-Я])", text, re.I):
+                sys.exit(f"{lang}/{field}: слово «VPN» само по себе — витрина не заливается "
+                         f"(допустимо только имя интерфейса «VpnService»)")
+    return out
 
 
 def access_token(sa: dict) -> str:
@@ -100,10 +96,19 @@ def access_token(sa: dict) -> str:
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--package", default="mayaknetworks.app")
-    ap.add_argument("--assets", default="/home/wobujidao/mayak-vpn/docs/assets/play")
+    ap.add_argument("--assets", default=os.path.expanduser("~/mayak/docs/assets/play"))
     ap.add_argument("--sa", default=os.path.expanduser("~/.mayak-secrets/mayak-play-publisher.json"))
     ap.add_argument("--dry-run", action="store_true")
+    # 🔴 По умолчанию правка витрины НЕ уходит на проверку. Проверка накрывает ВСЁ
+    # накопленное в консоли разом и отменить её нельзя: 19-08 в продакшен-треке лежала
+    # подготовленная сборка, ждавшая анкеты VpnService, — заливка витрины «заодно»
+    # отправила бы на ревью и её.
+    ap.add_argument("--send-for-review", action="store_true",
+                    help="отправить накопленные правки на проверку Google (по умолчанию нет)")
     a = ap.parse_args()
+
+    LISTINGS = load_listings(a.assets)
+    print("языки витрины:", ", ".join(LISTINGS))
 
     for lang, c in LISTINGS.items():
         assert len(c["title"]) <= 30, f"{lang} title {len(c['title'])}>30"
@@ -159,12 +164,16 @@ def main():
             print(f"  {lang} {image_type}: sha256={img.get('sha256','?')[:12]}")
 
     # 5) commit
-    r = requests.post(f"{BASE}/{pkg}/edits/{edit}:commit", headers=h, timeout=120)
+    commit_url = f"{BASE}/{pkg}/edits/{edit}:commit"
+    if not a.send_for_review:
+        commit_url += "?changesNotSentForReview=true"
+        print("правка применяется БЕЗ отправки на проверку (--send-for-review, чтобы отправить)")
+    r = requests.post(commit_url, headers=h, timeout=120)
     if not r.ok:
         print("COMMIT FAILED:", r.status_code, r.text[:800])
         r.raise_for_status()
     print("committed:", r.json().get("id", "ok"))
-    print("DONE — listing texts + icon + feature graphic live on Play (ru-RU).")
+    print("DONE — тексты витрины, иконка и баннер применены (языки: " + ", ".join(LISTINGS) + ").")
 
 
 if __name__ == "__main__":
