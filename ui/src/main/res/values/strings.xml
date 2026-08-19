@@ -89,7 +89,7 @@
     <string name="mayak_reg_done_title">Your account number</string>
     <!-- ⚠️ 16-08: было «We show the number once» — номер всегда виден в «Настройках»
          (MayakSettingsActivity.showAccountNumber). Один раз показывается пароль. -->
-    <string name="mayak_reg_done_warning">Write down the number and the password. We will not show the password anywhere again: the account has no email address, so there would be no way to restore access. The number always stays in Settings. Add an email in your personal cabinet — you get recovery, and the trial period becomes full.</string>
+    <string name="mayak_reg_done_warning">Write down the number and the password. We will not show the password anywhere again: the account has no email address, so there would be no way to restore access. The number always stays in Settings. Add an email in your account — you get recovery, and the trial period becomes full.</string>
     <string name="mayak_reg_no_session">The account was created, but we could not sign you in automatically. Write down the number and the password — the sign-in screen opens next with the number already filled in.</string>
     <!-- Число дней согласуется с существительным: «1 days» — брак, который видно на первом же
          экране новичка (поймано живым прогоном 13-08). Поэтому plurals, а не строка с %d. -->
@@ -155,7 +155,7 @@
     <string name="mayak_consent_link_terms">Terms of Use</string>
     <!-- ⚠️ 16-08: было «on the website» — подтверждение живёт в кабинете (cabinet #/verify), туда же
          ведёт кнопка этого диалога. -->
-    <string name="mayak_err_email_not_verified">Please verify your email in your personal cabinet.</string>
+    <string name="mayak_err_email_not_verified">Please verify your email in your account.</string>
     <string name="mayak_err_bad_creds">Wrong email/account number or password.</string>
     <string name="mayak_totp_hint">Two-factor code</string>
     <string name="mayak_totp_helper">Password is correct — enter the code from your authenticator app (or a recovery code).</string>
@@ -184,7 +184,7 @@
     <string name="mayak_forgot_msg">Enter the email of your account — we\'ll send a reset code. Works only if an email is linked.</string>
     <!-- В поле сброса ввели НОМЕР аккаунта: у такой учётки почты может не быть вовсе, и «код
          отправлен» был бы ложью. Отвечаем сами, не тревожа сервер. -->
-    <string name="mayak_forgot_no_email">This needs the account\'s email address: with a number or a login there is nowhere to send the code. If no email is linked, sign in with your number and password and link one in your personal cabinet — or write to support.</string>
+    <string name="mayak_forgot_no_email">This needs the account\'s email address: with a number or a login there is nowhere to send the code. If no email is linked, sign in with your number and password and link one in your account — or write to support.</string>
     <string name="mayak_forgot_send">Send code</string>
     <string name="mayak_forgot_sending">Sending code…</string>
     <string name="mayak_forgot_sent">Code sent to your email (if the account exists). Check your inbox.</string>
@@ -404,15 +404,15 @@
     <string name="mayak_status_access_expired">Access ended</string>
     <string name="mayak_status_device_limit">Device limit reached</string>
     <string name="mayak_device_limit_msg">Your account already has the maximum number of devices, so this one can\'t be added. Open “My devices”, disconnect one you no longer use, and try again.</string>
-    <string name="mayak_access_expired_msg">Your access to the service has ended, so connecting is unavailable. Renew it in your personal cabinet and everything will work again.</string>
+    <string name="mayak_access_expired_msg">Your access to the service has ended, so connecting is unavailable. Renew it in your account and everything will work again.</string>
     <!-- Отдельный текст для пробного: продлевать нечего, надо выбрать тариф. -->
     <string name="mayak_trial_expired">The trial period has ended</string>
-    <string name="mayak_trial_expired_msg">Your trial access has ended, so connecting is unavailable. Choose a plan in your personal cabinet — your devices and settings are kept, and everything will work again straight away.</string>
+    <string name="mayak_trial_expired_msg">Your trial access has ended, so connecting is unavailable. Choose a plan in your account — your devices and settings are kept, and everything will work again straight away.</string>
     <string name="mayak_settings_subscription_trial_expired">Trial access ended on %1$s</string>
     <!-- 402 no_plan: the account never had a plan. Telling this person to “renew” sends them looking
          for a button that does not exist for them — the fix is to pick a plan. -->
     <string name="mayak_status_no_plan">Access is not open yet</string>
-    <string name="mayak_no_plan_msg">No plan has been chosen for this account yet, so there is nothing to connect to. Pick a plan in your personal cabinet and connecting will start working.</string>
+    <string name="mayak_no_plan_msg">No plan has been chosen for this account yet, so there is nothing to connect to. Pick a plan in your account and connecting will start working.</string>
     <string name="mayak_choose_plan">Choose a plan</string>
     <string name="mayak_settings_reset">Reset all settings</string>
     <string name="mayak_settings_reset_confirm">Reset all app settings to defaults? This does not sign you out.</string>
@@ -441,7 +441,7 @@
     <string name="mayak_settings_account_none">not signed in</string>
     <!-- У учётки почты нет вовсе (анонимная регистрация, подарочная, из бота) — говорим прямо и
          называем путь: привязать её можно в кабинете, кнопка стоит рядом. -->
-    <string name="mayak_settings_account_no_email">Email: not linked — you can add one in your personal cabinet</string>
+    <string name="mayak_settings_account_no_email">Email: not linked — you can add one in your account</string>
     <string name="mayak_settings_account_no_email_trial">Email: not linked. Add it in your cabinet — you will be able to recover access if you forget the password, and the trial period becomes full</string>
     <string name="mayak_row_connected_dot_desc">traffic goes through this country</string>
     <string name="mayak_onboarding_title">How it works, briefly</string>
@@ -845,7 +845,7 @@
     <string name="mayak_messages_channel_quiet_name">Messages, muted</string>
     <string name="mayak_messages_channel_quiet_desc">The same messages at night — delivered silently (23:00–09:00).</string>
 
-    <string name="mayak_messages_action_billing">Open personal cabinet</string>
+    <string name="mayak_messages_action_billing">Open your account</string>
     <string name="mayak_messages_action_support">Open request</string>
     <string name="mayak_messages_action_group">Open shared access</string>
     <string name="mayak_messages_action_devices">My devices</string>
