@@ -406,6 +406,80 @@
     <!-- Переключатель настроек. Материаловский дефолт красил «включено» лавандовым
          (colorPrimaryContainer сборной темы), хотя рядом на том же экране переключатель темы
          обведён фирменным тоном. Задаём цвета явно — и они theme-aware через mayak_outline. -->
+    <!-- ===== Строки экрана настроек (21-08) =====
+         Заведены после замера экрана: у 16 подсказок, 11 переключателей и 16 кнопок одни и те же
+         восемь атрибутов были выписаны РУКАМИ в каждом месте — отсюда и разнобой, который видно
+         глазами: три кегля у равнозначных строк, пять высот однотипных строк и отступы 10/14dp при
+         объявленной 8-pt сетке (`dimens_mayak.xml`), из которой файл не брал НИ ОДНОГО значения.
+         Правило простое: строку настройки описывает стиль, разметка задаёт только текст и id. -->
+
+    <!-- Переключатель-строка. 15sp — тот же кегль, что у строки-перехода ниже: обе вещи в списке
+         равнозначны, и разный размер читался как разная важность. -->
+    <style name="Mayak.SettingSwitch" parent="Mayak.Switch">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">@dimen/mayak_space_3</item>
+        <item name="android:minHeight">48dp</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:textColor">@color/mayak_on_surface</item>
+    </style>
+
+    <!-- Строка-переход («Сплит-туннель», «Язык», «Мои устройства»): ведёт куда-то, поэтому справа
+         шеврон, а не рамка. Рамка тут и мешала: у кнопки свои поля, из-за них текст начинался на
+         16dp правее подписей переключателей, а шеврон рисовался на ~24dp ЛЕВЕЕ шеврона заголовка
+         раздела — в столбце из восьми строк это видно сразу. Поля обнулены, значок 24dp (как у
+         заголовка), текст по левому краю: подписи, подсказки и переходы встают на одну вертикаль.
+         Кнопки-ДЕЙСТВИЯ («Отправить лог», «Сбросить настройки») остаются рамочными: команда и
+         переход — разные вещи, и различать их формой правильно. -->
+    <style name="Mayak.SettingRow" parent="Widget.Material3.Button.TextButton">
+        <!-- Кнопка Material берёт labelLarge (Roboto Medium), а подпись переключателя — bodyLarge
+             (Roboto Regular): рядом в одном столбце это читалось как «эти пункты важнее». -->
+        <item name="android:textAppearance">@style/TextAppearance.Material3.BodyLarge</item>
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">@dimen/mayak_space_3</item>
+        <item name="android:minHeight">48dp</item>
+        <item name="android:minWidth">0dp</item>
+        <item name="android:paddingStart">0dp</item>
+        <item name="android:paddingEnd">0dp</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:gravity">start|center_vertical</item>
+        <item name="android:textAlignment">viewStart</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:textColor">@color/mayak_on_surface</item>
+        <item name="icon">@drawable/ic_chevron_right</item>
+        <item name="iconGravity">end</item>
+        <item name="iconSize">24dp</item>
+        <item name="iconTint">@color/mayak_outline</item>
+        <item name="cornerRadius">@dimen/mayak_radius_xs</item>
+    </style>
+
+    <!-- Подсказка под строкой настройки. Правило Google: подпись нужна, только если названия не
+         хватает, и она показывает СОСТОЯНИЕ, а не пересказывает пункт — поэтому длинных тут быть
+         не должно (замер 21-08: 16 абзацев давали 1287dp прокрутки внутри разделов). -->
+    <style name="Mayak.SettingHint" parent="">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">@dimen/mayak_space_1</item>
+        <item name="android:textAppearance">@style/Mayak.Tagline</item>
+        <item name="android:textColor">@color/mayak_on_surface</item>
+        <item name="android:alpha">0.8</item>
+    </style>
+
+    <!-- Строка «название слева — состояние справа» для того, что человек НЕ переключает
+         («Доступ и деньги» приходят всегда). Раньше на её месте стоял вечно включённый неактивный
+         тумблер и три строки объяснения, почему он не нажимается. -->
+    <style name="Mayak.SettingFixedRow" parent="">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:orientation">horizontal</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:layout_marginTop">@dimen/mayak_space_3</item>
+        <item name="android:minHeight">48dp</item>
+    </style>
+
     <style name="Mayak.Switch" parent="Widget.Material3.CompoundButton.MaterialSwitch">
         <item name="trackTint">@color/mayak_switch_track</item>
         <item name="thumbTint">@color/mayak_switch_thumb</item>

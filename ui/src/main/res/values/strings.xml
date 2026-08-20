@@ -235,7 +235,7 @@
     <string name="mayak_route_fallback">Backup channel</string>
     <string name="mayak_details_route">Path</string>
     <string name="mayak_settings_force_fallback">Always use backup channel</string>
-    <string name="mayak_settings_force_fallback_hint">Normally not needed: the app moves to the backup channel by itself when the usual connection does not get through. Turn it on if the usual connection never works on your network — then you don\'t wait for that on every connect. The backup channel is slower.</string>
+    <string name="mayak_settings_force_fallback_hint">Normally not needed: the app moves to it by itself. Turn on if the usual connection never works on your network — the backup is slower.</string>
     <string name="mayak_status_offline_lastgood">Server not responding — connecting to %1$s with saved settings…</string>
     <string name="mayak_status_no_egress">Could not connect. Try again or pick another country</string>
     <string name="mayak_status_disconnected">Unprotected</string>
@@ -332,27 +332,27 @@
     <string name="mayak_settings_section_collapse">Collapse section</string>
     <string name="mayak_settings_network">Network</string>
     <string name="mayak_settings_ipv6">Use IPv6</string>
-    <string name="mayak_settings_ipv6_hint">Brings IPv6 through the tunnel where your carrier doesn\'t give it. The IPv6 badge lights up only when it really works. Turn off if it causes issues.</string>
+    <string name="mayak_settings_ipv6_hint">Brings IPv6 where your carrier does not give it. Turn off if something stops opening.</string>
     <string name="mayak_settings_ipv6_applied">Applies on the next connection</string>
     <string name="mayak_apps_loading">Loading the list of apps…</string>
     <string name="mayak_settings_split">Split tunneling</string>
     <string name="mayak_preset_switch_desc">Apply this preset\'s split tunneling</string>
     <string name="mayak_settings_split_count">Split tunneling (%1$d)</string>
-    <string name="mayak_settings_split_hint">Choose apps that go PAST the tunnel, over your real IP (e.g. banking, government apps that block foreign IPs). Everything else stays protected. Selected apps are intentionally outside the tunnel — add only what you need.</string>
+    <string name="mayak_settings_split_hint">Selected apps go past the tunnel, over your real IP: banking, government apps. Everything else stays protected.</string>
     <string name="mayak_settings_split_applied">Applies on the next connection</string>
     <string name="mayak_settings_rudirect">Open Russian services directly</string>
-    <string name="mayak_settings_rudirect_hint">One tap: Russian apps (banks, government services, marketplaces, streaming) go directly over your real IP, so they work as if you were at home. Everything else stays protected. Applies on the next connection.</string>
+    <string name="mayak_settings_rudirect_hint">Banking, government, marketplace and streaming apps go direct and work as if you were at home. Everything else stays protected.</string>
     <string name="mayak_settings_rudirect_applied">Russian services will go direct on the next connection</string>
     <!-- Auto-enabled the RU preset on first launch (2026-08-03): the person didn't touch the toggle
          themselves, we turned it on based on the detected exit country — explain what happened and how to undo it. -->
     <string name="mayak_ru_preset_auto_enabled">Russian services will now open directly — that\'s how banking and government apps work. You can turn this off in Settings.</string>
     <string name="mayak_settings_show_presets">Show presets on the home screen</string>
-    <string name="mayak_settings_show_presets_hint">The preset selector and toggle appear above the connect button. Turn off if you don\'t use split tunneling presets.</string>
+    <string name="mayak_settings_show_presets_hint">The selector appears above the connect button.</string>
     <!-- Short caption under the home-screen preset bar (2026-08-03): a first-time user sees a
          name and a switch with no explanation of what it does. -->
     <string name="mayak_home_preset_hint">Split tunneling: with it on, selected services (Russian ones by default) go direct, bypassing the secure connection</string>
     <string name="mayak_settings_filtering">Filtering</string>
-    <string name="mayak_settings_dns_hint">The DNS profile is shared by every device on the account (phone, router, cabinet). Change it here; it applies on the next connection.</string>
+    <string name="mayak_settings_dns_hint">The profile is shared by every device on the account. Applies on the next connection.</string>
     <string name="mayak_settings_dns_loading">Loading…</string>
     <string name="mayak_settings_dns_unavailable">Couldn\'t load — tap to retry</string>
     <string name="mayak_dns_default">No filtering</string>
@@ -419,12 +419,12 @@
     <string name="mayak_settings_reset_done">Settings reset</string>
     <string name="mayak_settings_protection">Protection</string>
     <string name="mayak_settings_autoconnect">Auto-connect</string>
-    <string name="mayak_settings_autoconnect_hint">Automatically brings up your last working connection when the phone starts or the system brings the secure connection up itself — from the config saved on the device, no network needed. Connect once manually first so there is something to restore.</string>
+    <string name="mayak_settings_autoconnect_hint">Brings up your last working connection when the phone starts. Connect once manually first — otherwise there is nothing to restore.</string>
     <string name="mayak_settings_killswitch">No protection — no internet</string>
-    <string name="mayak_settings_killswitch_hint">Until protection is up, the phone lets nothing out. This is a system setting: the button opens the right section — there, turn on the always-on connection for Mayak and block connections that go around it. Together with Auto-connect above, your traffic never leaves unprotected.</string>
+    <string name="mayak_settings_killswitch_hint">An Android system setting: the button opens the right section.</string>
     <string name="mayak_settings_killswitch_unavailable">Couldn\'t open the right section of the system settings on this device. Open it manually: Settings → Network &amp; internet → always-on connection.</string>
     <string name="mayak_settings_applock">Lock the app</string>
-    <string name="mayak_settings_applock_hint">Ask for your fingerprint, face or device PIN when opening the app. Protects your account, settings and config if the phone is unlocked in someone else\'s hands. Doesn\'t affect the connection itself. Applies from the next time you open the app.</string>
+    <string name="mayak_settings_applock_hint">Fingerprint, face or device PIN when opening the app. Does not affect the connection itself.</string>
     <string name="mayak_settings_applock_no_credential">Set up a screen lock (PIN/fingerprint) in your phone settings — otherwise there is nothing to check and the lock won\'t work.</string>
     <string name="mayak_lock_title">Mayak is locked</string>
     <string name="mayak_lock_subtitle">Confirm it\'s you to continue</string>
@@ -462,7 +462,6 @@
     <string name="mayak_onboarding_3_text">The switch at the top keeps Russian banks and government sites on your normal connection, where a foreign address only gets in the way.</string>
     <string name="mayak_onboarding_done">Got it</string>
     <string name="mayak_settings_haptics">Haptic feedback</string>
-    <string name="mayak_settings_haptics_hint">A short vibration on taps and when protection turns on or off.</string>
     <!-- Public account number (migration 0110): what a person calls themselves when writing to us.
          The «472-918-563» grouping is added by the display layer; storage is nine bare digits. -->
     <string name="mayak_account_number">Account number</string>
@@ -472,7 +471,7 @@
     <string name="mayak_support_body_account_number">Account number: %1$s</string>
     <string name="mayak_ipv6_badge">IPv6</string>
     <string name="mayak_settings_diagnostics">Help &amp; support</string>
-    <string name="mayak_settings_diag_hint">Something not working, or not sure how to set it up? Start here. The help centre answers the common questions; if that is not enough, write to us — the letter is prefilled. A log helps us find the cause faster; data is processed per the privacy policy.</string>
+    <string name="mayak_settings_diag_hint">Something not working, or not sure how to set it up? Start here.</string>
     <!-- Entry point into help. The help address comes from the domain registry
          (MayakHostList.helpUrl), the support address from BuildConfig.MAYAK_SUPPORT_EMAIL —
          neither is hardcoded in translations. -->
@@ -922,14 +921,12 @@
 
     <string name="mayak_settings_notify">Notifications</string>
     <string name="mayak_settings_notify_account">Access and money</string>
-    <string name="mayak_settings_notify_account_hint">Receipts, access reminders and security alerts always arrive: that is how the service works — it is not a mailing list and cannot be turned off.</string>
-    <string name="mayak_settings_notify_service">Service messages</string>
-    <string name="mayak_settings_notify_service_hint">Support replies, scheduled maintenance, setup hints.</string>
+    <string name="mayak_settings_notify_account_hint">Receipts, access reminders and security alerts always arrive — that is how the service works, not a mailing list.</string>
+    <string name="mayak_settings_notify_always">Always</string>
+    <string name="mayak_settings_notify_service">Support replies and maintenance</string>
     <string name="mayak_settings_notify_news">News and offers</string>
-    <string name="mayak_settings_notify_news_hint">Discounts and what is new. Off by default.</string>
     <string name="mayak_settings_notify_news_consent">We will send you messages about discounts and new features. You can opt out at any time with this same switch.</string>
     <string name="mayak_settings_notify_news_agree">I agree to receive</string>
     <string name="mayak_settings_notify_quiet">Quiet hours (23:00–09:00)</string>
-    <string name="mayak_settings_notify_quiet_hint">At night messages arrive silently. We use the time from your phone.</string>
     <string name="mayak_settings_notify_save_err">Could not save. Please try again.</string>
 </resources>

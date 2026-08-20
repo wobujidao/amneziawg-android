@@ -460,7 +460,7 @@
     <string name="mayak_route_fallback">Запасной канал</string>
     <string name="mayak_details_route">Путь</string>
     <string name="mayak_settings_force_fallback">Всегда использовать запасной канал</string>
-    <string name="mayak_settings_force_fallback_hint">Обычно не нужно: приложение само уходит на запасной канал, когда обычный не проходит. Включите, если в вашей сети обычное подключение не работает никогда — не придётся ждать распознавания при каждом подключении. Запасной канал медленнее.</string>
+    <string name="mayak_settings_force_fallback_hint">Обычно не нужно: приложение уходит на него само. Включите, если обычное подключение у вас не работает никогда — запасной медленнее.</string>
     <string name="mayak_status_offline_lastgood">Сервер не отвечает — подключаем %1$s по сохранённым настройкам…</string>
     <string name="mayak_status_no_egress">Подключиться не удалось. Попробуйте ещё раз или выберите другую страну</string>
     <string name="mayak_status_disconnected">Не защищено</string>
@@ -496,7 +496,7 @@
     <string name="mayak_speed_fmt">↓ %1$s   ↑ %2$s</string>
     <string name="mayak_speed_mbit">%1$s Мбит/с</string>
     <string name="mayak_settings_speed">Показывать скорость передачи</string>
-    <string name="mayak_settings_speed_hint">Отображает текущую скорость скачивания и отдачи в туннеле</string>
+    <string name="mayak_settings_speed_hint">Под кнопкой подключения, пока туннель поднят.</string>
     <string name="mayak_update_uptodate">У вас последняя версия</string>
     <string name="mayak_update_check_failed">Не удалось проверить обновление</string>
     <string name="mayak_update_title">Доступно обновление</string>
@@ -561,27 +561,27 @@
     <string name="mayak_settings_section_collapse">Свернуть раздел</string>
     <string name="mayak_settings_network">Сеть</string>
     <string name="mayak_settings_ipv6">Использовать IPv6</string>
-    <string name="mayak_settings_ipv6_hint">Приносит IPv6 через туннель туда, где оператор его не даёт. Значок «IPv6» загорается, только когда он реально работает. Выключите, если что-то перестало открываться.</string>
+    <string name="mayak_settings_ipv6_hint">Приносит IPv6 туда, где его не даёт оператор. Выключите, если что-то перестало открываться.</string>
     <string name="mayak_settings_ipv6_applied">Применится при следующем подключении</string>
     <string name="mayak_apps_loading">Собираем список приложений…</string>
     <string name="mayak_settings_split">Сплит-туннель</string>
     <string name="mayak_preset_switch_desc">Применять split-туннель этого пресета</string>
     <string name="mayak_settings_split_count">Сплит-туннель (%1$d)</string>
-    <string name="mayak_settings_split_hint">Выберите приложения, которые пойдут МИМО туннеля, по вашему реальному IP (напр. банки, Госуслуги — они режут заграничные IP). Остальной трафик остаётся под защитой. Выбранные приложения сознательно вне туннеля — добавляйте только нужное.</string>
+    <string name="mayak_settings_split_hint">Выбранные приложения пойдут мимо туннеля, по вашему реальному IP: банки, Госуслуги. Остальное — под защитой.</string>
     <string name="mayak_settings_split_applied">Применится при следующем подключении</string>
     <string name="mayak_settings_rudirect">Открывать российские сервисы напрямую</string>
-    <string name="mayak_settings_rudirect_hint">Одной кнопкой: российские приложения (банки, Госуслуги, маркетплейсы, стриминги) идут напрямую по вашему реальному IP — работают как дома. Остальной трафик остаётся под защитой. Применится при следующем подключении.</string>
+    <string name="mayak_settings_rudirect_hint">Банки, Госуслуги, маркетплейсы и стриминги пойдут напрямую и заработают как дома. Остальное — под защитой.</string>
     <string name="mayak_settings_rudirect_applied">Российские сервисы пойдут напрямую при следующем подключении</string>
     <!-- Авто-включение РФ-пресета при первом запуске (2026-08-03): человек не трогал тумблер сам,
          мы включили его САМИ по определённой стране выхода — нужно объяснить, что произошло и как отключить. -->
     <string name="mayak_ru_preset_auto_enabled">Российские сервисы будут открываться напрямую — так работают банки и Госуслуги. Отключить можно в настройках.</string>
     <string name="mayak_settings_show_presets">Показывать пресеты на главном экране</string>
-    <string name="mayak_settings_show_presets_hint">Селектор пресета и тумблер появляются над кнопкой подключения. Выключите, если не пользуетесь пресетами split-туннеля.</string>
+    <string name="mayak_settings_show_presets_hint">Селектор появляется над кнопкой подключения.</string>
     <!-- Короткая подпись под полоской пресета на главном (03-08-2026): человек впервые открывший
          приложение видит имя и тумблер без единого пояснения, что это вообще такое. -->
     <string name="mayak_home_preset_hint">Сплит-туннель: при включении выбранные сервисы (по умолчанию российские) идут напрямую, минуя защищённое подключение</string>
     <string name="mayak_settings_filtering">Фильтрация</string>
-    <string name="mayak_settings_dns_hint">Профиль DNS общий для всех устройств аккаунта (телефон, роутер, кабинет). Меняется здесь же, применяется при следующем подключении.</string>
+    <string name="mayak_settings_dns_hint">Профиль общий для всех устройств аккаунта. Применяется при следующем подключении.</string>
     <string name="mayak_settings_dns_loading">Загружаю…</string>
     <string name="mayak_settings_dns_unavailable">Не удалось загрузить — нажмите, чтобы повторить</string>
     <string name="mayak_dns_default">Без фильтрации</string>
@@ -655,12 +655,12 @@
     <string name="mayak_settings_reset_done">Настройки сброшены</string>
     <string name="mayak_settings_protection">Защита</string>
     <string name="mayak_settings_autoconnect">Автоподключение</string>
-    <string name="mayak_settings_autoconnect_hint">Автоматически поднимает последнее рабочее подключение при загрузке телефона или когда защищённое подключение запускает сама система — из настроек, сохранённых на устройстве, без обращения к сети. Один раз подключитесь вручную, чтобы было что восстанавливать.</string>
+    <string name="mayak_settings_autoconnect_hint">Поднимает последнее рабочее подключение при загрузке телефона. Сначала подключитесь вручную — иначе восстанавливать нечего.</string>
     <string name="mayak_settings_killswitch">Без защиты — без интернета</string>
-    <string name="mayak_settings_killswitch_hint">Пока защита не поднялась, телефон не выпускает трафик наружу. Это системная настройка: кнопка открывает нужный раздел, там для «Маяка» включите постоянное подключение и запрет соединений в обход него. Вместе с автоподключением выше трафик никогда не уходит без защиты.</string>
+    <string name="mayak_settings_killswitch_hint">Системная настройка Android: кнопка откроет нужный раздел.</string>
     <string name="mayak_settings_killswitch_unavailable">Не удалось открыть нужный раздел системных настроек на этом устройстве. Откройте его вручную: Настройки → Сеть и интернет → постоянное подключение.</string>
     <string name="mayak_settings_applock">Блокировка приложения</string>
-    <string name="mayak_settings_applock_hint">Спрашивать отпечаток, лицо или PIN устройства при открытии приложения. Защищает кабинет, настройки и конфиг, если телефон разблокирован и попал в чужие руки. Само подключение не затрагивает. Применяется со следующего открытия приложения.</string>
+    <string name="mayak_settings_applock_hint">Отпечаток, лицо или PIN при открытии приложения. На само подключение не влияет.</string>
     <string name="mayak_settings_applock_no_credential">Задайте блокировку экрана (PIN/отпечаток) в настройках телефона — иначе проверять нечем и блокировка не сработает.</string>
     <string name="mayak_lock_title">Маяк заблокирован</string>
     <string name="mayak_lock_subtitle">Подтвердите, что это вы</string>
@@ -700,7 +700,6 @@
     <string name="mayak_onboarding_3_text">Переключатель вверху экрана оставляет банки и госуслуги на обычном канале: им зарубежный адрес только мешает.</string>
     <string name="mayak_onboarding_done">Понятно</string>
     <string name="mayak_settings_haptics">Отклик вибрацией</string>
-    <string name="mayak_settings_haptics_hint">Короткая вибрация на нажатия и на момент, когда защита включилась или выключилась.</string>
     <!-- Публичный номер аккаунта (миграция 0110): им человек называет себя поддержке. Формат
          «472-918-563» задаёт показ (AccountNumber.format), в базе — девять цифр без дефисов.
          Строка-подпись КОРОТКАЯ намеренно: под ней стоит сам номер крупным моноширинным. -->
@@ -713,7 +712,7 @@
     <string name="mayak_support_body_account_number">Номер аккаунта: %1$s</string>
     <string name="mayak_ipv6_badge">IPv6</string>
     <string name="mayak_settings_diagnostics">Помощь и поддержка</string>
-    <string name="mayak_settings_diag_hint">Не работает или непонятно, как настроить — начните отсюда. Ответы на частые вопросы в справке; не подошло — напишите нам, письмо соберётся само. Лог помогает найти причину быстрее; данные обрабатываются согласно политике конфиденциальности.</string>
+    <string name="mayak_settings_diag_hint">Не работает или непонятно, как настроить — начните отсюда.</string>
     <!-- Точка входа в помощь. Адрес справки — из реестра доменов (MayakHostList.helpUrl), адрес
          поддержки — из BuildConfig.MAYAK_SUPPORT_EMAIL: ни то, ни другое в переводах не хардкодим. -->
     <string name="mayak_support_help_center">Справочный центр</string>
@@ -979,14 +978,12 @@
     <!-- Настройки → Уведомления -->
     <string name="mayak_settings_notify">Уведомления</string>
     <string name="mayak_settings_notify_account">Доступ и деньги</string>
-    <string name="mayak_settings_notify_account_hint">Чеки, срок доступа и безопасность приходят всегда: это работа сервиса, а не рассылка, и выключить её нельзя.</string>
-    <string name="mayak_settings_notify_service">Сервисные</string>
-    <string name="mayak_settings_notify_service_hint">Ответы поддержки, плановые работы, подсказки по настройке.</string>
+    <string name="mayak_settings_notify_account_hint">Чеки, срок доступа и безопасность приходят всегда — это работа сервиса, а не рассылка.</string>
+    <string name="mayak_settings_notify_always">Всегда</string>
+    <string name="mayak_settings_notify_service">Ответы поддержки и работы по сервису</string>
     <string name="mayak_settings_notify_news">Новости и предложения</string>
-    <string name="mayak_settings_notify_news_hint">Скидки и новое в сервисе. По умолчанию выключено.</string>
     <string name="mayak_settings_notify_news_consent">Мы будем присылать вам сообщения о скидках и новых возможностях сервиса. Отказаться можно в любой момент — этим же переключателем.</string>
     <string name="mayak_settings_notify_news_agree">Согласен получать</string>
     <string name="mayak_settings_notify_quiet">Тихие часы (23:00–09:00)</string>
-    <string name="mayak_settings_notify_quiet_hint">Ночью сообщения приходят без звука. Время берём с вашего телефона.</string>
     <string name="mayak_settings_notify_save_err">Не удалось сохранить. Попробуйте ещё раз.</string>
 </resources>
