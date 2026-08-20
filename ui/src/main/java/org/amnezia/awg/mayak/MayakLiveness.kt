@@ -17,7 +17,8 @@
 // ПО ЧЕМУ СУДИТ (в порядке убывания надёжности, всё локально и бесплатно):
 //   1. нет ни одной физической сети → защищать нечего, это видно мгновенно;
 //   2. rx туннеля вырос с прошлого такта → трафик РЕАЛЬНО идёт, свежее доказательство;
-//   3. рукопожатие свежее (моложе HANDSHAKE_FRESH_MS) → сервер отвечал недавно;
+//   3. рукопожатие свежее (LivenessDecision.HANDSHAKE_FRESH_MS) И не из ПРОШЛОЙ сети → сервер
+//      отвечал недавно;
 //   4. иначе — трафика нет.
 package org.amnezia.awg.mayak
 
@@ -31,16 +32,11 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import org.amnezia.awg.mayak.core.LivenessDecision
 
 object MayakLiveness {
     private const val TAG = "Mayak/Liveness"
     private const val TICK_MS = 3_000L
-
-    // Порог свежести рукопожатия. На живом туннеле с keepalive 10 с движок перевыпускает сессию
-    // примерно раз в 120 с (REKEY_AFTER_TIME), поэтому возраст рукопожатия на здоровом соединении
-    // не превышает ~130 с. Берём 150 с с запасом: больше — сервер не ответил на полный цикл
-    // перевыпуска, то есть путь мёртв. Меньше ставить нельзя — начнём пугать здоровых.
-    private const val HANDSHAKE_FRESH_MS = 150_000L
 
     // Фора только что поднятому туннелю. Первое рукопожатие приходит за секунды, а пир на выходе
     // заводится до ~15 с (sync-таймер ноды), поэтому сразу после подъёма «трафика нет» — не диагноз,
@@ -48,8 +44,32 @@ object MayakLiveness {
     // первого же пакета. В эту фору честный статус — «Проверяем соединение…».
     private const val WARMUP_MS = 20_000L
 
+    // Пауза перед проверкой после смены сети — дать стеку встать на новую сеть.
+    private const val NETCHANGE_SETTLE_MS = 2_000L
+
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     @Volatile private var job: Job? = null
+    @Volatile private var proofJob: Job? = null
+
+    // ===== Режим «сеть только что сменилась» =====
+    //
+    // Рукопожатие, случившееся на СТАРОЙ сети, ничего не говорит о новой: телефон уехал с Wi-Fi на
+    // мобильную, сокет движка остался на прежней — а правило №3 (рукопожатие свежее 150 с) уверенно
+    // пишет «Защищено» ещё две с половиной минуты. Поэтому с момента смены сети рукопожатие
+    // засчитывается, ТОЛЬКО если оно моложе самой смены; пока такого нет — судим по росту rx и по
+    // ответу сервера (проверка ниже).
+    //
+    // Режим закрывается сам, как только жизнь доказана (`netChangeAt = null`), — по времени он не
+    // истекает НАМЕРЕННО: «трафика нет» после мёртвой смены сети должно держаться, пока трафик не
+    // пойдёт. Первая версия правки гасила режим по таймеру, и вердикт «трафика нет» жил полсекунды:
+    // следующий такт снова верил старому рукопожатию и возвращал «Защищено» (поймано на эмуляторе
+    // 21-08 живым туннелем с удалённым на ноде пиром).
+    @Volatile private var netChangeAt: Long? = null
+    /** Проверка после смены сети ещё идёт — вердикта нет, честное слово «Проверяем соединение…». */
+    @Volatile private var proofPending = false
+    /** Номер текущей проверки: отменённая не должна снимать флаг, который поставила следующая
+     *  (`cancel()` асинхронен, её `finally` выполняется уже ПОСЛЕ старта новой). */
+    @Volatile private var proofGeneration = 0
 
     /** Кого будить при СМЕНЕ состояния живости (главный экран, пока он есть). Ставится/снимается
      *  Activity; сторож работает и без слушателя — уведомление он обновляет сам. */
@@ -70,6 +90,7 @@ object MayakLiveness {
     /** Запустить сторожа на время жизни туннеля. Идемпотентно. */
     fun start(context: Context) {
         stop()
+        netChangeAt = null // новый туннель — прежние подозрения к делу не относятся
         val app = context.applicationContext
         val tun = GoTunnel(app)
         job = scope.launch {
@@ -80,14 +101,18 @@ object MayakLiveness {
                 val grew = lastRx >= 0 && rx > lastRx
                 lastRx = rx
                 val since = GoTunnel.connectedSinceElapsed
-                val warmingUp = since != null && SystemClock.elapsedRealtime() - since < WARMUP_MS
-                val state = when {
-                    !MayakNet.hasNetwork(app) -> GoTunnel.LIVE_NO_NETWORK
-                    grew -> GoTunnel.LIVE_OK
-                    (tun.handshakeAgeMs() ?: Long.MAX_VALUE) <= HANDSHAKE_FRESH_MS -> GoTunnel.LIVE_OK
-                    warmingUp -> GoTunnel.LIVE_UNKNOWN // туннель только встал — ещё не «нет трафика»
-                    else -> GoTunnel.LIVE_NO_TRAFFIC
-                }
+                val now = SystemClock.elapsedRealtime()
+                val warmingUp = since != null && now - since < WARMUP_MS
+                val state = LivenessDecision.verdict(
+                    hasNetwork = MayakNet.hasNetwork(app),
+                    rxGrew = grew,
+                    handshakeAgeMs = tun.handshakeAgeMs() ?: Long.MAX_VALUE,
+                    msSinceNetworkChange = netChangeAt?.let { now - it },
+                    proofPending = proofPending,
+                    warmingUp = warmingUp,
+                )
+                // Жизнь доказана — режим «сеть только что сменилась» закрыт.
+                if (state == GoTunnel.LIVE_OK) netChangeAt = null
                 // Вердикт сторожа записываем КАЖДЫЙ такт, а не только на смене состояния: пинг-цикл
                 // главного экрана мог уже поставить в общее состояние «трафика нет» сам, и тогда
                 // `state != GoTunnel.liveness` не сработает — а экрану нужно знать, что сторож
@@ -105,6 +130,10 @@ object MayakLiveness {
     fun stop() {
         job?.cancel()
         job = null
+        proofJob?.cancel()
+        proofJob = null
+        proofPending = false
+        netChangeAt = null
         watchdogSaysNoTraffic = false // сторожа нет — и вердикта его нет; экран считает по-своему
     }
 
@@ -131,9 +160,70 @@ object MayakLiveness {
             return
         }
         // Сеть появилась/сменилась. Утверждать «всё хорошо» права нет: сокет движка остался на
-        // прежней сети, и трафик может не пойти вовсе. Честное слово здесь — «проверяем»; настоящий
-        // вердикт поставит ближайший такт сторожа по росту rx.
+        // прежней сети, и трафик может не пойти вовсе. Честное слово здесь — «проверяем»; вердикт
+        // ставит проверка ниже.
         if (GoTunnel.liveness == GoTunnel.LIVE_NO_NETWORK) apply(app, GoTunnel.LIVE_UNKNOWN)
+        verifyAfterNetworkChange(app)
+    }
+
+    /**
+     * Проверить ПОСЛЕ смены сети, что туннель на новой сети действительно жив, — не дожидаясь, пока
+     * состарится рукопожатие.
+     *
+     * Зачем. Правило «рукопожатие свежее 150 с → Защищено» написано для покоя: на живом туннеле
+     * движок перевыпускает сессию раз в ~120 с, и возраст рукопожатия — хорошее доказательство. Но
+     * ровно в момент смены сети оно превращается в ложь: рукопожатие состоялось на СТАРОЙ сети,
+     * сокет движка остался там же, а человеку продолжают писать «Защищено». В присланных логах это
+     * самый частый сюжет жалобы «подключено, а ничего не открывается».
+     *
+     * Как. Пара секунд на то, чтобы стек встал на новую сеть; потом смотрим рост rx (бесплатно), и
+     * только если его нет — спрашиваем сервер ICMP-эхом ЧЕРЕЗ туннель (тем же способом, что
+     * пинг-цикл открытого экрана: подпроцесс `ping` мимо туннеля увести нельзя, поэтому ответ на
+     * него и есть доказательство, что туннель проводит трафик). Ответил — «Защищено», не ответил —
+     * «трафика нет», и человек видит это через ~15 с, а не через две с половиной минуты.
+     *
+     * ⛔ Туннель здесь по-прежнему НЕ трогаем: авто-переподъём по смене сети выкатывали дважды и
+     * дважды делали хуже (Application.onNetworkChange). Это измерение, а не лечение.
+     */
+    private fun verifyAfterNetworkChange(app: Context) {
+        val host = GoTunnel.connectedServerHost
+        proofJob?.cancel()
+        val generation = ++proofGeneration
+        netChangeAt = SystemClock.elapsedRealtime()
+        proofPending = true
+        proofJob = scope.launch {
+            try {
+                val tun = GoTunnel(app)
+                if (!tun.isUp()) return@launch
+                val rxBefore = tun.transfer()?.first ?: -1L
+                delay(NETCHANGE_SETTLE_MS)
+                if (!tun.isUp()) return@launch
+                val rxAfter = tun.transfer()?.first ?: -1L
+                if (rxBefore >= 0 && rxAfter > rxBefore) {
+                    Log.i(TAG, "после смены сети: rx вырос ($rxBefore → $rxAfter) → живой")
+                    netChangeAt = null
+                    apply(app, GoTunnel.LIVE_OK)
+                    return@launch
+                }
+                if (host == null) return@launch // некого спрашивать — оставляем «проверяем»
+                val ms = MayakPing.ping(host)
+                if (!tun.isUp()) return@launch  // пока пинговали, туннель опустили
+                if (ms != null) {
+                    Log.i(TAG, "после смены сети: сервер ответил за ${ms}мс → живой")
+                    netChangeAt = null
+                    apply(app, GoTunnel.LIVE_OK)
+                } else {
+                    Log.i(TAG, "после смены сети: сервер не ответил, rx не вырос → трафика нет")
+                    // Это независимый вердикт сторожа — пинг-цикл открытого экрана снижает по нему
+                    // свой порог промахов (LivenessDecision.missesBeforeSelfHeal).
+                    watchdogSaysNoTraffic = true
+                    apply(app, GoTunnel.LIVE_NO_TRAFFIC)
+                }
+            } finally {
+                // Флаг снимает только ТА проверка, которая его поставила.
+                if (generation == proofGeneration) proofPending = false
+            }
+        }
     }
 
     /**

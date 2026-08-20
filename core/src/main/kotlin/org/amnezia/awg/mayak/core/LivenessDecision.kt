@@ -21,6 +21,63 @@ package org.amnezia.awg.mayak.core
 
 object LivenessDecision {
 
+    // ===== Состояния живости =====
+    // Источник правды именно здесь: те же числа GoTunnel отдаёт наружу как GoTunnel.LIVE_*, а
+    // вердикт по ним считается функцией [verdict] — на JVM, а не «на телефоне владельца».
+    const val LIVE_UNKNOWN = 0     // туннель поднят, подтверждения ещё нет → «Проверяем соединение…»
+    const val LIVE_OK = 1          // трафик подтверждён → и только тут «Защищено»
+    const val LIVE_NO_TRAFFIC = 2  // туннель есть, трафика нет
+    const val LIVE_NO_NETWORK = 3  // у телефона нет сети вообще — защищать нечего
+
+    /** Порог свежести рукопожатия: на живом туннеле движок перевыпускает сессию раз в ~120 с. */
+    const val HANDSHAKE_FRESH_MS = 150_000L
+
+    /**
+     * Доказывает ли рукопожатие, что туннель жив ПРЯМО СЕЙЧАС.
+     *
+     * Обычно достаточно возраста: моложе [HANDSHAKE_FRESH_MS] — значит сервер отвечал недавно. Но
+     * сразу после смены сети этот довод превращается в ложь: рукопожатие состоялось на СТАРОЙ сети,
+     * сокет движка остался там же, и о новой сети оно не говорит ничего. Поэтому в режиме «сеть
+     * только что сменилась» рукопожатие засчитывается, только если оно МОЛОЖЕ самой смены.
+     *
+     * @param msSinceNetworkChange сколько прошло с последней смены сети; null — режима нет
+     *        (жизнь уже доказана ростом rx или свежим рукопожатием, либо сеть не менялась).
+     */
+    fun handshakeProvesLife(handshakeAgeMs: Long, msSinceNetworkChange: Long?): Boolean =
+        handshakeAgeMs <= HANDSHAKE_FRESH_MS &&
+            (msSinceNetworkChange == null || handshakeAgeMs <= msSinceNetworkChange)
+
+    /**
+     * Что показывать человеку о живости туннеля.
+     *
+     * Порядок доводов — по убыванию надёжности: нет сети → рост rx → рукопожатие → идущая проверка
+     * после смены сети → сама смена сети без признаков жизни → фора только что поднятому туннелю.
+     *
+     * ⚠️ Ветка `msSinceNetworkChange != null → LIVE_NO_TRAFFIC` не имеет таймера НАМЕРЕННО. В первой
+     * версии правки (21-08) режим гасился по таймеру, и вердикт «трафика нет» жил полсекунды:
+     * следующий такт снова верил старому рукопожатию и возвращал «Защищено». Режим должен
+     * закрываться только доказательством жизни, а не временем.
+     *
+     * @param proofPending активная проверка после смены сети (пинг через туннель) ещё не ответила.
+     * @param warmingUp туннель только что поднят — «трафика нет» тут не диагноз, а нетерпение.
+     */
+    fun verdict(
+        hasNetwork: Boolean,
+        rxGrew: Boolean,
+        handshakeAgeMs: Long,
+        msSinceNetworkChange: Long?,
+        proofPending: Boolean,
+        warmingUp: Boolean,
+    ): Int = when {
+        !hasNetwork -> LIVE_NO_NETWORK
+        rxGrew -> LIVE_OK
+        handshakeProvesLife(handshakeAgeMs, msSinceNetworkChange) -> LIVE_OK
+        proofPending -> LIVE_UNKNOWN
+        msSinceNetworkChange != null -> LIVE_NO_TRAFFIC
+        warmingUp -> LIVE_UNKNOWN
+        else -> LIVE_NO_TRAFFIC
+    }
+
     /** Обычный порог: 4 промаха по 5 с ≈ 20 с. Меньше — ловили бы обычные провалы соты. */
     const val MISSES_NORMAL = 4
 

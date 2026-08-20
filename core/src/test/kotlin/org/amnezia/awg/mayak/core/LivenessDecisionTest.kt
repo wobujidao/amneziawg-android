@@ -73,4 +73,86 @@ class LivenessDecisionTest {
         val saved = (LivenessDecision.MISSES_NORMAL - LivenessDecision.MISSES_WHEN_WATCHDOG_SURE) * tickMs
         assertTrue("выигрыш $saved мс — меньше обещанного", saved >= 15_000)
     }
+
+    // ===== Что говорим о живости после СМЕНЫ СЕТИ =====
+    //
+    // Повод: правило «рукопожатие свежее 150 с → Защищено» написано для покоя, а в момент смены
+    // сети врёт: рукопожатие состоялось на СТАРОЙ сети, сокет движка остался там же. Человек с
+    // мёртвым туннелем видел «Защищено» ещё две с половиной минуты.
+
+    private val OK = LivenessDecision.LIVE_OK
+    private val UNKNOWN = LivenessDecision.LIVE_UNKNOWN
+    private val NO_TRAFFIC = LivenessDecision.LIVE_NO_TRAFFIC
+    private val NO_NETWORK = LivenessDecision.LIVE_NO_NETWORK
+
+    private fun verdict(
+        hasNetwork: Boolean = true,
+        rxGrew: Boolean = false,
+        handshakeAgeMs: Long = 10_000L,
+        msSinceNetworkChange: Long? = null,
+        proofPending: Boolean = false,
+        warmingUp: Boolean = false,
+    ) = LivenessDecision.verdict(hasNetwork, rxGrew, handshakeAgeMs, msSinceNetworkChange, proofPending, warmingUp)
+
+    @Test
+    fun `сети нет — это видно сразу и перевешивает всё`() {
+        assertEquals(NO_NETWORK, verdict(hasNetwork = false, rxGrew = true))
+    }
+
+    @Test
+    fun `в покое свежее рукопожатие доказывает жизнь`() {
+        assertEquals(OK, verdict(handshakeAgeMs = 100_000L))
+        assertEquals(NO_TRAFFIC, verdict(handshakeAgeMs = 151_000L))
+    }
+
+    @Test
+    fun `рукопожатие со СТАРОЙ сети жизнь не доказывает`() {
+        // Сеть сменилась 3 с назад, рукопожатию 40 с — оно из прошлой сети.
+        assertFalse(LivenessDecision.handshakeProvesLife(handshakeAgeMs = 40_000L, msSinceNetworkChange = 3_000L))
+    }
+
+    @Test
+    fun `рукопожатие, случившееся уже на НОВОЙ сети, жизнь доказывает`() {
+        assertTrue(LivenessDecision.handshakeProvesLife(handshakeAgeMs = 5_000L, msSinceNetworkChange = 30_000L))
+        assertEquals(OK, verdict(handshakeAgeMs = 5_000L, msSinceNetworkChange = 30_000L))
+    }
+
+    @Test
+    fun `пока проверка после смены сети идёт — честное слово «проверяем», а не «Защищено»`() {
+        assertEquals(UNKNOWN, verdict(handshakeAgeMs = 40_000L, msSinceNetworkChange = 3_000L, proofPending = true))
+    }
+
+    @Test
+    fun `проверка не нашла жизни — говорим «трафика нет»`() {
+        assertEquals(NO_TRAFFIC, verdict(handshakeAgeMs = 40_000L, msSinceNetworkChange = 9_000L, proofPending = false))
+    }
+
+    /**
+     * Главный сторож этой правки. В первой версии режим «сеть только что сменилась» гасился по
+     * таймеру, и вердикт «трафика нет» жил ПОЛСЕКУНДЫ: следующий такт снова верил старому
+     * рукопожатию и возвращал «Защищено» (видно в живом логе эмулятора 21-08, строки
+     * «сервер не ответил → трафика нет» и через 0,45 с «живость: 2 → 1»).
+     *
+     * Поэтому: сколько бы времени ни прошло, пока жизнь не доказана — слово не меняется.
+     */
+    @Test
+    fun `вердикт «трафика нет» держится, пока жизнь не доказана`() {
+        for (passed in listOf(10_000L, 60_000L, 600_000L, 3_600_000L)) {
+            assertEquals(
+                "прошло ${passed}мс после смены сети, рукопожатие всё то же старое",
+                NO_TRAFFIC,
+                verdict(handshakeAgeMs = 40_000L + passed, msSinceNetworkChange = passed),
+            )
+        }
+    }
+
+    @Test
+    fun `рост rx закрывает вопрос немедленно`() {
+        assertEquals(OK, verdict(rxGrew = true, handshakeAgeMs = 999_000L, msSinceNetworkChange = 1_000L))
+    }
+
+    @Test
+    fun `только что поднятому туннелю даём фору, а не приговор`() {
+        assertEquals(UNKNOWN, verdict(handshakeAgeMs = 999_000L, warmingUp = true))
+    }
 }

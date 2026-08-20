@@ -923,7 +923,7 @@
     <string name="mayak_settings_notify_account">Access and money</string>
     <string name="mayak_settings_notify_account_hint">Receipts, access reminders and security alerts always arrive — that is how the service works, not a mailing list.</string>
     <string name="mayak_settings_notify_always">Always</string>
-    <string name="mayak_settings_notify_service">Support replies and maintenance</string>
+    <string name="mayak_settings_notify_service">Support and maintenance</string>
     <string name="mayak_settings_notify_news">News and offers</string>
     <string name="mayak_settings_notify_news_consent">We will send you messages about discounts and new features. You can opt out at any time with this same switch.</string>
     <string name="mayak_settings_notify_news_agree">I agree to receive</string>

@@ -119,10 +119,12 @@ class GoTunnel(context: Context, tunnelName: String = "mayak") : MayakCoreTunnel
         // Поэтому состояние живости держим ЗДЕСЬ, рядом с туннелем, а не в Activity: уведомление
         // обновляется из полудюжины мест (пинг-цикл, скорость, реоупен, автоподключение) — по той же
         // причине, по которой здесь же живёт connectedRoute. Кто бы ни обновлял, слово будет одно.
-        const val LIVE_UNKNOWN = 0     // туннель поднят, подтверждения ещё нет → «Проверяем соединение…»
-        const val LIVE_OK = 1          // трафик подтверждён → и только тут «Защищено»
-        const val LIVE_NO_TRAFFIC = 2  // туннель есть, трафика нет
-        const val LIVE_NO_NETWORK = 3  // у телефона нет сети вообще — защищать нечего
+        // Сами числа и правило, по которому из признаков получается вердикт, живут в :core
+        // (LivenessDecision) — там их проверяет тест на JVM. Здесь только доступ по привычному имени.
+        const val LIVE_UNKNOWN = org.amnezia.awg.mayak.core.LivenessDecision.LIVE_UNKNOWN
+        const val LIVE_OK = org.amnezia.awg.mayak.core.LivenessDecision.LIVE_OK
+        const val LIVE_NO_TRAFFIC = org.amnezia.awg.mayak.core.LivenessDecision.LIVE_NO_TRAFFIC
+        const val LIVE_NO_NETWORK = org.amnezia.awg.mayak.core.LivenessDecision.LIVE_NO_NETWORK
 
         @Volatile var liveness: Int = LIVE_UNKNOWN
 

@@ -606,6 +606,7 @@
 
                         <TextView
                             style="@style/Mayak.SettingHint"
+                            android:layout_marginBottom="@dimen/mayak_space_2"
                             android:text="@string/mayak_settings_diag_hint" />
 
                         <!-- Помощь и поддержка (блокер №3 бэклога, 08-08): до этой правки в приложении

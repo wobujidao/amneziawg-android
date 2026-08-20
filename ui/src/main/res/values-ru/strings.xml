@@ -980,7 +980,7 @@
     <string name="mayak_settings_notify_account">Доступ и деньги</string>
     <string name="mayak_settings_notify_account_hint">Чеки, срок доступа и безопасность приходят всегда — это работа сервиса, а не рассылка.</string>
     <string name="mayak_settings_notify_always">Всегда</string>
-    <string name="mayak_settings_notify_service">Ответы поддержки и работы по сервису</string>
+    <string name="mayak_settings_notify_service">Поддержка и плановые работы</string>
     <string name="mayak_settings_notify_news">Новости и предложения</string>
     <string name="mayak_settings_notify_news_consent">Мы будем присылать вам сообщения о скидках и новых возможностях сервиса. Отказаться можно в любой момент — этим же переключателем.</string>
     <string name="mayak_settings_notify_news_agree">Согласен получать</string>
