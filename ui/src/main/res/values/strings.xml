@@ -466,7 +466,7 @@
     <!-- Public account number (migration 0110): what a person calls themselves when writing to us.
          The «472-918-563» grouping is added by the display layer; storage is nine bare digits. -->
     <string name="mayak_account_number">Account number</string>
-    <string name="mayak_account_number_hint">Quote it when you write to support — we will find you faster than by email.</string>
+    <string name="mayak_account_number_hint">Quote it when you write to support.</string>
     <string name="mayak_account_number_copy">Copy account number</string>
     <string name="mayak_account_number_copied">Account number copied</string>
     <string name="mayak_support_body_account_number">Account number: %1$s</string>

@@ -94,7 +94,6 @@ class MayakSettingsActivity : AppCompatActivity() {
         // «Аккаунт» — за ним сюда и приходят: номер для поддержки, срок доступа, кабинет.
         wireSection(R.id.mayak_sec_account_head, R.id.mayak_sec_account_body, R.id.mayak_sec_account_chevron, open = true)
         wireSection(R.id.mayak_sec_network_head, R.id.mayak_sec_network_body, R.id.mayak_sec_network_chevron)
-        wireSection(R.id.mayak_sec_filtering_head, R.id.mayak_sec_filtering_body, R.id.mayak_sec_filtering_chevron)
         wireSection(R.id.mayak_sec_protection_head, R.id.mayak_sec_protection_body, R.id.mayak_sec_protection_chevron)
         wireSection(R.id.mayak_sec_notify_head, R.id.mayak_sec_notify_body, R.id.mayak_sec_notify_chevron)
         wireSection(R.id.mayak_sec_appearance_head, R.id.mayak_sec_appearance_body, R.id.mayak_sec_appearance_chevron)
@@ -183,8 +182,11 @@ class MayakSettingsActivity : AppCompatActivity() {
             loadNotificationPrefs()
             loadReferral()
         } else {
-            // Не вошли — карточка фильтрации бесполезна (менять нечего) и только путала бы.
-            findViewById<View>(R.id.mayak_settings_filtering_card).visibility = View.GONE
+            // Не вошли — выбирать DNS-профиль не из чего (менять нечего), прячем сам пункт.
+            // Раньше пряталась целая карточка «Фильтрация»; 21-08 её слили с «Сетью», поэтому
+            // прячем ровно кнопку и её подписи, а не раздел.
+            findViewById<View>(R.id.mayak_settings_dns).visibility = View.GONE
+            findViewById<View>(R.id.mayak_settings_dns_hint_row).visibility = View.GONE
         }
 
         // Тактильный отклик (директива владельца 01-07): единственная точка правды — MayakPrefs,

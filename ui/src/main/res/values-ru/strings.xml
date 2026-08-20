@@ -705,7 +705,7 @@
          «472-918-563» задаёт показ (AccountNumber.format), в базе — девять цифр без дефисов.
          Строка-подпись КОРОТКАЯ намеренно: под ней стоит сам номер крупным моноширинным. -->
     <string name="mayak_account_number">Номер аккаунта</string>
-    <string name="mayak_account_number_hint">Назовите его, когда пишете в поддержку — так мы найдём вас быстрее, чем по почте.</string>
+    <string name="mayak_account_number_hint">Назовите его, когда пишете в поддержку.</string>
     <string name="mayak_account_number_copy">Скопировать номер аккаунта</string>
     <string name="mayak_account_number_copied">Номер аккаунта скопирован</string>
     <!-- Строка в письме поддержке. Отдельной строкой, а не внутри mayak_support_body: тот шаблон

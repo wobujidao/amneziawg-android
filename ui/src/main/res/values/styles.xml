@@ -167,12 +167,27 @@
         <item name="strokeWidth">1dp</item>
     </style>
 
-    <!-- Карточка СКЛАДНОГО раздела: те же поля по бокам, но сверху и снизу вдвое меньше. Свёрнутый
-         раздел — это строка меню, а не карточка с содержимым: с полными 20dp он занимал 88dp пустоты
-         на заголовок в три слова. 12dp + 48dp строки = 72dp, как двухстрочный пункт списка Material. -->
+    <!-- Карточка СКЛАДНОГО раздела: строка меню, а не карточка с содержимым.
+         🔴 21-08, замечание владельца «меню очень растянуто вниз, приходится прокручивать долго» —
+         второе за месяц (первое, 17-08, закрылось складыванием разделов; этого не хватило).
+         Померено на эмуляторе: свёрнутый раздел занимал 84dp — 48dp самой строки и 36dp воздуха
+         вокруг (12+12 внутренних полей карточки и 12 внешнего отступа). Восемь разделов = 288dp
+         пустоты, четверть экрана.
+         Стало: поля сверху/снизу ноль, внешний отступ 8dp → шаг раздела 56dp. Это ровно
+         `ItemOneLineContainerHeight` (56dp) из токенов Material 3 — то есть плотность списка
+         настроек как у системных, а цель нажатия остаётся 48dp (минимум Google, ниже нельзя).
+         Поля по бокам 20 → 16dp: `ItemLeadingSpace` M3 = 16dp, и лишние 8dp ширины забирает текст —
+         часть подсказок схлопывается с трёх строк до двух.
+         ⚠️ Поле СНИЗУ теперь у каждого тела раздела (`*_body`, paddingBottom), а не у карточки:
+         у свёрнутого тела нет, и платить за него высотой незачем. -->
     <style name="Mayak.Card.Section">
-        <item name="contentPaddingTop">12dp</item>
-        <item name="contentPaddingBottom">12dp</item>
+        <item name="contentPaddingTop">0dp</item>
+        <item name="contentPaddingBottom">0dp</item>
+        <item name="contentPaddingLeft">16dp</item>
+        <item name="contentPaddingRight">16dp</item>
+        <!-- Тень 8dp у строки меню — перебор: Material 3 для elevated-карточки ставит 1dp.
+             Восемь «парящих» плиток подряд читались как восемь отдельных экранов. -->
+        <item name="cardElevation">1dp</item>
     </style>
 
     <!-- Заголовок складного раздела настроек: название слева, шеврон справа, вся строка — кнопка.
@@ -215,8 +230,11 @@
         <item name="android:layout_height">wrap_content</item>
         <item name="android:orientation">horizontal</item>
         <item name="android:gravity">center_vertical</item>
-        <item name="android:paddingTop">12dp</item>
-        <item name="android:paddingBottom">12dp</item>
+        <!-- 12dp сверху и снизу давали строке номера 77dp при том, что сама она (метка + номер
+             26sp) занимает 53dp. 6dp → 65dp: цель нажатия (по строке копируют) остаётся заметно
+             выше минимальных 48dp, а первый экран настроек становится короче на 12dp. -->
+        <item name="android:paddingTop">6dp</item>
+        <item name="android:paddingBottom">6dp</item>
     </style>
 
     <style name="Mayak.DetailRow.TextCol" parent="">

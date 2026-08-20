@@ -49,7 +49,7 @@
                 style="@style/Mayak.Card.Section"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp">
+                android:layout_marginTop="8dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -73,6 +73,7 @@
                         android:id="@+id/mayak_sec_account_body"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:paddingBottom="14dp"
                         android:orientation="vertical">
 
                         <!-- Под кем вошли: почта или «не привязана» (строку ставит код). -->
@@ -162,6 +163,21 @@
                             app:iconGravity="textStart"
                             app:iconTint="@color/mayak_outline"
                             android:text="@string/mayak_open_cabinet" />
+                    
+                        <!-- Удаление аккаунта переехало сюда 21-08. Требование Google Play (путь
+                             удаления начинается В приложении) выполняется по-прежнему — пункт на
+                             месте, просто внутри своего раздела. Заодно оно больше не стоит в 4dp
+                             от «Выйти»: NN/g прямо предостерегает от соседства безобидного и
+                             необратимого — промах пальцем там стоит аккаунта. -->
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/mayak_settings_delete_account"
+                            style="@style/Mayak.Button.Text"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="14dp"
+                            android:textColor="@color/mayak_on_bg_muted"
+                            android:text="@string/mayak_delete_account" />
+
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -171,7 +187,7 @@
                 style="@style/Mayak.Card.Section"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp">
+                android:layout_marginTop="8dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -195,6 +211,7 @@
                         android:id="@+id/mayak_sec_network_body"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:paddingBottom="14dp"
                         android:orientation="vertical"
                         android:visibility="gone"
                         tools:visibility="visible">
@@ -262,45 +279,12 @@
                             android:textColor="@color/mayak_on_surface"
                             android:alpha="0.8"
                             android:textAppearance="@style/Mayak.Tagline" />
-                    </LinearLayout>
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+                    
 
-            <!-- ===== Фильтрация (DNS-профиль аккаунта, миграции 0086/0088) =====
-                 Настройка живёт на АККАУНТЕ (ядро отдаёт её в каждом конфиге), поэтому здесь только
-                 кнопка-значение: текущий профиль тянем у ядра, выбор шлём обратно. -->
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/mayak_settings_filtering_card"
-                style="@style/Mayak.Card.Section"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical">
-
-                    <LinearLayout
-                        android:id="@+id/mayak_sec_filtering_head"
-                        style="@style/Mayak.SectionHead">
-
-                        <TextView
-                            style="@style/Mayak.SectionHead.Title"
-                            android:text="@string/mayak_settings_filtering" />
-
-                        <ImageView
-                            android:id="@+id/mayak_sec_filtering_chevron"
-                            style="@style/Mayak.SectionHead.Chevron" />
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:id="@+id/mayak_sec_filtering_body"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:visibility="gone"
-                        tools:visibility="visible">
+                        <!-- Раздел «Фильтрация» слит сюда 21-08: он состоял из ОДНОГО пункта
+                             (выбор DNS-профиля), а стоил целой строки меню — 56dp на первом экране.
+                             Правило Google для настроек: прятать под раскрытие имеет смысл от трёх
+                             пунктов, и DNS — это про сеть. Идентификаторы не менялись. -->
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/mayak_settings_dns"
@@ -327,21 +311,23 @@
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
+                            android:id="@+id/mayak_settings_dns_hint_row"
                             android:layout_marginTop="4dp"
                             android:text="@string/mayak_settings_dns_hint"
                             android:textColor="@color/mayak_on_surface"
                             android:alpha="0.8"
                             android:textAppearance="@style/Mayak.Tagline" />
+
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- ===== Защита / Kill-switch (SPEC-0018 F3) ===== -->
+                        <!-- ===== Защита / Kill-switch (SPEC-0018 F3) ===== -->
             <com.google.android.material.card.MaterialCardView
                 style="@style/Mayak.Card.Section"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp">
+                android:layout_marginTop="8dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -365,6 +351,7 @@
                         android:id="@+id/mayak_sec_protection_body"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:paddingBottom="14dp"
                         android:orientation="vertical"
                         android:visibility="gone"
                         tools:visibility="visible">
@@ -440,7 +427,7 @@
                 style="@style/Mayak.Card.Section"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="8dp"
                 android:visibility="gone"
                 tools:visibility="visible">
 
@@ -466,6 +453,7 @@
                         android:id="@+id/mayak_sec_notify_body"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:paddingBottom="14dp"
                         android:orientation="vertical"
                         android:visibility="gone"
                         tools:visibility="visible">
@@ -574,7 +562,7 @@
                 style="@style/Mayak.Card.Section"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp">
+                android:layout_marginTop="8dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -598,6 +586,7 @@
                         android:id="@+id/mayak_sec_appearance_body"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:paddingBottom="14dp"
                         android:orientation="vertical"
                         android:visibility="gone"
                         tools:visibility="visible">
@@ -724,6 +713,18 @@
                             android:textColor="@color/mayak_on_surface"
                             android:alpha="0.8"
                             android:textAppearance="@style/Mayak.Tagline" />
+                    
+                        <!-- Сброс настроек переехал сюда 21-08: снаружи он стоял отдельной кнопкой и
+                             стоил 66dp первого экрана, а нажимают его раз в жизни. Сюда — потому что
+                             сбрасываются именно настройки, и человек уже внутри настроек вида. -->
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/mayak_settings_reset"
+                            style="@style/Mayak.Button.Outlined"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="14dp"
+                            android:text="@string/mayak_settings_reset" />
+
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -734,7 +735,7 @@
                 style="@style/Mayak.Card.Section"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp">
+                android:layout_marginTop="8dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -758,6 +759,7 @@
                         android:id="@+id/mayak_sec_diag_body"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:paddingBottom="14dp"
                         android:orientation="vertical"
                         android:visibility="gone"
                         tools:visibility="visible">
@@ -882,7 +884,7 @@
                 style="@style/Mayak.Card.Section"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="8dp"
                 android:visibility="gone"
                 tools:visibility="visible">
 
@@ -908,6 +910,7 @@
                         android:id="@+id/mayak_sec_referral_body"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:paddingBottom="14dp"
                         android:orientation="vertical"
                         android:visibility="gone"
                         tools:visibility="visible">
@@ -1019,17 +1022,6 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Сбросить все настройки к дефолтам (SPEC-0028): настроек много — быстрый сброс. -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/mayak_settings_reset"
-                style="@style/Mayak.Button.Outlined"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:layout_marginStart="20dp"
-                android:layout_marginEnd="20dp"
-                android:text="@string/mayak_settings_reset" />
-
             <!-- Выход из аккаунта -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/mayak_settings_logout"
@@ -1041,20 +1033,6 @@
                 android:layout_marginEnd="20dp"
                 android:text="@string/mayak_logout" />
 
-            <!-- Удаление аккаунта. Требование Google Play: путь удаления должен начинаться В приложении,
-                 а не только на сайте (аудит 2026-07-31, п. 16 — этого пункта не было вообще; ссылка
-                 «Открыть кабинет» требованию не отвечает). Спокойная текстовая кнопка, не «опасная
-                 красная»: удаление и так спрашивает пароль и подтверждение. -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/mayak_settings_delete_account"
-                style="@style/Mayak.Button.Text"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:layout_marginStart="20dp"
-                android:layout_marginEnd="20dp"
-                android:textColor="@color/mayak_on_bg_muted"
-                android:text="@string/mayak_delete_account" />
         </LinearLayout>
     </ScrollView>
 
