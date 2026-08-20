@@ -2,13 +2,19 @@
 <!-- Карточка «Выберите страну» — ОБЩАЯ для обеих ориентаций (portrait и layout-land). Родитель
      («отсек») задаёт ей место: в портрете это полоса от кнопки до низа экрана, в альбоме — ЛЕВАЯ
      колонка во всю высоту. Сама карточка всегда wrap_content и прижата к верху отсека: при двух
-     странах в ней нет пустоты, при длинном списке прокручивается внутренний ScrollView. -->
+     странах в ней нет пустоты, при длинном списке прокручивается внутренний ScrollView.
+     Поля сверху и снизу — 12dp вместо общих для карточек 20dp (20-08): содержимое тут не текст, а
+     строки высотой 48dp, у которых свой воздух внутри, и на невысоких экранах эти 16dp решали,
+     влезут три страны или список начнёт прокручиваться. По бокам поля прежние (20dp) — иначе
+     левый край карточки разъедется с остальными экранами. -->
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     style="@style/Mayak.Card"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_gravity="top">
+    android:layout_gravity="top"
+    app:contentPaddingTop="@dimen/mayak_space_3"
+    app:contentPaddingBottom="@dimen/mayak_space_3">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -83,12 +89,12 @@
             android:id="@+id/mayak_recommended_tile"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="6dp"
             android:orientation="vertical"
             android:background="@drawable/mayak_bg_recommended_tile"
             android:foreground="@drawable/mayak_fg_recommended_tile"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp"
+            android:paddingTop="6dp"
+            android:paddingBottom="6dp"
             android:visibility="gone">
 
             <TextView

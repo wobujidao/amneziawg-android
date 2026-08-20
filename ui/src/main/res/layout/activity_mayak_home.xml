@@ -53,19 +53,29 @@
 
             <include layout="@layout/mayak_home_hero" />
 
-            <!-- Отсек под карточку забирает ВСЁ место, оставшееся до низа экрана (0dp + weight=1),
+            <!-- Отсек под карточку забирает ВСЁ место, оставшееся до низа экрана (weight=1),
                  а сама карточка внутри него — wrap_content и прижата к верху. Отсюда оба нужных
                  поведения без единой строки кода:
                    • 2-3 строки  → карточка ровно по содержимому, внутри неё пустоты нет
                      (при layout_weight на самой карточке было ~500px пустоты — заход 02-08);
                    • 10 строк    → список дорастает точно до нижнего края и дальше прокручивается
-                     внутри себя, а не уезжает за экран (правка владельца 04-08). -->
+                     внутри себя, а не уезжает за экран (правка владельца 04-08).
+                 🔴 Высота здесь — mayak_dirs_slot_min, а НЕ 0dp, и это не косметика (жалоба
+                 владельца 20-08: «опять появилась прокрутка, а там всего 3 страны»). При 0dp
+                 LinearLayout в первом (UNSPECIFIED) проходе ScrollView меряет взвешенного ребёнка
+                 как wrap_content, и в «сколько всего нужно странице» уходила ПОЛНАЯ высота карточки
+                 со всеми странами. Как только сумма перерастала экран, fillViewport второй проход
+                 не делал — и прокручивалась ВСЯ страница (шапка, круг, статус уезжали вверх),
+                 вместо того чтобы ужать список. С минимальной высотой страница просит
+                 фиксированные блоки + 176dp, помещается, и остаток по weight=1 достаётся отсеку —
+                 карточка растёт до содержимого, а когда места мало, прокручивается ТОЛЬКО список
+                 внутри неё. Внешняя прокрутка остаётся страховкой для крупного системного шрифта. -->
             <FrameLayout
                 android:id="@+id/mayak_dirs_slot"
                 android:layout_width="match_parent"
-                android:layout_height="0dp"
+                android:layout_height="@dimen/mayak_dirs_slot_min"
                 android:layout_weight="1"
-                android:layout_marginTop="@dimen/mayak_space_4">
+                android:layout_marginTop="@dimen/mayak_space_3">
 
                 <include layout="@layout/mayak_home_countries" />
             </FrameLayout>
@@ -81,7 +91,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_horizontal"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="4dp"
                 android:alpha="0.38"
                 android:textSize="11sp"
                 android:textColor="@color/mayak_on_bg"
