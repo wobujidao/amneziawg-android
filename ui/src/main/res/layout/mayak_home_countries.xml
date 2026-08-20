@@ -89,12 +89,12 @@
             android:id="@+id/mayak_recommended_tile"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
+            android:layout_marginTop="4dp"
             android:orientation="vertical"
             android:background="@drawable/mayak_bg_recommended_tile"
             android:foreground="@drawable/mayak_fg_recommended_tile"
-            android:paddingTop="6dp"
-            android:paddingBottom="6dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
             android:visibility="gone">
 
             <TextView

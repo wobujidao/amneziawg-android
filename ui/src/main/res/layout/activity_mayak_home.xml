@@ -47,7 +47,7 @@
             android:paddingStart="20dp"
             android:paddingEnd="20dp"
             android:paddingTop="8dp"
-            android:paddingBottom="20dp">
+            android:paddingBottom="8dp">
 
             <include layout="@layout/mayak_home_header" />
 

@@ -1070,6 +1070,13 @@ class MayakActivity : AppCompatActivity() {
     private var presetNameBtn: com.google.android.material.button.MaterialButton? = null
     private var presetSwitch: com.google.android.material.materialswitch.MaterialSwitch? = null
     private var presetHint: TextView? = null // короткая подпись под полоской (находка 03-08-2026)
+    // Подпись под полоской пресета видна, ТОЛЬКО пока туннель не поднят (20-08). Зачем: это
+    // объяснение для того, кто ещё не подключался, а места оно занимает три строки. При поднятом
+    // туннеле под кругом появляются таймер, пинг и значки — на невысоком экране ровно этих строк
+    // не хватало, чтобы список стран поместился целиком, и он начинал прокручиваться внутри
+    // карточки. Из двух вещей — живое состояние подключения или пояснение к тумблеру — уступает
+    // пояснение.
+    private var tunnelUpHidesPresetHint = false
     private var editingPresetId: Long = 0L // id правимого пресета (0 = создаём новый/форк)
     // Программно синхронизируем тумблер с сохранённым состоянием (updatePresetSelector) — на время
     // этого присваивания слушатель ниже должен молчать, иначе синхронизация UI выглядит как то, что
@@ -1120,12 +1127,18 @@ class MayakActivity : AppCompatActivity() {
             return
         }
         bar.visibility = View.VISIBLE
-        presetHint?.visibility = View.VISIBLE
+        updatePresetHint()
         val active = MayakPresets.activePreset(this)
         presetNameBtn?.text = active?.name ?: getString(R.string.app_name)
         suppressPresetSwitchListener = true
         presetSwitch?.isChecked = MayakPrefs.presetEnabled(this)
         suppressPresetSwitchListener = false
+    }
+
+    /** Показать/спрятать подпись под полоской пресета: настройка «показывать пресеты» И туннель опущен. */
+    private fun updatePresetHint() {
+        presetHint?.visibility =
+            if (MayakPrefs.showPresetsOnHome(this) && !tunnelUpHidesPresetHint) View.VISIBLE else View.GONE
     }
 
     /** Диалог выбора пресета: «Выбрать» — сделать активным; «Изменить» — редактировать/форкнуть выбранный;
@@ -2891,6 +2904,9 @@ class MayakActivity : AppCompatActivity() {
                 ConnState.CONNECTED -> R.string.mayak_a11y_disconnect
             }
         )
+        // Подпись про сплит-туннель уступает место живым строкам подключения (см. tunnelUpHidesPresetHint).
+        tunnelUpHidesPresetHint = state != ConnState.DISCONNECTED
+        updatePresetHint()
         when (state) {
             ConnState.DISCONNECTED -> {
                 stopPulse()
