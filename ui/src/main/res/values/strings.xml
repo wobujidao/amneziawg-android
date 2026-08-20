@@ -270,7 +270,7 @@
     <string name="mayak_speed_fmt">↓ %1$s   ↑ %2$s</string>
     <string name="mayak_speed_mbit">%1$s Mbit/s</string>
     <string name="mayak_settings_speed">Show transfer speed</string>
-    <string name="mayak_settings_speed_hint">Displays current download/upload speed in the tunnel</string>
+    <string name="mayak_settings_speed_hint">Under the connect button while the tunnel is up.</string>
     <string name="mayak_update_uptodate">You have the latest version</string>
     <string name="mayak_update_check_failed">Update check failed</string>
     <string name="mayak_update_title">Update available</string>
