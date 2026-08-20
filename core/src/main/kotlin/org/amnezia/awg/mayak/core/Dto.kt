@@ -317,6 +317,7 @@ data class ApiError(
  * устройства/сети, чтобы инженер понял причину «не работает на мобиле» (блок IP/сигнатура vs клиент).
  */
 @Serializable
+@OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
 data class DiagLogRequest(
     @SerialName("app_version") val appVersion: String,
     val os: String,
@@ -324,6 +325,14 @@ data class DiagLogRequest(
     @SerialName("network_type") val networkType: String, // wifi | cellular | other
     @SerialName("other_vpn") val otherVpn: Boolean,       // в момент сбора активен ДРУГОЙ VPN?
     val direction: String = "",
+    // Код направления (nl/pl/ru) РЯДОМ с именем. Имя приложение кладёт такое, каким показало его
+    // человеку, то есть на языке ТЕЛЕФОНА, — и в панели одна страна расползалась на «Нидерланды»
+    // и «Netherlands» сразу (замер на бою 20-08). Ядро принимает direction_code с 20-08 (миграция
+    // 0162), нормализует его и молча отбрасывает мусор.
+    // @EncodeDefault(NEVER) + nullable: кода в моменте нет (лог из настроек, направление не
+    // выбрано) → ключ не сериализуется вовсе, тело запроса остаётся ровно прежним.
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    @SerialName("direction_code") val directionCode: String? = null,
     @SerialName("device_id") val deviceId: Long = 0,
     // Источник заливки (0.3.48): "manual" — кнопка «Отправить лог» в настройках; "auto" — авто-заливка
     // при ошибке подключения (rate-limited). encodeDefaults=true → сериализуется всегда (ядру нужно поле).

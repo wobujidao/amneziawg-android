@@ -111,6 +111,13 @@ class MayakActivity : AppCompatActivity() {
     /** Сработал ли уже сторож «трафик не идёт» в ТЕКУЩЕМ подключении (чтобы залить лог один раз). */
     private var noTrafficReported = false
 
+    /**
+     * С какого момента (elapsedRealtime) «трафика нет» держится БЕЗ перерыва; 0 — не держится.
+     * Нужно, чтобы не заливать диагностику по первому же срабатыванию: чаще всего это короткая
+     * потеря сети, после которой туннель оживает сам за пару секунд (см. LivenessDecision).
+     */
+    private var noTrafficSinceMs = 0L
+
     /** Пробовали ли уже вылечиться переподключением в ТЕКУЩЕМ подключении (ровно одна попытка). */
     private var selfHealTried = false
     // IPv6-проба: api6.ipify.org резолвится ТОЛЬКО в IPv6 → успешный 200 = реальный IPv6-egress через
@@ -2177,7 +2184,7 @@ class MayakActivity : AppCompatActivity() {
             val backendForLog = backend
                 ?: MayakBackend(hostProvider(), bypassTunnel = OutsideTunnel.opener(this))
             val req = DiagCollector.collect(
-                this, direction = d.name, deviceId = session.deviceId(),
+                this, direction = d.name, directionCode = d.code, deviceId = session.deviceId(),
                 source = "manual", reason = "link-check", extraMeta = meta,
             )
             session.sendDiagLog(backendForLog, req)
@@ -2773,6 +2780,7 @@ class MayakActivity : AppCompatActivity() {
      */
     private fun onConnected(ip: String, d: Direction?) = runOnUiThread {
         noTrafficReported = false
+        noTrafficSinceMs = 0L
         selfHealTried = false
         // Сюда попадают ТОЛЬКО с подтверждённым выходом (проба вернула внешний IP) — это и есть
         // единственное основание сказать «Защищено». Ставим до renderState: он читает состояние живости.
@@ -2903,11 +2911,15 @@ class MayakActivity : AppCompatActivity() {
         val b = backend ?: return
         if (!MayakPrefs.autoDiagDue(this)) return // слишком часто — пропускаем
         MayakPrefs.noteAutoDiagAttempt(this) // короткий анти-шквальный зазор — ставим ДО сети, независимо от исхода
-        val dirName = selectedDir?.name ?: ""
+        // Имя И код берём из ОДНОГО объекта: разойдись они — в панели окажется код одной страны с
+        // именем другой, и это хуже, чем не слать код вовсе.
+        val dir = selectedDir
+        val dirName = dir?.name ?: ""
+        val dirCode = dir?.code ?: ""
         lifecycleScope.launch {
             try {
                 DiagLogPending.flush(this@MayakActivity, session, b) // сначала дошлём то, что осталось с прошлого раза
-                val req = DiagCollector.collect(this@MayakActivity, direction = dirName, deviceId = session.deviceId(), source = "auto", reason = reason, tunnel = tunnel)
+                val req = DiagCollector.collect(this@MayakActivity, direction = dirName, directionCode = dirCode, deviceId = session.deviceId(), source = "auto", reason = reason, tunnel = tunnel)
                 session.sendDiagLog(b, req)
                 MayakPrefs.noteAutoDiagSuccess(this@MayakActivity) // 6-часовой лимит тратится ТОЛЬКО на успехе
             } catch (_: Exception) { /* тихо: авто-диагностика best-effort, без ретраев/краша */ }
@@ -3276,10 +3288,26 @@ class MayakActivity : AppCompatActivity() {
                         // и именно этот случай авто-заливка раньше НЕ ловила: подключение-то прошло
                         // успешно (жалоба бета-тестера 2026-07-29). Шлём один раз на срабатывание,
                         // дальше сторож молчит до восстановления трафика; сверху ещё лимит в MayakPrefs.
-                        if (!noTrafficReported) { noTrafficReported = true; maybeAutoSendDiag("no-traffic") }
+                        //
+                        // Но НЕ по первому срабатыванию (20-08): чаще всего это короткая потеря сети,
+                        // после которой туннель оживает сам за пару секунд, и оба живых авто-лога
+                        // человека с МТС оказались именно такими — пустыми, а 6-часовой лимит
+                        // авто-заливки они сожгли. Ждём NO_TRAFFIC_DIAG_DELAY_MS непрерывного «нет
+                        // трафика»; вернулся сам — отсчёт сбрасывается ниже и заливка не уходит.
+                        val nowMs = SystemClock.elapsedRealtime()
+                        if (noTrafficSinceMs == 0L) noTrafficSinceMs = nowMs
+                        if (!noTrafficReported && LivenessDecision.shouldReportNoTraffic(noTrafficSinceMs, nowMs)) {
+                            noTrafficReported = true
+                            maybeAutoSendDiag("no-traffic")
+                        }
+                        // Лечение ждать не заставляем: чинить надо сразу, а рассказывать о поломке —
+                        // только если она настоящая.
                         maybeSelfHeal()
-                    } else if (live == GoTunnel.LIVE_OK) {
-                        noTrafficReported = false // трафик вернулся сам
+                    } else {
+                        // Любое другое состояние рвёт непрерывность: «нет сети» — не «нет трафика»,
+                        // и складывать две разные беды в один отсчёт нельзя.
+                        noTrafficSinceMs = 0L
+                        if (live == GoTunnel.LIVE_OK) noTrafficReported = false // трафик вернулся сам
                     }
                 }
                 // Когда включена скорость — уведомление ведёт SpeedNotifier (пинг+скорость, живёт при сворачивании).

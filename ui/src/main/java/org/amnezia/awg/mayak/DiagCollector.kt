@@ -27,6 +27,10 @@ object DiagCollector {
     suspend fun collect(
         context: Context,
         direction: String,
+        // Код того же направления (`Direction.code`, приходит с ядра). Имя человек видит на языке
+        // своего телефона, поэтому в панели одна страна расползалась на два имени; код — один.
+        // Пусто (лог без выбранного направления) → поле в запросе не появится вовсе.
+        directionCode: String = "",
         deviceId: Long,
         source: String = "manual",
         // ПОЧЕМУ пришла авто-заливка. Сервер различает только manual/auto (строгая валидация), поэтому
@@ -52,6 +56,7 @@ object DiagCollector {
                 networkType = net.type,
                 otherVpn = net.vpnActive,
                 direction = direction,
+                directionCode = directionCode.trim().ifBlank { null },
                 deviceId = deviceId,
                 source = source,
                 meta = buildMap {

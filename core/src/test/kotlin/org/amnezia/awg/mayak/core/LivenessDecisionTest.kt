@@ -1,6 +1,7 @@
 package org.amnezia.awg.mayak.core
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -35,6 +36,34 @@ class LivenessDecisionTest {
     fun `хотя бы один свой промах нужен всегда`() {
         assertTrue(LivenessDecision.missesBeforeSelfHeal(true) >= 1)
         assertTrue(LivenessDecision.missesBeforeSelfHeal(false) > LivenessDecision.missesBeforeSelfHeal(true))
+    }
+
+    // ── Отложенная заливка диагностики по «трафика нет» (20-08) ────────────────────────────────
+    // Живой случай: человек с МТС прислал два авто-лога за два дня, оба на короткой потере сети.
+    // Туннель в таком случае оживает сам за ~2 с, разбирать в логе нечего, а 6-часовой лимит
+    // авто-заливки уже потрачен.
+
+    @Test
+    fun `только что объявили «трафика нет» — лог не льём`() {
+        assertFalse(LivenessDecision.shouldReportNoTraffic(noTrafficSinceMs = 1_000L, nowMs = 1_000L))
+    }
+
+    @Test
+    fun `трафик вернулся через две секунды — лога не будет`() {
+        // Замер 20-08 на эмуляторе: сеть вернули, туннель ожил через ~2 с. Отсчёт при этом
+        // обнуляется вызывающим (noTrafficSinceMs = 0), и это состояние обязано молчать.
+        assertFalse(LivenessDecision.shouldReportNoTraffic(noTrafficSinceMs = 0L, nowMs = 3_000L))
+    }
+
+    @Test
+    fun `трафика нет полминуты — вот теперь льём`() {
+        assertTrue(LivenessDecision.shouldReportNoTraffic(noTrafficSinceMs = 1_000L, nowMs = 31_000L))
+    }
+
+    /** Порог должен пережить и оживление (2 с), и пару тактов пинга (5 с), но не заставлять ждать минуту. */
+    @Test
+    fun `порог между десятью и тридцатью секундами`() {
+        assertTrue(LivenessDecision.NO_TRAFFIC_DIAG_DELAY_MS in 10_000L..30_000L)
     }
 
     /** Экономия должна быть заметной: иначе правка не стоила бы риска. 4 → 1 при такте 5 с = −15 с. */
