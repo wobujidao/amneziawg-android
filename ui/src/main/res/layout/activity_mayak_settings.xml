@@ -1022,15 +1022,17 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Выход из аккаунта -->
+            <!-- Выход из аккаунта. Единственное действие, оставшееся вне разделов: им пользуются
+                 чаще, чем сбросом настроек и удалением (те переехали внутрь своих разделов 21-08).
+                 Боковых полей у неё больше НЕТ: с прежними 20dp кнопка была на 20dp уже карточек
+                 над ней (те стоят на общем отступе экрана), и на экране это читалось как третья,
+                 лишняя вертикаль. Теперь её края совпадают с краями карточек. -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/mayak_settings_logout"
                 style="@style/Mayak.Button.Danger"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:layout_marginStart="20dp"
-                android:layout_marginEnd="20dp"
                 android:text="@string/mayak_logout" />
 
         </LinearLayout>
