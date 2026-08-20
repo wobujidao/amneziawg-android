@@ -242,11 +242,10 @@ class MayakActivity : AppCompatActivity() {
 
         if (session.hasToken()) {
             backend = MayakBackend(hostProvider(), bypassTunnel = OutsideTunnel.opener(this@MayakActivity))
-            showHome(); loadDirections()
-            checkAppUpdate() // мягкий нудж, если вышла новая версия (Вариант А)
-            refreshRuDirect() // OTA-подтяжка РФ-списка split-туннеля (в фоне, best-effort)
-            refreshHosts()    // адреса ядра и кабинета из реестра доменов (в фоне, best-effort)
-            maybeAutoEnableRuPreset() // авто-РФ-пресет при первом запуске (в фоне, best-effort)
+            showHome()
+            // Фоновые запросы (версия, РФ-список, адреса ядра, авто-пресет) уходят ПОСЛЕ списка
+            // стран — не вместе с ним. Почему, см. startBackgroundRefreshes.
+            startBackgroundRefreshes(loadDirections())
         } else {
             showLogin()
             // Порог старых сборок проверяем и ЗДЕСЬ: сборку, которую мы отключили, человек чаще всего
@@ -272,6 +271,36 @@ class MayakActivity : AppCompatActivity() {
      * прибитой фоновой активностью не доезжал вовсе. Запрос крошечный и идёт на тот же домен, что и
      * остальные вызовы, — отдельного следа для DPI не создаёт.
      */
+    /**
+     * Фоновые (best-effort) обновления старта: версия приложения, РФ-список split-туннеля, реестр
+     * адресов ядра, авто-пресет РФ. Уходят ПОСЛЕ того, ради чего человек открыл приложение.
+     *
+     * 🔴 Зачем задержка (замерено 20-08 на эмуляторе Android 9, боевая сборка 0.5.35). На холодном
+     * старте приложение открывало к ядру **восемь одновременных TCP+TLS соединений** за 700 мс:
+     * список стран, строка доступа (дважды, см. accessLineJustLoaded), ящик сообщений, version.json,
+     * РФ-список, /hosts и egress-проба авто-пресета. Пул соединений при этом пуст — переиспользовать
+     * нечего, каждый запрос платит полное рукопожатие. На эмуляторе это незаметно, а у человека с
+     * телефоном 2017 года на сотовой сети это восемь ECDHE + восемь проверок цепочки с пиннингом на
+     * одном слабом процессоре, и все они дерутся за радио. Список стран — тот, которого человек ждёт
+     * глядя в экран, — стоит в этой очереди наравне с проверкой версии.
+     *
+     * Теперь сначала уходит то, что видно (страны, строка доступа, ящик), а остальное — следом,
+     * по уже прогретому пулу: рукопожатий меньше, и ждущий запрос ни с кем не соревнуется.
+     *
+     * Ждём именно ЗАВЕРШЕНИЯ загрузки стран, а не «столько-то секунд»: угадывать длительность на
+     * чужом железе нечем. Потолок нужен на случай, когда список не отвечает вовсе — тогда фоновые
+     * дела всё равно должны состояться (в том числе ПОРОГ версии, он живёт в checkAppUpdate).
+     */
+    private fun startBackgroundRefreshes(afterVisible: Job?) {
+        lifecycleScope.launch {
+            if (afterVisible != null) withTimeoutOrNull(BACKGROUND_AFTER_VISIBLE_MS) { afterVisible.join() }
+            checkAppUpdate() // мягкий нудж, если вышла новая версия (Вариант А), + порог старых сборок
+            refreshRuDirect() // OTA-подтяжка РФ-списка split-туннеля
+            refreshHosts()    // адреса ядра и кабинета из реестра доменов
+            maybeAutoEnableRuPreset() // авто-РФ-пресет при первом запуске
+        }
+    }
+
     private fun refreshHosts() {
         if (hostsRefreshedThisProcess) return
         hostsRefreshedThisProcess = true
@@ -515,8 +544,9 @@ class MayakActivity : AppCompatActivity() {
             // кабинете (а туда мы сами и отправляем — «Открыть кабинет»), возвращается сюда — и
             // видит прежнюю строку. Снято живьём 17-08: после привязки почты срок на сервере стал
             // 7 дней, а приложение говорило «осталось 3 дня» до полного перезапуска. Один запрос на
-            // возврат экрана — та же цена, что у ящика рядом.
-            loadAccessLine()
+            // возврат экрана — та же цена, что у ящика рядом. Но НЕ второй подряд: на холодном
+            // старте showHome() сходил за ней миллисекундой раньше (см. accessLineJustLoaded).
+            if (accessLineJustLoaded) accessLineJustLoaded = false else loadAccessLine()
         }
         // Пока экран открыт, надпись под кнопкой ходит за процесс-скоупным сторожем живости: сеть
         // может пропасть между тактами пинга, и человек не должен узнавать об этом позже шторки.
@@ -532,6 +562,9 @@ class MayakActivity : AppCompatActivity() {
         // Туннель/таймер/уведомление это не трогает — рвётся лишь UI-индикатор пинга, он и не виден в фоне.
         stopPing()
         MayakLiveness.onChange = null // экрана нет — обновлять надпись некому (и держать ссылку на Activity незачем)
+        // Уходим с экрана — значит следующий возврат обязан освежить строку доступа (кабинет мог
+        // изменить срок). Признак «только что грузили» действует ровно на onResume сразу за onCreate.
+        accessLineJustLoaded = false
         super.onPause()
     }
 
@@ -840,10 +873,11 @@ class MayakActivity : AppCompatActivity() {
                 // 20-08 на эмуляторе: 0.5.33 после входа молчит, после перезапуска зовёт обновиться.
                 updateCheckedThisProcess = false
                 hideTotpField()
-                showHome(); loadDirections(forceRefresh = true)
-                checkAppUpdate() // мягкий нудж: на экране входа его намеренно не показывали
-                refreshRuDirect() // OTA-подтяжка РФ-списка split-туннеля после входа
-                maybeAutoEnableRuPreset() // авто-РФ-пресет при первом запуске (в фоне, best-effort)
+                showHome()
+                // Фоновые запросы — следом за списком стран, а не наперегонки с ним: сразу после
+                // входа человек смотрит ровно на этот список (см. startBackgroundRefreshes).
+                // checkAppUpdate здесь мягкий нудж — на экране входа его намеренно не показывали.
+                startBackgroundRefreshes(loadDirections(forceRefresh = true))
             } catch (e: MayakApiException) {
                 when {
                     // Сначала машинный признак: под 403 живут ДВА разных случая (email не подтверждён
@@ -1357,10 +1391,23 @@ class MayakActivity : AppCompatActivity() {
      */
     private var lastAccessTrial: Boolean? = null
 
+    /**
+     * Строка доступа уже запрошена показом главного экрана — ближайшему onResume её повторять незачем.
+     *
+     * 🔴 Зачем (замер 20-08): onCreate → showHome() → loadAccessLine(), и следом СРАЗУ ЖЕ onResume →
+     * loadAccessLine() ещё раз. Это два одинаковых GET /v1/client/account в одну и ту же миллисекунду
+     * на КАЖДОМ холодном старте — лишнее рукопожатие там, где их и так было восемь.
+     *
+     * Признак гасится в onPause: уход в кабинет и возврат обязаны строку освежить (там человек
+     * привязывает почту и платит, срок доступа меняется НЕ в приложении — находка 17-08).
+     */
+    private var accessLineJustLoaded = false
+
     private fun loadAccessLine() {
         val view = findViewById<TextView?>(R.id.mayak_access) ?: return
         if (!session.hasToken()) { view.visibility = View.GONE; return }
         val b = backend ?: return
+        accessLineJustLoaded = true
         lifecycleScope.launch {
             val st = runCatching { session.accountStatus(b) }.getOrNull() ?: return@launch
             // Запоминаем ВИД доступа: отказ «доступ закончился» приходит от /connect, где этого
@@ -1478,8 +1525,8 @@ class MayakActivity : AppCompatActivity() {
     // список с сервера. Новые направления появляются сами, БЕЗ перелогина (баг владельца 2026-06-28: кэш
     // залипал до выхода/входа). Перерисовываем только когда список реально изменился и мы отключены —
     // чтобы не дёргать UI при активном подключении.
-    private fun loadDirections(forceRefresh: Boolean = false) {
-        val b = backend ?: return
+    private fun loadDirections(forceRefresh: Boolean = false): Job? {
+        val b = backend ?: return null
         // 🔴 Статус-строка принадлежит СОСТОЯНИЮ ТУННЕЛЯ, а не загрузке списка стран.
         // Найдено 17-08 на эмуляторе: при холодном старте процесса с ЖИВЫМ туннелем (смена языка,
         // перезапуск приложения поверх работающего VPN) showHome() честно ставил «Защищено» и заводил
@@ -1490,7 +1537,7 @@ class MayakActivity : AppCompatActivity() {
         if (!session.hasCachedDirections() && connState == ConnState.DISCONNECTED) {
             setStatus(getString(R.string.mayak_status_loading))
         }
-        lifecycleScope.launch {
+        return lifecycleScope.launch {
             try {
                 // 1) мгновенный показ кэша (быстрый UI), если список ещё пуст
                 if (directions.isEmpty() && session.hasCachedDirections()) {
@@ -3508,6 +3555,10 @@ class MayakActivity : AppCompatActivity() {
         /** Подставить логин в форму входа: номер новой учётки, которой сервер не выдал сессию
          *  (SPEC-0048, ветка «аккаунт создан, а токен не выдан»). */
         const val EXTRA_PREFILL_LOGIN = "mayak_prefill_login"
+
+        /** Потолок ожидания списка стран перед фоновыми запросами старта (см. startBackgroundRefreshes).
+         *  Список не ответил за это время — фоновые дела делаем всё равно: среди них порог версии. */
+        private const val BACKGROUND_AFTER_VISIBLE_MS = 6_000L
 
         /** Один отзыв входа — один перезапуск: 401 может прилететь сразу из нескольких запросов. */
         @Volatile private var sessionExpiredHandled = false
