@@ -55,6 +55,8 @@ import org.amnezia.awg.mayak.core.AppVersionInfo
 import org.amnezia.awg.mayak.core.Direction
 import org.amnezia.awg.mayak.core.Fallback
 import org.amnezia.awg.mayak.core.FallbackDecision
+import org.amnezia.awg.mayak.core.EgressProbe
+import org.amnezia.awg.mayak.core.EgressRace
 import org.amnezia.awg.mayak.core.LivenessDecision
 import org.amnezia.awg.mayak.core.HostProvider
 import org.amnezia.awg.mayak.core.LadderTelemetry
@@ -76,7 +78,26 @@ class MayakActivity : AppCompatActivity() {
     private lateinit var store: KeystoreSecureStore
     private lateinit var session: MayakSession
     private lateinit var tunnel: GoTunnel
-    private val probe = IpifyProbe()
+
+    /**
+     * Проба выхода по IPv4 — ГОНКА нескольких доказательств, а не одно (см. :core EgressRace и
+     * MayakEgressProbes). Побеждает первое ответившее, остальные бросаются.
+     *
+     * Замер 20-08 (Android 9, боевая сборка, живой прод): из ~6 секунд до «Защищено» туннель занимал
+     * меньше трёх, а ~3,3 с человек ждал ОДНУ последовательную пробу через api.ipify.org (резолв →
+     * TCP → TLS → GET). Ускорять надо было именно её: показывать «Защищено» раньше доказательства
+     * нельзя — на этом обожглись в 0.3.x.
+     *
+     * Состав участников строится НА КАЖДЫЙ ЗОВ, а не один раз: список адресов ядра живой (реестр
+     * доменов + подписанный delivery), и зафиксированный при старте Activity адрес отстал бы ровно
+     * в тот момент, когда ядро переехало.
+     */
+    private val probe = object : EgressProbe {
+        override suspend fun externalIp(): String? = EgressRace.first(
+            probeScope,
+            MayakEgressProbes.v4(this@MayakActivity, store.get(KEY_SERVER)),
+        )
+    }
 
     /**
      * Своя область видимости для проб выхода — НЕ дочерняя корутине коннекта.
@@ -94,7 +115,9 @@ class MayakActivity : AppCompatActivity() {
     private var selfHealTried = false
     // IPv6-проба: api6.ipify.org резолвится ТОЛЬКО в IPv6 → успешный 200 = реальный IPv6-egress через
     // туннель. Честный сигнал для значка «IPv6» (SPEC-0014): зажигаем по факту выхода, не по наличию ::/0.
-    private val probe6 = IpifyProbe(url = "https://api6.ipify.org?format=json")
+    // Гонки здесь НЕТ и быть не может: нужен хост, который отвечает ТОЛЬКО по IPv6 (иначе успех
+    // ничего не доказывает), а у нашего ядра адрес есть и в v4 — оно ответило бы по нему.
+    private val probe6 = HttpEgressProbe(url = "https://api6.ipify.org?format=json", label = "ipify-v6")
 
     private var backend: MayakBackend? = null
     private var pendingConnect: Direction? = null
@@ -2260,7 +2283,7 @@ class MayakActivity : AppCompatActivity() {
                         val ip = bringUpUdp(direct, hasNextRung = relay != null || fb != null,
                             route = GoTunnel.ROUTE_DIRECT, serverHost = MayakPing.hostOf(paths.directEndpoint),
                             peerSyncSlackMs = peerSyncSlack(paths))
-                        if (ip != null) { session.rememberWorking(d.id, paths); noteLadderOutcome(GoTunnel.ROUTE_DIRECT); holdStatus(); onConnected(ip, d); return@launch }
+                        if (ip != null) { session.rememberWorking(d.id, paths); noteLadderOutcome(GoTunnel.ROUTE_DIRECT); holdStatus(SUCCESS_HOLD_MS); onConnected(ip, d); return@launch }
                         failedRungs += GoTunnel.ROUTE_DIRECT
                     }
                     if (relay != null) {
@@ -2268,13 +2291,13 @@ class MayakActivity : AppCompatActivity() {
                         val ip = bringUpUdp(relay, hasNextRung = fb != null,
                             route = GoTunnel.ROUTE_RELAY, serverHost = MayakPing.hostOf(paths.relayEndpoint),
                             peerSyncSlackMs = peerSyncSlack(paths))
-                        if (ip != null) { session.rememberWorking(d.id, paths); noteLadderOutcome(GoTunnel.ROUTE_RELAY); holdStatus(); onConnected(ip, d); return@launch }
+                        if (ip != null) { session.rememberWorking(d.id, paths); noteLadderOutcome(GoTunnel.ROUTE_RELAY); holdStatus(SUCCESS_HOLD_MS); onConnected(ip, d); return@launch }
                         failedRungs += GoTunnel.ROUTE_RELAY
                     }
                 }
                 if (fb != null && fbConf != null) {
                     val ip = switchToFallback(fbConf, fb)
-                    if (ip != null) { session.rememberWorking(d.id, paths); noteLadderOutcome(GoTunnel.ROUTE_FALLBACK); holdStatus(); onConnected(ip, d); return@launch }
+                    if (ip != null) { session.rememberWorking(d.id, paths); noteLadderOutcome(GoTunnel.ROUTE_FALLBACK); holdStatus(SUCCESS_HOLD_MS); onConnected(ip, d); return@launch }
                     failedRungs += GoTunnel.ROUTE_FALLBACK
                 }
                 // Не вышла ни одна ступень: ГАСИМ туннель (иначе VpnService остаётся активным и
@@ -2370,10 +2393,22 @@ class MayakActivity : AppCompatActivity() {
         // «Сервер» и «Пинг» стояли прочерки (скриншот + диаг-лог #71). Интерфейс уверенно говорил не то.
         GoTunnel.connectedRoute = route
         GoTunnel.connectedServerHost = serverHost
-        announce(getString(R.string.mayak_status_probing))
+        // ⏱️ Надпись «Проверяем, что интернет пошёл…» объявляем ПАРАЛЛЕЛЬНО пробе, а не перед ней.
+        //
+        // `announce` сначала досиживает остаток показа ПРЕДЫДУЩЕЙ надписи (STATUS_HOLD_MS, см. там же
+        // — правило заведено, чтобы шаги лестницы успевали читаться). Пауза правильная, но стояла она
+        // на пути САМОЙ РАБОТЫ: пока экран «дочитывал» строку «Подключаюсь к …», проба не начиналась
+        // вовсе. В замере 20-08 (лог `cold-before1`) это стоило 1,54 с из 3,4 с всего подключения —
+        // при том что туннель поднялся за 0,3 с, а рукопожатие прошло за 83 мс.
+        //
+        // Теперь пауза оплачивается ЭКРАНОМ, а не человеком: проба стартует сразу, надпись доезжает
+        // своим чередом. Гарантия читаемости при этом цела — строка, если её успели показать, стоит
+        // положенные полторы секунды. А если проба ответила раньше, чем надпись доехала, показывать
+        // «проверяем» уже незачем: `finally` ниже гасит объявление, и человек видит сразу «Защищено».
+        val announcing = lifecycleScope.launch { announce(getString(R.string.mayak_status_probing)) }
         // Ожидание ОБЪЯСНЯЕМ, а не просто держим надпись.
         //
-        // На ПОСЛЕДНЕЙ ступени бюджет пробы — 6 попыток × 5 с + 5 пауз × 2 с = до 40 секунд, и всё
+        // На ПОСЛЕДНЕЙ ступени бюджет пробы — 6 попыток × 5 с + 10 с пауз суммарно = до 40 секунд, и всё
         // это время под кнопкой стояла одна и та же строка «Проверяем, что интернет пошёл…». Причина
         // задержки при этом штатная и известная: пир заводится на выходе следующим поллингом агента
         // (до 15 с), то есть ждать НАДО. Но неподвижная надпись полминуты читается как зависание —
@@ -2388,6 +2423,10 @@ class MayakActivity : AppCompatActivity() {
             if (hasNextRung) probeUntilThreshold(peerSyncSlackMs) else probeWithRetry()
         } finally {
             patience.cancel()
+            // Гасим объявление, если оно ещё досиживает предыдущую надпись: иначе оно доедет ПОСЛЕ
+            // «Защищено» и затрёт его словами «Проверяем, что интернет пошёл…» — то есть скажет
+            // неправду о том, что происходит прямо сейчас.
+            announcing.cancel()
         }
     }
 
@@ -2409,10 +2448,23 @@ class MayakActivity : AppCompatActivity() {
         statusShownAt = SystemClock.elapsedRealtime()
     }
 
-    /** Досидеть остаток времени показа текущей надписи (перед сменой на следующую или перед успехом). */
-    private suspend fun holdStatus() {
+    /**
+     * Досидеть остаток времени показа текущей надписи (перед сменой на следующую или перед успехом).
+     *
+     * ⏱️ Перед УСПЕХОМ порог другой и короче — [SUCCESS_HOLD_MS] вместо [STATUS_HOLD_MS] (20-08).
+     * Полтора секунды заведены под ШАГИ лестницы: «напрямую не пускают, пробую через Россию» — фраза,
+     * которую человек обязан успеть прочесть, иначе она только тревожит. «Проверяем, что интернет
+     * пошёл…» перед «Защищено» — не шаг, а последний такт ожидания, и досиживать его нечего: ответ
+     * уже получен, доказательство выхода уже есть.
+     *
+     * Пока проба стоила ~3,3 с, эта пауза не стоила НИЧЕГО (полтора секунды давно истекали). Как
+     * только гонка сократила пробу до сотен миллисекунд, прежний порог начал СЪЕДАТЬ выигрыш —
+     * приложение честно узнавало ответ и потом молча ждало. Ноль тоже нельзя: мигнувшая на 200 мс
+     * надпись читается как сбой отрисовки.
+     */
+    private suspend fun holdStatus(minShownMs: Long = STATUS_HOLD_MS) {
         if (statusShownAt == 0L) return
-        val left = STATUS_HOLD_MS - (SystemClock.elapsedRealtime() - statusShownAt)
+        val left = minShownMs - (SystemClock.elapsedRealtime() - statusShownAt)
         if (left > 0) delay(left)
     }
 
@@ -2437,30 +2489,67 @@ class MayakActivity : AppCompatActivity() {
         // хотя само рукопожатие прошло раньше. Из-за этого каждая ступень стоила 11 с вместо шести,
         // а на трёх ступенях набегало полминуты «Подключаюсь…» — то самое, что мы и чинили.
         var running: kotlinx.coroutines.Deferred<String?>? = null
+        var attempt = 0
+        var nextTryAt = 0L // раньше этого времени (от подъёма) следующую попытку не заводим
         try {
             while (true) {
-                // Хендшейк читаем из статистики движка (JNI) — не на главном потоке.
-                val handshake = withContext(Dispatchers.IO) { tunnel.hasHandshake() }
-                val elapsed = SystemClock.elapsedRealtime() - started
-                if (handshake && handshakeAt == null) {
-                    handshakeAt = elapsed
-                    android.util.Log.i(PROBE_TAG, "рукопожатие за ${elapsed}мс — отсюда ${FallbackDecision.NO_EGRESS_MS}мс на проверку выхода")
-                }
-                if (FallbackDecision.shouldSwitch(elapsed, handshakeAt, peerSyncSlackMs)) {
-                    android.util.Log.i(PROBE_TAG, "UDP не пошёл за ${elapsed}мс (рукопожатие=$handshakeAt) → следующая ступень")
-                    return null
-                }
-                // Проба одна за раз; закончилась — забираем результат и при неудаче заводим следующую.
-                // Блокирующий резолв внутри отменить нельзя (см. awaitAtMost), поэтому мы его и не
-                // ждём: задача досидит своё сама, а мы продолжаем считать время.
+                // 1. Результат пробы забираем ПЕРВЫМ делом. Раньше он проверялся после чтения
+                //    статистики движка и после такта ожидания — то есть готовый ответ лежал ещё до
+                //    четверти секунды. Пока проба стоила 3 секунды, это терялось в шуме; теперь,
+                //    когда быстрая гонка отвечает за сотни миллисекунд, четверть секунды — заметная
+                //    доля того, что человек ждёт (замер 20-08).
                 val done = running?.takeIf { it.isCompleted }
                 if (done != null) {
                     val ip = runCatching { done.await() }.getOrNull()
                     if (ip != null) return ip // UDP работает — запасной канал не нужен
                     running = null
+                    // Провал сразу после подъёма туннеля — норма (система только что сменила
+                    // интерфейс и DNS). Повторяем быстро, но НЕ вплотную: без паузы неудачная гонка
+                    // успевала бы уйти на второй круг раз в четверть секунды, а это уже не проверка,
+                    // а долбёж — в том числе по НАШЕЙ ручке /v1/egress-check с её лимитом по IP.
+                    nextTryAt = (SystemClock.elapsedRealtime() - started) + EgressRace.retryGapMs(attempt)
+                    attempt++
                 }
-                if (running == null) running = probeScope.async { probe.externalIp() }
-                delay(PROBE_POLL_MS)
+                // 2. Хендшейк читаем из статистики движка (JNI) — не на главном потоке.
+                val handshake = withContext(Dispatchers.IO) { tunnel.hasHandshake() }
+                val elapsed = SystemClock.elapsedRealtime() - started
+                if (handshake && handshakeAt == null) {
+                    handshakeAt = elapsed
+                    android.util.Log.i(PROBE_TAG, "рукопожатие за ${elapsed}мс — отсюда ${FallbackDecision.NO_EGRESS_MS}мс на проверку выхода")
+                    // ⏱️ ПОЗДНЕЕ рукопожатие обнуляет часы пробы (20-08).
+                    //
+                    // Проба, запущенная ДО рукопожатия, стреляет в туннель, который ещё физически не
+                    // может ничего унести, — но её собственный таймаут уже идёт. Живой лог `cold-after1`:
+                    // рукопожатие случилось на 5334 мс (движок повторяет инициацию раз в ~5 с — потеря
+                    // первого пакета, штатное дело на соте), а участник гонки «ядро по IP» умер по
+                    // своему четырёхсекундному таймауту на 4003 мс — за секунду ДО того, как туннель
+                    // ожил. Победил медленный участник (ipify, 6348 мс), хотя быстрый был готов.
+                    //
+                    // Момент рукопожатия — первый момент, когда проба вообще имеет шанс. Заводим её
+                    // заново отсюда, чтобы часы у всех участников начинались с осмысленной точки.
+                    // Только если рукопожатие пришло ПОЗДНО: при обычных 30–200 мс перезапуск ничего
+                    // не чинит, а лишнее соединение стоит.
+                    if (running != null && elapsed >= HANDSHAKE_RESTART_AFTER_MS) {
+                        android.util.Log.i(PROBE_TAG, "проба шла в ещё не поднятый туннель — начинаю заново")
+                        running?.cancel()
+                        running = null
+                        nextTryAt = elapsed
+                    }
+                }
+                if (FallbackDecision.shouldSwitch(elapsed, handshakeAt, peerSyncSlackMs)) {
+                    android.util.Log.i(PROBE_TAG, "UDP не пошёл за ${elapsed}мс (рукопожатие=$handshakeAt) → следующая ступень")
+                    return null
+                }
+                // 3. Проба одна за раз (внутри неё — гонка нескольких адресов, см. EgressRace).
+                //    Блокирующий резолв внутри отменить нельзя (см. awaitAtMost), поэтому мы его и не
+                //    ждём: задача досидит своё сама, а мы продолжаем считать время.
+                if (running == null && elapsed >= nextTryAt) running = probeScope.async { probe.externalIp() }
+                // 4. Ждём РАНЬШЕЕ из двух: готовность пробы или такт опроса. `join` — настоящая точка
+                //    приостановки и просыпается ровно тогда, когда проба ответила; фиксированный
+                //    `delay` держал бы готовый ответ до конца такта.
+                val pending = running
+                if (pending != null) withTimeoutOrNull(PROBE_POLL_MS) { pending.join() }
+                else delay(PROBE_POLL_MS)
             }
         } finally {
             running?.cancel() // best-effort: держать осиротевшую пробу незачем
@@ -2660,12 +2749,17 @@ class MayakActivity : AppCompatActivity() {
     )
 
     /** Несколько попыток egress-пробы (пир появляется на сервере не сразу; v6-выход может «прогреться» позже).
-     *  По умолчанию v4-проба (probe, PROBE_ATTEMPTS); v6-проба зовёт с probe6 и IPV6_PROBE_ATTEMPTS. */
-    private suspend fun probeWithRetry(p: IpifyProbe = probe, attempts: Int = PROBE_ATTEMPTS): String? {
+     *  По умолчанию v4-проба (probe, PROBE_ATTEMPTS); v6-проба зовёт с probe6 и IPV6_PROBE_ATTEMPTS.
+     *
+     *  Пауза между попытками РАСТЁТ (EgressRace.retryGapMs), а не стоит фиксированные 2 с. Причина в
+     *  замере 20-08: первая проба уходит в момент, когда система только что подняла интерфейс и
+     *  сменила DNS, честно проваливается за четверть секунды — и раньше после этого две секунды не
+     *  делалось ничего. Суммарное окно ожидания при этом прежнее (см. EgressRace). */
+    private suspend fun probeWithRetry(p: EgressProbe = probe, attempts: Int = PROBE_ATTEMPTS): String? {
         repeat(attempts) { attempt ->
             val ip = org.amnezia.awg.mayak.core.awaitAtMost(probeScope, PROBE_ATTEMPT_MS) { p.externalIp() }
             if (ip != null) return ip
-            if (attempt < attempts - 1) delay(PROBE_DELAY_MS)
+            if (attempt < attempts - 1) delay(EgressRace.retryGapMs(attempt))
         }
         return null
     }
@@ -3497,9 +3591,13 @@ class MayakActivity : AppCompatActivity() {
         // (MayakHostList.cabinetUrl). Зашитый в сборку стартовый адрес — MayakHosts.bakedCabinet.
 
         // Сервер добавляет пира sync-таймером нод (теперь 5с, было 15с — перф-2026-07-07) → пробуем плотнее:
-        // таймаут пробы 4с + пауза 2с ловят пир около t≈5с (было 8+4 → первый ретрай лишь t≈12с). 6 попыток.
+        // таймаут пробы 4с, первая пауза 0,4с (растущие паузы — EgressRace.retryGapMs, правка 20-08),
+        // так что первый повтор приходится на t≈4,5с, а суммарное окно ожидания осталось прежним. 6 попыток.
         /** Минимальное время показа надписи шага подключения — чтобы её успели прочитать (см. announce). */
         private const val STATUS_HOLD_MS = 1_500L
+
+        /** То же, но ПЕРЕД «Защищено»: это не шаг, а конец ожидания — досиживать нечего (см. holdStatus). */
+        private const val SUCCESS_HOLD_MS = 600L
 
         /** Через сколько текст ошибки под кнопкой считается протухшим (см. clearStaleError). */
         private const val ERROR_STALE_MS = 30_000L
@@ -3513,7 +3611,15 @@ class MayakActivity : AppCompatActivity() {
         // сервера (пир появляется до ~15 с), а к моменту переключения на резерв это время уже прошло:
         // тут проверяется только сам мост, и он либо отвечает сразу, либо не отвечает вовсе.
         private const val FALLBACK_PROBE_ATTEMPTS = 2
-        private const val PROBE_DELAY_MS = 2_000L
+        // Пауза между попытками больше НЕ константа: она растёт от попытки к попытке
+        // (EgressRace.retryGapMs). Прежние фиксированные 2 000 мс стоили человеку ровно две секунды
+        // в самом частом случае — когда первая проба провалилась за четверть секунды на ещё не
+        // прогретом после подъёма туннеля резолвере (замер 20-08).
+
+        /** С какого опоздания рукопожатия проба заводится заново (см. probeUntilThreshold).
+         *  Секунда — заведомо больше обычного рукопожатия (30–200 мс) и заведомо меньше повтора
+         *  инициации движком (~5 с), то есть срабатывает ровно на «потеряли первый пакет». */
+        private const val HANDSHAKE_RESTART_AFTER_MS = 1_000L
 
         // Такт опроса состояния во время ожидания выхода: рукопожатие и порог смотрим ЧАСТО, а не
         // раз в бюджет. Именно из-за редкого опроса в 0.3.79 рукопожатие «случалось» на 6001 мс

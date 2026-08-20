@@ -105,7 +105,11 @@ object MayakHostList {
     internal fun ownHttpsUrl(url: String, baked: List<String>): Boolean =
         url.trim().startsWith("https://", ignoreCase = true) && ownContour(url, baked)
 
-    private fun hostOf(url: String): String? {
+    // internal, а не private: этим же разбором пользуется MayakEgressProbes — ему надо отличить
+    // адрес-IP от домена, чтобы взять для пробы выхода путь БЕЗ резолва имени. Ловушки разбора
+    // (логин перед '@', '#', '\\') здесь уже учтены, и дублировать их вторым парсером нельзя —
+    // именно так заводятся расхождения между «проверили» и «пошли».
+    internal fun hostOf(url: String): String? {
         val trimmed = url.trim()
         val noScheme = trimmed.substringAfter("://", trimmed)
         // Отрезаем ВСЁ, что идёт после хоста. '#' и '\\' здесь не формальность (найдено при правке
