@@ -460,7 +460,7 @@
     <string name="mayak_route_fallback">Запасной канал</string>
     <string name="mayak_details_route">Путь</string>
     <string name="mayak_settings_force_fallback">Всегда использовать запасной канал</string>
-    <string name="mayak_settings_force_fallback_hint">Обычно не нужно: приложение уходит на него само. Включите, если обычное подключение у вас не работает никогда — запасной медленнее.</string>
+    <string name="mayak_settings_force_fallback_hint">Включается сам. Вручную — только если обычный канал не работает никогда: он медленнее.</string>
     <string name="mayak_status_offline_lastgood">Сервер не отвечает — подключаем %1$s по сохранённым настройкам…</string>
     <string name="mayak_status_no_egress">Подключиться не удалось. Попробуйте ещё раз или выберите другую страну</string>
     <string name="mayak_status_disconnected">Не защищено</string>
@@ -561,13 +561,13 @@
     <string name="mayak_settings_section_collapse">Свернуть раздел</string>
     <string name="mayak_settings_network">Сеть</string>
     <string name="mayak_settings_ipv6">Использовать IPv6</string>
-    <string name="mayak_settings_ipv6_hint">Приносит IPv6 туда, где его не даёт оператор. Выключите, если что-то перестало открываться.</string>
+    <string name="mayak_settings_ipv6_hint">Даёт IPv6 там, где его нет у оператора. Выключите, если что-то перестало открываться.</string>
     <string name="mayak_settings_ipv6_applied">Применится при следующем подключении</string>
     <string name="mayak_apps_loading">Собираем список приложений…</string>
     <string name="mayak_settings_split">Сплит-туннель</string>
     <string name="mayak_preset_switch_desc">Применять split-туннель этого пресета</string>
     <string name="mayak_settings_split_count">Сплит-туннель (%1$d)</string>
-    <string name="mayak_settings_split_hint">Выбранные приложения пойдут мимо туннеля, по вашему реальному IP: банки, Госуслуги. Остальное — под защитой.</string>
+    <string name="mayak_settings_split_hint">Выбранные приложения пойдут мимо туннеля: банки, Госуслуги. Остальное — под защитой.</string>
     <string name="mayak_settings_split_applied">Применится при следующем подключении</string>
     <string name="mayak_settings_rudirect">Открывать российские сервисы напрямую</string>
     <string name="mayak_settings_rudirect_hint">Банки, Госуслуги, маркетплейсы и стриминги пойдут напрямую и заработают как дома. Остальное — под защитой.</string>
@@ -655,7 +655,7 @@
     <string name="mayak_settings_reset_done">Настройки сброшены</string>
     <string name="mayak_settings_protection">Защита</string>
     <string name="mayak_settings_autoconnect">Автоподключение</string>
-    <string name="mayak_settings_autoconnect_hint">Поднимает последнее рабочее подключение при загрузке телефона. Сначала подключитесь вручную — иначе восстанавливать нечего.</string>
+    <string name="mayak_settings_autoconnect_hint">Поднимает последнее рабочее подключение при старте телефона. Сначала подключитесь вручную.</string>
     <string name="mayak_settings_killswitch">Без защиты — без интернета</string>
     <string name="mayak_settings_killswitch_hint">Системная настройка Android: кнопка откроет нужный раздел.</string>
     <string name="mayak_settings_killswitch_unavailable">Не удалось открыть нужный раздел системных настроек на этом устройстве. Откройте его вручную: Настройки → Сеть и интернет → постоянное подключение.</string>

@@ -103,8 +103,25 @@ class MayakSettingsActivity : AppCompatActivity() {
         wireSection(R.id.mayak_sec_referral_head, R.id.mayak_sec_referral_body, R.id.mayak_sec_referral_chevron)
 
         findViewById<MaterialButton>(R.id.mayak_settings_back).setOnClickListener {
-            finish(); MayakTransitions.applyAxisReverse(this)
+            if (!collapseOpenSection()) {
+                finish(); MayakTransitions.applyAxisReverse(this)
+            }
         }
+        // «Назад» с РАСКРЫТЫМ разделом сначала складывает его, и только потом уходит с экрана.
+        //
+        // Почему это не педантизм. Раскрытый раздел подводится под шапку (scrollSectionToTop), и на
+        // экране остаётся заголовок + его содержимое — визуально это НОВЫЙ ЭКРАН. Человек жмёт
+        // «Назад», ожидая вернуться к списку разделов, а вылетал из настроек целиком. NN/g описывает
+        // ровно эту ловушку у складных разделов: чем убедительнее раскрытие выглядит переходом, тем
+        // вернее по «Назад» ждут возврата на уровень выше.
+        onBackPressedDispatcher.addCallback(this, object : androidx.activity.OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (collapseOpenSection()) return
+                isEnabled = false
+                onBackPressedDispatcher.onBackPressed()
+                MayakTransitions.applyAxisReverse(this@MayakSettingsActivity)
+            }
+        })
         findViewById<MaterialButton>(R.id.mayak_settings_language).setOnClickListener {
             MayakLanguages.showDialog(this)
         }
@@ -409,6 +426,22 @@ class MayakSettingsActivity : AppCompatActivity() {
             // раздела уезжает ровно под неё.
             scroll.smoothScrollTo(0, (card.top - (header?.height ?: 0)).coerceAtLeast(0))
         }, 320)
+    }
+
+    /**
+     * Складывает открытый раздел (он всегда один — аккордеон) и возвращает экран к началу списка.
+     * true — раздел был открыт и закрыт, значит «Назад» уже отработал и уходить с экрана не надо.
+     */
+    private fun collapseOpenSection(): Boolean {
+        val open = sections.firstOrNull { it.second.visibility == View.VISIBLE } ?: return false
+        (findViewById<View>(R.id.mayak_settings_content) as? ViewGroup)?.let {
+            TransitionManager.beginDelayedTransition(it, AutoTransition().setDuration(160))
+        }
+        setSectionOpen(open.first, open.second, open.third, false)
+        // К началу списка: раздел мог быть подведён под шапку, и после складывания человек остался бы
+        // смотреть на пустое место там, где только что было содержимое.
+        findViewById<ScrollView>(R.id.mayak_settings_scroll)?.smoothScrollTo(0, 0)
+        return true
     }
 
     /** Шеврон: 90° — свёрнуто (смотрит вниз), 270° — раскрыто (смотрит вверх). */

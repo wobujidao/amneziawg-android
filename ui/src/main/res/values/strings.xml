@@ -235,7 +235,7 @@
     <string name="mayak_route_fallback">Backup channel</string>
     <string name="mayak_details_route">Path</string>
     <string name="mayak_settings_force_fallback">Always use backup channel</string>
-    <string name="mayak_settings_force_fallback_hint">Normally not needed: the app moves to it by itself. Turn on if the usual connection never works on your network — the backup is slower.</string>
+    <string name="mayak_settings_force_fallback_hint">Turns on by itself. Switch it on manually only if the usual channel never works: it is slower.</string>
     <string name="mayak_status_offline_lastgood">Server not responding — connecting to %1$s with saved settings…</string>
     <string name="mayak_status_no_egress">Could not connect. Try again or pick another country</string>
     <string name="mayak_status_disconnected">Unprotected</string>
@@ -332,13 +332,13 @@
     <string name="mayak_settings_section_collapse">Collapse section</string>
     <string name="mayak_settings_network">Network</string>
     <string name="mayak_settings_ipv6">Use IPv6</string>
-    <string name="mayak_settings_ipv6_hint">Brings IPv6 where your carrier does not give it. Turn off if something stops opening.</string>
+    <string name="mayak_settings_ipv6_hint">Gives you IPv6 where your carrier does not. Turn it off if something stops opening.</string>
     <string name="mayak_settings_ipv6_applied">Applies on the next connection</string>
     <string name="mayak_apps_loading">Loading the list of apps…</string>
     <string name="mayak_settings_split">Split tunneling</string>
     <string name="mayak_preset_switch_desc">Apply this preset\'s split tunneling</string>
     <string name="mayak_settings_split_count">Split tunneling (%1$d)</string>
-    <string name="mayak_settings_split_hint">Selected apps go past the tunnel, over your real IP: banking, government apps. Everything else stays protected.</string>
+    <string name="mayak_settings_split_hint">Selected apps go past the tunnel: banking, government apps. Everything else stays protected.</string>
     <string name="mayak_settings_split_applied">Applies on the next connection</string>
     <string name="mayak_settings_rudirect">Open Russian services directly</string>
     <string name="mayak_settings_rudirect_hint">Banking, government, marketplace and streaming apps go direct and work as if you were at home. Everything else stays protected.</string>
@@ -419,7 +419,7 @@
     <string name="mayak_settings_reset_done">Settings reset</string>
     <string name="mayak_settings_protection">Protection</string>
     <string name="mayak_settings_autoconnect">Auto-connect</string>
-    <string name="mayak_settings_autoconnect_hint">Brings up your last working connection when the phone starts. Connect once manually first — otherwise there is nothing to restore.</string>
+    <string name="mayak_settings_autoconnect_hint">Restores your last working connection when the phone starts. Connect manually once first.</string>
     <string name="mayak_settings_killswitch">No protection — no internet</string>
     <string name="mayak_settings_killswitch_hint">An Android system setting: the button opens the right section.</string>
     <string name="mayak_settings_killswitch_unavailable">Couldn\'t open the right section of the system settings on this device. Open it manually: Settings → Network &amp; internet → always-on connection.</string>
