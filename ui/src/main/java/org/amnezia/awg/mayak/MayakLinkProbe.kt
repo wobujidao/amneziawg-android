@@ -181,7 +181,9 @@ object MayakLinkProbe {
 
     private fun httpOk(url: String, opener: ((URL) -> HttpURLConnection)?): Boolean {
         val u = URL(адрес(url))
-        val conn = opener?.invoke(u) ?: (u.openConnection() as HttpURLConnection)
+        // Свежее соединение, а не сокет из пула: проба через туннель на сокете, открытом ДО
+        // туннеля, либо виснет до таймаута, либо отвечает мимо туннеля (разбор 21-08).
+        val conn = FreshConnection.open(u, opener)
         return try {
             conn.connectTimeout = PROBE_MS
             conn.readTimeout = PROBE_MS
@@ -193,7 +195,7 @@ object MayakLinkProbe {
 
     /** Прочитать из ответа хотя бы [minBytes] — так проверяется, что через туннель проходит крупное. */
     private fun прочитатьХотяБы(url: String, minBytes: Int): Boolean {
-        val conn = URL(url).openConnection() as HttpURLConnection
+        val conn = FreshConnection.open(URL(url))
         return try {
             conn.connectTimeout = PROBE_MS
             conn.readTimeout = PROBE_MS

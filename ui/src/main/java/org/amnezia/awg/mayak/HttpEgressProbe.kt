@@ -36,7 +36,11 @@ class HttpEgressProbe(
         // NoRouteToHost=нет маршрута). Нужно, чтобы понять, почему значок IPv6 не горит на конкретной сети.
         val startedAt = SystemClock.elapsedRealtime()
         try {
-            val conn = URL(url).openConnection() as HttpURLConnection
+            // 🔴 ТОЛЬКО СВЕЖЕЕ СОЕДИНЕНИЕ. Сокет из общего пула помнит маршрут, по которому его
+            // открыли: до туннеля — значит мимо туннеля. Такой сокет либо мёртв (запрос уходит в
+            // никуда и умирает по таймауту — 4 с из пяти у владельца, 21-08), либо жив в обход и
+            // вернул бы адрес самого телефона, то есть подтвердил бы выход, которого нет.
+            val conn = FreshConnection.open(URL(url))
             try {
                 conn.connectTimeout = timeoutMs
                 conn.readTimeout = timeoutMs
