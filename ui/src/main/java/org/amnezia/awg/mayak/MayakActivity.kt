@@ -56,6 +56,7 @@ import org.amnezia.awg.R
 import org.amnezia.awg.backend.GoBackend
 import org.amnezia.awg.mayak.core.AccessDenial
 import org.amnezia.awg.mayak.core.AppVersionInfo
+import org.amnezia.awg.mayak.core.ConnectLogRequest
 import org.amnezia.awg.mayak.core.Direction
 import org.amnezia.awg.mayak.core.Fallback
 import org.amnezia.awg.mayak.core.FallbackDecision
@@ -976,6 +977,43 @@ class MayakActivity : AppCompatActivity() {
             it.visibility = View.GONE
         }
         findViewById<TextInputEditText>(R.id.mayak_totp)?.setText("")
+    }
+
+    /**
+     * Строка ЖУРНАЛА ПОДКЛЮЧЕНИЙ на сервер (ядро 0167). Зовётся из noteLadderOutcome — единственного
+     * места, которое знает ЯВНЫЙ исход лестницы.
+     *
+     * Уходит фоном и молча: человеку уже всё равно — он подключился или нет независимо от того,
+     * доехала ли строка, а показать ему ошибку отправки статистики значило бы встревожить на ровном
+     * месте. Ошибку глушит MayakSession.connectLog.
+     *
+     * След лестницы собирает клиент (LadderTelemetry.trace): только он знает, какие ступени пробовал
+     * и в каком порядке — на сервере видна лишь выдача конфига со всеми доступными плечами.
+     */
+    private fun отправитьСтрокуЖурнала(
+        d: Direction,
+        successRung: String?,
+        failedRungs: List<String>,
+        tookMs: Long,
+    ) {
+        // След собирает :core (LadderTelemetry.trace) — там же, где считается исход лестницы, и там
+        // же он покрыт тестами: строка уезжает в панель, и её формат стоит держать в одном месте.
+        val след = LadderTelemetry.trace(failedRungs, successRung)
+        val req = ConnectLogRequest(
+            directionCode = d.code,
+            step = successRung ?: "none",
+            ok = successRung != null,
+            // Длительность имеет смысл только при успехе: время «до сдались» — другая величина, и
+            // смешивать их в одной колонке значит получить среднее ни о чём (тот же довод, что в
+            // LadderTelemetry.attemptOutcome).
+            durationMs = if (successRung != null) tookMs.coerceIn(0L, Int.MAX_VALUE.toLong()).toInt() else null,
+            ladder = след,
+            appVersion = BuildConfig.VERSION_NAME,
+        )
+        // backend может быть ещё не собран (сюда мы попадаем только из живого подключения, но
+        // подстраховаться дешевле, чем ловить NPE в фоне у человека).
+        val b = backend ?: return
+        lifecycleScope.launch { session.connectLog(b, req) }
     }
 
     /** Ошибка входа: красная подпись под полем пароля + короткая встряска. Раньше текст уходил в серую
@@ -2302,6 +2340,12 @@ class MayakActivity : AppCompatActivity() {
                 } else {
                     MayakConnectStats.noteFailure(this@MayakActivity, d.id)
                 }
+                // Третий адресат того же исхода — ЖУРНАЛ ПОДКЛЮЧЕНИЙ на сервере (ядро 0167).
+                // Зачем ещё один, когда есть бикон: бикон копит счётчики с установки и уезжает раз в
+                // неделю — по нему видно погоду в среднем, но не КОНКРЕТНОЕ подключение. А
+                // спрашивают всегда именно так: «вчера вечером не подключалось». Строка уходит на
+                // КАЖДУЮ попытку, включая удачные: без фона удачных сравнивать не с чем.
+                отправитьСтрокуЖурнала(d, successRung, failedRungs.toList(), took)
             }
             try {
                 // Конфиг берём из ПРЕДЗАГРУЖЕННОГО кэша (наполняется при выборе страны), чтобы в момент

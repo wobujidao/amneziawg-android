@@ -167,3 +167,42 @@ class LadderTelemetryTest {
         assertFalse(p.keys.any { it.startsWith("ladder_") })
     }
 }
+
+// След лестницы для ЖУРНАЛА ПОДКЛЮЧЕНИЙ в панели (ядро 0167). Строка уезжает на сервер и там
+// показывается человеку как есть, поэтому формат держим в одном месте и под тестом.
+class LadderTraceTest {
+
+    @Test
+    fun `успех с первой ступени — одна отметка`() {
+        assertEquals("прямая ✓", LadderTelemetry.trace(emptyList(), LadderTelemetry.ROUTE_DIRECT))
+    }
+
+    @Test
+    fun `порядок следа тот же, что у лестницы — сперва провалы, потом успех`() {
+        val след = LadderTelemetry.trace(
+            listOf(LadderTelemetry.ROUTE_DIRECT, LadderTelemetry.ROUTE_RELAY),
+            LadderTelemetry.ROUTE_FALLBACK,
+        )
+        assertEquals("прямая ✗ · РФ ✗ · мост ✓", след)
+    }
+
+    // 🔴 Не вышла ни одна — след обязан остаться ЧЕСТНЫМ перечислением провалов, без выдуманной
+    // галочки в конце: журнал читают как доказательство, а не как пересказ.
+    @Test
+    fun `не вышла ни одна ступень — только провалы`() {
+        val след = LadderTelemetry.trace(
+            listOf(LadderTelemetry.ROUTE_DIRECT, LadderTelemetry.ROUTE_RELAY, LadderTelemetry.ROUTE_FALLBACK),
+            null,
+        )
+        assertEquals("прямая ✗ · РФ ✗ · мост ✗", след)
+    }
+
+    // Ступень, которую НЕ пробовали (нет плеча, включён «всегда запасной канал»), в след не попадает
+    // вовсе — врать «провалилась» о непопробованном нельзя. Тот же принцип, что в attemptOutcome.
+    @Test
+    fun `непопробованная ступень в след не попадает`() {
+        val след = LadderTelemetry.trace(listOf(LadderTelemetry.ROUTE_DIRECT), LadderTelemetry.ROUTE_FALLBACK)
+        assertEquals("прямая ✗ · мост ✓", след)
+        assertFalse("РФ" in след)
+    }
+}

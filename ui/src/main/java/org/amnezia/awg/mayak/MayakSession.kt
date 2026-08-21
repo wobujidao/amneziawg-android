@@ -13,6 +13,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
 import org.amnezia.awg.BuildConfig
 import org.amnezia.awg.mayak.core.ConfRenderer
+import org.amnezia.awg.mayak.core.ConnectLogRequest
 import org.amnezia.awg.mayak.core.Direction
 import org.amnezia.awg.mayak.core.DohResolver
 import org.amnezia.awg.mayak.core.HostProvider
@@ -547,6 +548,17 @@ class MayakSession(
         val dev = deviceId()
         if (dev == 0L) return
         backend.keepalive(token, dev)
+    }
+
+    /**
+     * Строка ЖУРНАЛА ПОДКЛЮЧЕНИЙ на сервер (ядро 0167). Best-effort, как keepalive: нет токена или
+     * ошибка сети — тихо пропускаем. Человеку это не важно, он уже подключился (или нет)
+     * независимо от того, доехала ли строка; а показать ему ошибку отправки статистики значило бы
+     * встревожить на ровном месте.
+     */
+    suspend fun connectLog(backend: MayakBackend, req: ConnectLogRequest) {
+        val token = store.get(K_TOKEN) ?: return
+        runCatching { backend.connectLog(token, req) }
     }
 
     private fun requireToken(): String =

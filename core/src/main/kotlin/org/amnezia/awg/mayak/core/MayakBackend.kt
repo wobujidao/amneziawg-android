@@ -265,6 +265,21 @@ class MayakBackend(
         call("POST", "/v1/client/telemetry", token = token, body = body)
     }
 
+    /**
+     * Строка журнала подключений (POST /v1/client/connect-log, ядро 0167). Ответ 204, тела нет.
+     *
+     * 🔴 Вызывать ТОЛЬКО из места, которое уже знает явный исход лестницы. Отмена человеком и отказы
+     * ядра (нет конфига, кончился доступ) исходом ступеней НЕ являются, и записывать их в журнал
+     * значило бы наврать про ступени.
+     *
+     * Сбой отправки НЕ важен человеку: он уже подключился (или нет) независимо от того, доехала ли
+     * строка. Поэтому зовущая сторона глушит исключение и не показывает ничего.
+     */
+    suspend fun connectLog(token: String, req: ConnectLogRequest) {
+        val body = json.encodeToString(ConnectLogRequest.serializer(), req)
+        call("POST", "/v1/client/connect-log", token = token, body = body)
+    }
+
     /** keepalive аренды overlay-IP (SPEC-0015): пока туннель поднят, приложение продлевает аренду своих
      *  назначений (POST /v1/client/keepalive {device_id}), чтобы жнец их не освободил. Ответ игнорируем. */
     suspend fun keepalive(token: String, deviceId: Long) {
