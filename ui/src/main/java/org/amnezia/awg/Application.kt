@@ -104,6 +104,11 @@ class Application : android.app.Application() {
         // (тёмно-синий + бирюза, docs/DESIGN-SYSTEM.md), и цвет в нём не должен зависеть от
         // картинки на рабочем столе. Кнопки этого не показывали только потому, что им цвет задан
         // явным backgroundTint — то есть половина экрана была брендовой, половина случайной.
+        // Диагностические строки :core (номер обращения при отказе) — в logcat под нашим тегом,
+        // чтобы их подобрал диаг-лог. Модуль :core про Android не знает по построению, поэтому
+        // выход наружу один и подставляется здесь. Тег содержит «AmneziaWG» — по этому признаку
+        // DiagCollector и отбирает строки в лог, который человек присылает нам.
+        org.amnezia.awg.mayak.core.MayakDiagSink.write = { Log.i("AmneziaWG/mayak-api", it) }
         rootShell = RootShell(applicationContext)
         toolsInstaller = ToolsInstaller(applicationContext, rootShell)
         preferencesDataStore = PreferenceDataStoreFactory.create { applicationContext.preferencesDataStoreFile("settings") }
