@@ -53,24 +53,30 @@
                 android:id="@+id/mayak_sort_mode"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:minWidth="48dp"
-                android:minHeight="48dp"
+                android:minWidth="@dimen/mayak_touch"
+                android:minHeight="@dimen/mayak_touch"
                 android:gravity="center"
-                android:padding="8dp"
+                android:padding="@dimen/mayak_space_2"
                 android:text="@string/mayak_sort_auto"
                 android:textColor="?attr/colorPrimary"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:clickable="true"
                 android:focusable="true" />
 
+            <!-- «Обновить» — последний элемент строки: поле СПРАВА нулевое, иначе надпись
+                 не доходит до правого края карточки, хотя заголовок слева стоит ровно на её
+                 краю — карточка читается перекошенной. Цель нажатия держат minWidth/minHeight. -->
             <TextView
                 android:id="@+id/mayak_refresh_dirs"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:minWidth="48dp"
-                android:minHeight="48dp"
+                android:minWidth="@dimen/mayak_touch"
+                android:minHeight="@dimen/mayak_touch"
                 android:gravity="center"
-                android:padding="8dp"
+                android:paddingStart="@dimen/mayak_space_2"
+                android:paddingEnd="0dp"
+                android:paddingTop="@dimen/mayak_space_2"
+                android:paddingBottom="@dimen/mayak_space_2"
                 android:text="@string/mayak_refresh"
                 android:textColor="?attr/colorPrimary"
                 android:background="?attr/selectableItemBackgroundBorderless"

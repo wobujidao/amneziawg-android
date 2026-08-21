@@ -8,10 +8,17 @@
 
     <!-- Шапка (правка владельца 2026-07-18): слева — тема (солнце/луна/авто),
          ПО ЦЕНТРУ — селектор пресета split-туннеля (SPEC-0028), справа — настройки.
-         Переключатель языка убран с главной — он теперь только в настройках. -->
+         Переключатель языка убран с главной — он теперь только в настройках.
+         Шапка выдвинута на 12dp в обе стороны за колонку содержимого (это −@dimen/mayak_icon_inset;
+         отрицательное значение ссылкой не запишешь): кнопки-значки — коробки 48dp со значком 24dp
+         по центру, то есть сам значок утоплен на 12dp. Без компенсации «Тема» слева и «Настройки»
+         справа стояли на 32dp от края экрана при карточке стран на 20dp — шапка выглядела уже
+         экрана под ней (ревизия 21-08). -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginStart="-12dp"
+        android:layout_marginEnd="-12dp"
         android:orientation="horizontal"
         android:gravity="center_vertical">
 
@@ -21,7 +28,7 @@
             android:contentDescription="@string/mayak_theme"
             app:icon="@drawable/ic_theme_dark"
             app:iconTint="@color/mayak_on_bg"
-            app:iconSize="24dp"
+            app:iconSize="@dimen/mayak_icon"
             android:text="" />
 
         <!-- Отсек пресета занимает ВЕСЬ остаток ширины между темой и кнопками справа, а полоска
@@ -96,8 +103,8 @@
                 android:contentDescription="@string/mayak_messages_title"
                 app:icon="@drawable/ic_bell"
                 app:iconTint="@color/mayak_on_bg"
-                app:iconSize="22dp"
-                    android:text="" />
+                app:iconSize="@dimen/mayak_icon"
+                android:text="" />
 
             <TextView
                 android:id="@+id/mayak_messages_badge"
@@ -126,7 +133,7 @@
             android:contentDescription="@string/mayak_settings"
             app:icon="@drawable/ic_settings"
             app:iconTint="@color/mayak_on_bg"
-            app:iconSize="22dp"
+            app:iconSize="@dimen/mayak_icon"
             android:text="" />
     </LinearLayout>
 

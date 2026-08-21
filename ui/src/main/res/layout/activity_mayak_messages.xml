@@ -31,9 +31,15 @@
             android:paddingTop="16dp"
             android:paddingBottom="32dp">
 
+            <!-- Шапка выдвинута на 12dp левее колонки содержимого (это −@dimen/mayak_icon_inset;
+                 отрицательное значение ссылкой не запишешь). Зачем: у кнопки «назад» коробка 48dp,
+                 а значок внутри 24dp — значок утоплен ровно на 12dp. Без компенсации стрелка стоит
+                 правее левого края карточек, которые начинаются прямо под ней, и при переходе с
+                 «Настроек» (там шапка накладная и выровнена верно) шапка прыгает (ревизия 21-08). -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="-12dp"
                 android:gravity="start|center_vertical"
                 android:orientation="horizontal">
 
@@ -64,15 +70,18 @@
                     android:textAppearance="@style/Mayak.Title"
                     android:textSize="24sp" />
 
+                <!-- Поле СПРАВА нулевое: последний элемент строки обязан кончаться там же, где
+                     правый край карточки под ним, иначе шапка выглядит уже экрана. Цель нажатия при
+                     этом не страдает — её держат minWidth/minHeight 48dp. -->
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/mayak_messages_reload"
                     style="@style/Mayak.Button.Text"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:minWidth="48dp"
-                    android:minHeight="48dp"
-                    android:paddingStart="10dp"
-                    android:paddingEnd="10dp"
+                    android:minWidth="@dimen/mayak_touch"
+                    android:minHeight="@dimen/mayak_touch"
+                    android:paddingStart="@dimen/mayak_space_3"
+                    android:paddingEnd="0dp"
                     android:text="@string/mayak_refresh"
                     android:textSize="13sp" />
             </LinearLayout>

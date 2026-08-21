@@ -34,9 +34,13 @@
             android:paddingTop="@dimen/mayak_space_4"
             android:paddingBottom="@dimen/mayak_space_7">
 
+            <!-- Шапка выдвинута на 12dp левее колонки содержимого (это −@dimen/mayak_icon_inset):
+                 значок «назад» 24dp живёт в коробке 48dp и утоплен на 12dp. Без компенсации стрелка
+                 стоит правее левого края карточек под ней (ревизия 21-08). -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="-12dp"
                 android:gravity="start|center_vertical"
                 android:orientation="horizontal">
 

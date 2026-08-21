@@ -21,14 +21,18 @@
         android:paddingTop="10dp"
         android:paddingBottom="16dp">
 
-        <!-- Шапка: назад + заголовок -->
+        <!-- Шапка: назад + заголовок. Выдвинута на 12dp левее колонки содержимого (это
+             −@dimen/mayak_icon_inset; отрицательное значение ссылкой не запишешь): значок «назад»
+             24dp живёт в коробке 48dp и утоплен на 12dp. Без компенсации стрелка стоит правее
+             левого края карточек под ней (ревизия 21-08). -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginStart="-12dp"
             android:orientation="horizontal"
             android:gravity="start|center_vertical"
-            android:paddingTop="4dp"
-            android:paddingBottom="4dp">
+            android:paddingTop="@dimen/mayak_space_1"
+            android:paddingBottom="@dimen/mayak_space_1">
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/mayak_preset_back"
@@ -49,16 +53,18 @@
                 android:textSize="24sp" />
 
             <!-- Удалить пресет: виден только для своего пресета (в коде).
-                 Заголовок выше — 0dp+weight, поэтому кнопка всегда влезает справа (не срезается). -->
+                 Заголовок выше — 0dp+weight, поэтому кнопка всегда влезает справа (не срезается).
+                 Поле СПРАВА нулевое: последний элемент строки кончается там же, где правый край
+                 содержимого под ним. Цель нажатия держат minWidth/minHeight 48dp. -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/mayak_preset_delete"
                 style="@style/Mayak.Button.Text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:minWidth="48dp"
-                android:minHeight="48dp"
-                android:paddingStart="8dp"
-                android:paddingEnd="8dp"
+                android:minWidth="@dimen/mayak_touch"
+                android:minHeight="@dimen/mayak_touch"
+                android:paddingStart="@dimen/mayak_space_3"
+                android:paddingEnd="0dp"
                 android:textColor="@color/mayak_red"
                 android:visibility="gone"
                 android:text="@string/mayak_preset_editor_delete" />
