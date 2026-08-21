@@ -26,6 +26,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
+            android:clipToPadding="false"
             android:paddingStart="@dimen/mayak_screen_h"
             android:paddingEnd="@dimen/mayak_screen_h"
             android:paddingTop="@dimen/mayak_space_4"
@@ -35,7 +36,9 @@
                  отрицательное значение ссылкой не запишешь). Зачем: у кнопки «назад» коробка 48dp,
                  а значок внутри 24dp — значок утоплен ровно на 12dp. Без компенсации стрелка стоит
                  правее левого края карточек, которые начинаются прямо под ней, и при переходе с
-                 «Настроек» (там шапка накладная и выровнена верно) шапка прыгает (ревизия 21-08). -->
+                 «Настроек» (там шапка накладная и выровнена верно) шапка прыгает (ревизия 21-08).
+                 У колонки из-за этого стоит clipToPadding="false": иначе padding обрезал бы левые
+                 12dp кнопки вместе с её откликом на нажатие. -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

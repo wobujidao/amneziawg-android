@@ -18,7 +18,7 @@
         android:gravity="center_horizontal|center_vertical"
         android:paddingStart="@dimen/mayak_screen_h"
         android:paddingEnd="@dimen/mayak_screen_h"
-        android:paddingTop="@dimen/mayak_screen_bottom"
+        android:paddingTop="@dimen/mayak_space_7"
         android:paddingBottom="@dimen/mayak_screen_bottom">
 
         <ImageView

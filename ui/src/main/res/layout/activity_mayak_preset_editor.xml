@@ -16,6 +16,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
+        android:clipToPadding="false"
         android:paddingStart="@dimen/mayak_screen_h"
         android:paddingEnd="@dimen/mayak_screen_h"
         android:paddingTop="@dimen/mayak_screen_top"
@@ -24,7 +25,9 @@
         <!-- Шапка: назад + заголовок. Выдвинута на 12dp левее колонки содержимого (это
              −@dimen/mayak_icon_inset; отрицательное значение ссылкой не запишешь): значок «назад»
              24dp живёт в коробке 48dp и утоплен на 12dp. Без компенсации стрелка стоит правее
-             левого края карточек под ней (ревизия 21-08). -->
+             левого края карточек под ней (ревизия 21-08).
+             У колонки из-за этого стоит clipToPadding="false": иначе padding обрезал бы левые
+             12dp кнопки вместе с её откликом на нажатие. -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
