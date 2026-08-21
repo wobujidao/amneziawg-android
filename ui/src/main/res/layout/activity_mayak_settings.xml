@@ -189,6 +189,7 @@
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/mayak_settings_delete_account"
                             style="@style/Mayak.SettingRow"
+                            app:icon="@null"
                             android:textColor="@color/mayak_on_bg_muted"
                             android:text="@string/mayak_delete_account" />
 

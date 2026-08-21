@@ -698,10 +698,12 @@ class MayakBackend(
  * Не UUID: номер называют голосом и переписывают руками. Столкновения не страшны — номер живёт в
  * журнале часы, а не годы, и всегда идёт вместе со временем и путём.
  */
-internal fun newRequestId(): String {
-    val alphabet = "abcdefghijkmnpqrstuvwxyz23456789" // без l/o/0/1 — их путают на слух и на вид
-    val rnd = java.security.SecureRandom()
-    return buildString(6) { repeat(6) { append(alphabet[rnd.nextInt(alphabet.length)]) } }
+private const val REQUEST_ID_ALPHABET = "abcdefghijkmnpqrstuvwxyz23456789" // без l/o/0/1 — их путают
+private val requestIdRandom = java.security.SecureRandom() // один на процесс: поиск провайдера и сид
+                                                           // на каждый запрос делать незачем
+
+internal fun newRequestId(): String = buildString(6) {
+    repeat(6) { append(REQUEST_ID_ALPHABET[requestIdRandom.nextInt(REQUEST_ID_ALPHABET.length)]) }
 }
 
 /**

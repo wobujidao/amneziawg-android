@@ -102,10 +102,12 @@ class MayakSettingsActivity : AppCompatActivity() {
         wireSection(R.id.mayak_sec_diag_head, R.id.mayak_sec_diag_body, R.id.mayak_sec_diag_chevron)
         wireSection(R.id.mayak_sec_referral_head, R.id.mayak_sec_referral_body, R.id.mayak_sec_referral_chevron)
 
+        // Стрелка в шапке — это UP-навигация «уйти с экрана», а не системный «Назад». Складывать
+        // ею раздел значило бы отходить от платформенной договорённости: человек, который хочет
+        // выйти, жал бы дважды (ревью 22-08). Раздел складывает только СИСТЕМНЫЙ «Назад» — там это
+        // законно, потому что раскрытый раздел визуально читается как отдельный экран.
         findViewById<MaterialButton>(R.id.mayak_settings_back).setOnClickListener {
-            if (!collapseOpenSection()) {
-                finish(); MayakTransitions.applyAxisReverse(this)
-            }
+            finish(); MayakTransitions.applyAxisReverse(this)
         }
         // «Назад» с РАСКРЫТЫМ разделом сначала складывает его, и только потом уходит с экрана.
         //
@@ -372,6 +374,9 @@ class MayakSettingsActivity : AppCompatActivity() {
      * оставил в прошлый раз» — иначе человек, вернувшийся через неделю, видит другой экран и ищет
      * заново. Исключение — «Аккаунт»: он раскрыт всегда.
      */
+    /** Отложенная прокрутка к раскрытому разделу — в поле, чтобы её можно было снять. */
+    private var scrollToSection: Runnable = Runnable {}
+
     /** Все разделы экрана: заголовок → тело → шеврон. Нужен, чтобы открытый закрывал остальные. */
     private val sections = mutableListOf<Triple<View, View, ImageView?>>()
 
@@ -421,11 +426,15 @@ class MayakSettingsActivity : AppCompatActivity() {
         // и обрезает прокрутку по старому максимуму. На 200 мс это ловилось через раз — раздел
         // «Внешний вид» оставался в середине экрана, и его тело уходило под нижний край (замер
         // 21-08). 320 мс попадает после конца анимации при любом порядке кадров.
-        scroll.postDelayed({
+        // Отложенную прокрутку держим в поле, чтобы её можно было СНЯТЬ: два быстрых нажатия по
+        // разным заголовкам иначе давали двойной рывок (первая вела к уже закрытому разделу).
+        scroll.removeCallbacks(scrollToSection)
+        scrollToSection = Runnable {
             // Шапка закреплена ПОВЕРХ прокрутки, поэтому вычитаем её высоту: без этого заголовок
             // раздела уезжает ровно под неё.
             scroll.smoothScrollTo(0, (card.top - (header?.height ?: 0)).coerceAtLeast(0))
-        }, 320)
+        }
+        scroll.postDelayed(scrollToSection, 320)
     }
 
     /**
@@ -434,6 +443,9 @@ class MayakSettingsActivity : AppCompatActivity() {
      */
     private fun collapseOpenSection(): Boolean {
         val open = sections.firstOrNull { it.second.visibility == View.VISIBLE } ?: return false
+        // Снимаем отложенную прокрутку к разделу: без этого экран, свёрнутый раньше её срока,
+        // через мгновение сам прыгал вниз — к позиции только что закрытой карточки (ревью 22-08).
+        findViewById<ScrollView>(R.id.mayak_settings_scroll)?.removeCallbacks(scrollToSection)
         (findViewById<View>(R.id.mayak_settings_content) as? ViewGroup)?.let {
             TransitionManager.beginDelayedTransition(it, AutoTransition().setDuration(160))
         }

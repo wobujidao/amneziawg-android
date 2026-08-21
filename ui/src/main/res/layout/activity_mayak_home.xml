@@ -37,6 +37,10 @@
              28dp «на глаз» — этого хватало телефонам со старым тонким баром, а на нынешних (вырез
              камеры, бар 44–49dp) шапка заезжала под часы; с targetSdk 35 Android 15 рисует окно
              от края до края всегда, так что зазор обязан считаться, а не угадываться. -->
+        <!-- clipToPadding=false: шапка выдвинута на -12dp в обе стороны (значки стоят на одной
+             вертикали с карточками под ними). Без него рябь при нажатии на «Тему» и «Настройки»
+             обрезалась бы прямоугольником по внешним 12dp: значок цел, подсветка срезана. На пяти
+             других экранах с тем же приёмом это уже стоит, на главном забыли (ревью 22-08). -->
         <LinearLayout
             android:id="@+id/mayak_home_content"
             android:layout_width="match_parent"
@@ -44,6 +48,7 @@
             android:orientation="vertical"
             android:gravity="center_horizontal"
             android:clipChildren="false"
+            android:clipToPadding="false"
             android:paddingStart="@dimen/mayak_screen_h"
             android:paddingEnd="@dimen/mayak_screen_h"
             android:paddingTop="@dimen/mayak_screen_top"
