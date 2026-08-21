@@ -248,8 +248,9 @@ class MayakSession(
         memDirectionsLang = MayakBackend.namesLanguageBucket()
         runCatching { store.put(K_DIRS_LANG, memDirectionsLang!!) }
         // SecureStore (KeystoreSecureStore) уже шифрует at-rest → кэш зашифрован переиспользованием.
-        // TODO(tech-debt): KeystoreSecureStore на депрекейтнутом androidx.security.crypto — мигрировать
-        //   на Android Keystore напрямую / datastore-tink (отдельная задача, см. docs/research 2026-06-27).
+        // Переезд с депрекейтнутого androidx.security.crypto СДЕЛАН (коммит b8d316b5): хранилище
+        // `mayak_secure_v2` шифруется Android Keystore напрямую, старая библиотека осталась только
+        // ради разового переноса значений из `mayak_secure`. TODO отсюда убран 21-08 — он врал.
         runCatching { store.put(K_DIRS_CACHE, json.encodeToString(dirsSerializer, dirs)) }
     }
 
