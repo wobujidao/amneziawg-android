@@ -122,6 +122,8 @@
             android:id="@+id/mayak_ping"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:minWidth="@dimen/mayak_touch"
+            android:minHeight="@dimen/mayak_touch"
             android:gravity="center"
             android:textColor="@color/mayak_on_bg_muted"
             android:textSize="14sp"
