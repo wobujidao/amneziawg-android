@@ -35,6 +35,7 @@ class WsUdpShim(
     private val connectClient: () -> WsDatagramClient,
     private val onUp: (Boolean) -> Unit = {},
     private val onError: (Throwable) -> Unit = {},
+    private val onDown: (Throwable?) -> Unit = {},
     private val reconnectDelaysMs: List<Long> = listOf(0, 500, 1_000, 2_000, 5_000),
 ) : Closeable {
 
@@ -48,6 +49,12 @@ class WsUdpShim(
     val received = AtomicLong()
 
     @Volatile private var closed = false
+
+    /** Номер подряд идущей неудачи подключения — из него берётся пауза перед следующей попыткой. */
+    @Volatile private var attempt = 0
+
+    /** Поднимать соединение может и отправляющий поток, и приёмный (после обрыва) — сразу оба нельзя. */
+    private val connectLock = Any()
     @Volatile private var client: WsDatagramClient? = null
     @Volatile private var enginePeer: SocketAddress? = null
     private var upPump: Thread? = null
@@ -60,7 +67,6 @@ class WsUdpShim(
     /** AWG → мост. Заодно поднимает соединение и рулит реконнектом: данные есть только здесь. */
     private fun pumpEngineToWs() {
         val buf = ByteArray(WS_MAX_MESSAGE)
-        var attempt = 0
         while (!closed) {
             val packet = DatagramPacket(buf, buf.size)
             try {
@@ -77,19 +83,7 @@ class WsUdpShim(
                 val delay = reconnectDelaysMs[minOf(attempt, reconnectDelaysMs.size - 1)]
                 if (delay > 0) Thread.sleep(delay)
                 if (closed) return
-                try {
-                    val fresh = connectClient()
-                    client = fresh
-                    attempt = 0
-                    onUp(true)
-                    downPump = thread(isDaemon = true, name = "mayak-ws-down") { pumpWsToEngine(fresh) }
-                    c = fresh
-                } catch (e: Exception) {
-                    attempt++
-                    onError(e)
-                    onUp(false)
-                    continue // датаграмму теряем — WireGuard переспросит
-                }
+                c = ensureClient() ?: continue // датаграмму теряем — WireGuard переспросит
             }
             try {
                 c.send(packet.data.copyOf(packet.length))
@@ -103,17 +97,52 @@ class WsUdpShim(
 
     /** Мост → AWG. Живёт ровно столько, сколько живёт соединение [c]. */
     private fun pumpWsToEngine(c: WsDatagramClient) {
+        // 🔴 Причину обрыва НАДО различать. До 21-08 и чистый конец потока, и исключение приводили к
+        // одной и той же строке «канал оборван», и по логу нельзя было понять, кто закрыл сокет:
+        // мост (EOF) или платформа телефона (ECONNRESET). Разбор обрыва, который на одном аппарате
+        // повторялся 4 раза из 4, упёрся ровно в это.
+        var причина: Throwable? = null
         try {
             while (!closed) {
-                val data = c.receive() ?: break
+                val data = c.receive() ?: break // чистый конец потока — причина остаётся null
                 val peer = enginePeer ?: continue
                 udp.send(DatagramPacket(data, data.size, peer as InetSocketAddress))
                 received.incrementAndGet()
             }
         } catch (e: Exception) {
-            // штатно: обрыв соединения — реконнектом займётся отправляющая сторона
+            причина = e
         } finally {
+            val былНаш = client === c
             dropClient(c)
+            if (былНаш && !closed) {
+                onDown(причина)
+                // 🔴 Поднимаем соединение СРАЗУ, не дожидаясь следующей датаграммы от движка. Раньше
+                // реконнект жил только в отправляющем потоке, а тот стоит на udp.receive() — и канал
+                // оставался мёртвым, пока движок не заговорит сам (замер 21-08: 113–261 мс простоя,
+                // и всё, что движок отправил в это окно, терялось). Само по себе это треть секунды,
+                // но в дырку проваливается летящая проба выхода и досиживает свои 4 с впустую —
+                // 4,4 с из 6,9 с всей ступени.
+                ensureClient()
+            }
+        }
+    }
+
+    /** Поднять соединение, если его нет. null — не удалось (причина ушла в onError). */
+    private fun ensureClient(): WsDatagramClient? = synchronized(connectLock) {
+        client?.let { return it }
+        if (closed) return null
+        try {
+            val fresh = connectClient()
+            client = fresh
+            attempt = 0
+            onUp(true)
+            downPump = thread(isDaemon = true, name = "mayak-ws-down") { pumpWsToEngine(fresh) }
+            fresh
+        } catch (e: Exception) {
+            attempt++
+            onError(e)
+            onUp(false)
+            null
         }
     }
 

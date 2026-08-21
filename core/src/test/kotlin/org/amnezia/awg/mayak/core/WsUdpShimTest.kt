@@ -91,6 +91,58 @@ class WsUdpShimTest {
     }
 
     /**
+     * 🔴 После обрыва соединение обязано подниматься САМО, не дожидаясь следующей датаграммы движка.
+     *
+     * Раньше реконнект жил только в отправляющем потоке, а тот стоит на `udp.receive()` — и канал
+     * оставался мёртвым, пока движок не заговорит сам. Замер на живом телефоне 21-08: 113–261 мс
+     * простоя, и всё, что движок отправил в это окно, терялось. Сама по себе треть секунды, но в
+     * дырку проваливалась летящая проба выхода и досиживала свои 4 с впустую — 4,4 с из 6,9 с всей
+     * ступени моста.
+     *
+     * Тест НАРОЧНО не шлёт вторую датаграмму: канал обязан встать без единого движения со стороны
+     * движка. Уберут проактивный реконнект — тест повиснет на ожидании и упадёт.
+     */
+    @Test
+    fun `после обрыва канал встаёт сам, без датаграммы от движка`() {
+        val srv = EchoWsServer(token, dropAfter = 1).also { it.start() }
+        val states = java.util.Collections.synchronizedList(ArrayList<Boolean>())
+        val downs = java.util.Collections.synchronizedList(ArrayList<String>())
+        val shim = WsUdpShim(
+            { WsDatagramClient("ws://127.0.0.1:${srv.port}/v1/stream", token).also { it.connect() } },
+            onUp = { states.add(it) },
+            onDown = { e -> downs.add(e?.javaClass?.simpleName ?: "EOF") },
+            reconnectDelaysMs = listOf(0, 50, 50),
+        )
+        try {
+            shim.start()
+            val engine = DatagramSocket()
+            engine.soTimeout = 5_000
+            val target = InetSocketAddress(InetAddress.getByName("127.0.0.1"), shim.localPort)
+            val msg = "keepalive".toByteArray()
+
+            engine.send(DatagramPacket(msg, msg.size, target))
+            val back = DatagramPacket(ByteArray(2048), 2048)
+            engine.receive(back)
+            assertArrayEquals(msg, back.data.copyOf(back.length))
+
+            // Сервер рвёт соединение. Дальше НЕ шлём ничего — ждём, что канал поднимется сам.
+            val deadline = System.currentTimeMillis() + 5_000
+            while (System.currentTimeMillis() < deadline && states.count { it } < 2) Thread.sleep(25)
+
+            assertTrue("должен был отметиться разрыв", states.contains(false))
+            assertTrue(
+                "канал не поднялся сам за 5 с — проактивный реконнект пропал, и мёртвое окно " +
+                    "снова ждёт датаграммы от движка",
+                states.count { it } >= 2,
+            )
+            assertTrue("причина обрыва не доехала до колбэка onDown", downs.isNotEmpty())
+            engine.close()
+        } finally {
+            shim.close(); srv.close()
+        }
+    }
+
+    /**
      * Причина неудачной попытки обязана доходить до вызывающего. Без этого разбор упирается в стену:
      * в живом тесте 2026-07-25 канал рвался каждые полсекунды, а почему — в логе не было ни слова
      * (исключение проглатывалось здесь). Диагноз тогда стоил лишнего круга сборок.
