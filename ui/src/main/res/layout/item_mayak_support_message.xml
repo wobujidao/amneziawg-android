@@ -6,10 +6,10 @@
     android:id="@+id/support_msg_bubble"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginTop="8dp"
+    android:layout_marginTop="@dimen/mayak_space_2"
     android:background="@drawable/mayak_bg_support_msg_mine"
     android:orientation="vertical"
-    android:padding="12dp">
+    android:padding="@dimen/mayak_space_3">
 
     <TextView
         android:id="@+id/support_msg_author"
@@ -23,7 +23,7 @@
         android:id="@+id/support_msg_body"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
+        android:layout_marginTop="@dimen/mayak_space_1"
         android:textAppearance="@style/Mayak.Tagline"
         android:textColor="@color/mayak_on_surface"
         android:textIsSelectable="true"

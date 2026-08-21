@@ -30,10 +30,10 @@
         android:layout_height="match_parent"
         android:orientation="vertical"
         android:clipChildren="false"
-        android:paddingStart="20dp"
-        android:paddingEnd="20dp"
-        android:paddingTop="8dp"
-        android:paddingBottom="10dp">
+        android:paddingStart="@dimen/mayak_screen_h"
+        android:paddingEnd="@dimen/mayak_screen_h"
+        android:paddingTop="@dimen/mayak_screen_top"
+        android:paddingBottom="@dimen/mayak_space_2">
 
         <!-- Шапка тянется во всю ширину над обеими колонками: тема, пресет и настройки относятся
              ко всему экрану, а не к одной его половине. -->
@@ -74,7 +74,7 @@
                 android:fillViewport="true"
                 android:scrollbars="none"
                 android:clipChildren="false"
-                android:layout_marginStart="20dp">
+                android:layout_marginStart="@dimen/mayak_screen_h">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -94,7 +94,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="@dimen/mayak_space_1"
             android:alpha="0.38"
             android:textSize="11sp"
             android:textColor="@color/mayak_on_bg"

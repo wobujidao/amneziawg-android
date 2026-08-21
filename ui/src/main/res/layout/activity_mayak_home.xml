@@ -44,10 +44,10 @@
             android:orientation="vertical"
             android:gravity="center_horizontal"
             android:clipChildren="false"
-            android:paddingStart="20dp"
-            android:paddingEnd="20dp"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp">
+            android:paddingStart="@dimen/mayak_screen_h"
+            android:paddingEnd="@dimen/mayak_screen_h"
+            android:paddingTop="@dimen/mayak_screen_top"
+            android:paddingBottom="@dimen/mayak_space_2">
 
             <include layout="@layout/mayak_home_header" />
 
@@ -91,7 +91,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_horizontal"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="@dimen/mayak_space_1"
                 android:alpha="0.38"
                 android:textSize="11sp"
                 android:textColor="@color/mayak_on_bg"

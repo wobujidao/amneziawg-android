@@ -9,13 +9,13 @@
     android:gravity="center_vertical"
     android:minHeight="56dp"
     android:orientation="horizontal"
-    android:paddingTop="10dp"
-    android:paddingBottom="10dp">
+    android:paddingTop="@dimen/mayak_row_v"
+    android:paddingBottom="@dimen/mayak_row_v">
 
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="12dp"
+        android:layout_marginEnd="@dimen/mayak_space_3"
         android:layout_weight="1"
         android:orientation="vertical">
 

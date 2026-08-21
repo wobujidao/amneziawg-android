@@ -80,7 +80,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_marginStart="6dp"
+            android:layout_marginStart="@dimen/mayak_space_2"
             android:textColor="@color/mayak_on_surface"
             android:alpha="0.6"
             android:textSize="12sp"
@@ -97,7 +97,7 @@
         android:id="@+id/mayak_row_connected_dot"
         android:layout_width="8dp"
         android:layout_height="8dp"
-        android:layout_marginStart="6dp"
+        android:layout_marginStart="@dimen/mayak_space_2"
         android:background="@drawable/mayak_dot_connected"
         android:visibility="gone" />
 
@@ -110,7 +110,7 @@
         android:id="@+id/mayak_row_ipv6"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="6dp"
+        android:layout_marginStart="@dimen/mayak_space_2"
         android:background="@drawable/mayak_bg_ipv6_badge"
         android:paddingHorizontal="5dp"
         android:paddingVertical="1dp"

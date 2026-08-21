@@ -16,10 +16,10 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:paddingStart="20dp"
-        android:paddingEnd="20dp"
-        android:paddingTop="10dp"
-        android:paddingBottom="16dp">
+        android:paddingStart="@dimen/mayak_screen_h"
+        android:paddingEnd="@dimen/mayak_screen_h"
+        android:paddingTop="@dimen/mayak_screen_top"
+        android:paddingBottom="@dimen/mayak_space_4">
 
         <!-- Шапка: назад + заголовок. Выдвинута на 12dp левее колонки содержимого (это
              −@dimen/mayak_icon_inset; отрицательное значение ссылкой не запишешь): значок «назад»
