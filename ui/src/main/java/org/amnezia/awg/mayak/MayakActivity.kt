@@ -2744,6 +2744,11 @@ class MayakActivity : AppCompatActivity() {
                         running = null
                         nextTryAt = elapsed
                     }
+                    // А если проба УЖЕ УСПЕЛА УМЕРЕТЬ до рукопожатия — не выдерживаем после неё паузу
+                    // повтора: пауза заведена против долбёжки по живому туннелю, а туннеля в тот
+                    // момент не было вовсе. Момент рукопожатия — первый, когда пробовать вообще есть
+                    // смысл; отсюда и пробуем, не теряя ещё секунду-две (замер 21-08 на эмуляторе).
+                    if (running == null) nextTryAt = elapsed
                 }
                 if (FallbackDecision.shouldSwitch(elapsed, handshakeAt, peerSyncSlackMs)) {
                     android.util.Log.i(PROBE_TAG, "UDP не пошёл за ${elapsed}мс (рукопожатие=$handshakeAt) → следующая ступень")
