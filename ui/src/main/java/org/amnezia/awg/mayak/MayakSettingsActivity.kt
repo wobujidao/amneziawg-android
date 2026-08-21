@@ -90,9 +90,11 @@ class MayakSettingsActivity : AppCompatActivity() {
             insets
         }
 
-        // Складные разделы (правка владельца 17-08: «меню очень растянуто вниз»). Раскрыт только
-        // «Аккаунт» — за ним сюда и приходят: номер для поддержки, срок доступа, кабинет.
-        wireSection(R.id.mayak_sec_account_head, R.id.mayak_sec_account_body, R.id.mayak_sec_account_chevron, open = true)
+        // Складные разделы (правка владельца 17-08: «меню очень растянуто вниз»). С 21-08 (вечер)
+        // НЕ РАСКРЫТ НИ ОДИН: то, за чем приходили в «Аккаунт» (номер и срок), теперь всегда видно
+        // в карточке-удостоверении наверху, а раскрытый раздел стоил 375dp — больше половины
+        // первого экрана. Свёрнутый список из семи разделов помещается на экран целиком.
+        wireSection(R.id.mayak_sec_account_head, R.id.mayak_sec_account_body, R.id.mayak_sec_account_chevron)
         wireSection(R.id.mayak_sec_network_head, R.id.mayak_sec_network_body, R.id.mayak_sec_network_chevron)
         wireSection(R.id.mayak_sec_protection_head, R.id.mayak_sec_protection_body, R.id.mayak_sec_protection_chevron)
         wireSection(R.id.mayak_sec_notify_head, R.id.mayak_sec_notify_body, R.id.mayak_sec_notify_chevron)
@@ -144,6 +146,9 @@ class MayakSettingsActivity : AppCompatActivity() {
         findViewById<MaterialButton>(R.id.mayak_settings_share_log).setOnClickListener { shareSavedLog() }
         refreshShareLogButton()
         findViewById<MaterialButton>(R.id.mayak_settings_logout).setOnClickListener { confirmLogout() }
+        // Версия сборки — тем же текстом, что на главном экране (одна строка на всё приложение).
+        findViewById<android.widget.TextView?>(R.id.mayak_settings_version)?.text =
+            getString(R.string.mayak_version_stamp, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE)
         // Удаление аккаунта показываем только вошедшим: удалять нечего, а кнопка пугает.
         val deleteAccount = findViewById<MaterialButton>(R.id.mayak_settings_delete_account)
         if (session.hasToken()) deleteAccount.setOnClickListener { confirmDeleteAccount() }
@@ -350,16 +355,29 @@ class MayakSettingsActivity : AppCompatActivity() {
      * оставил в прошлый раз» — иначе человек, вернувшийся через неделю, видит другой экран и ищет
      * заново. Исключение — «Аккаунт»: он раскрыт всегда.
      */
+    /** Все разделы экрана: заголовок → тело → шеврон. Нужен, чтобы открытый закрывал остальные. */
+    private val sections = mutableListOf<Triple<View, View, ImageView?>>()
+
     private fun wireSection(headId: Int, bodyId: Int, chevronId: Int, open: Boolean = false) {
         val head = findViewById<View>(headId) ?: return
         val body = findViewById<View>(bodyId) ?: return
         val chevron = findViewById<ImageView>(chevronId)
+        sections += Triple(head, body, chevron)
         setSectionOpen(head, body, chevron, open)
         head.setOnClickListener {
             val shown = body.visibility != View.VISIBLE
             // Складывание анимируем: скачок высоты на пол-экрана читается как «экран моргнул».
             (findViewById<View>(R.id.mayak_settings_content) as? ViewGroup)?.let {
                 TransitionManager.beginDelayedTransition(it, AutoTransition().setDuration(160))
+            }
+            // Открытый раздел закрывает остальные (аккордеон). Иначе за сеанс человек раскрывает
+            // три-четыре раздела, страница вырастает до 3–4 экранов, и дальше он ищет нужное
+            // прокруткой — ровно то, на что владелец жаловался трижды. С одним открытым высота
+            // страницы ограничена сверху: список разделов + самое большое тело.
+            if (shown) {
+                for ((h, b, c) in sections) {
+                    if (h !== head && b.visibility == View.VISIBLE) setSectionOpen(h, b, c, false)
+                }
             }
             setSectionOpen(head, body, chevron, shown)
             MayakHaptics.tap(head)
@@ -381,11 +399,16 @@ class MayakSettingsActivity : AppCompatActivity() {
         // Карточка раздела — прямой ребёнок колонки контента; заголовок лежит внутри неё.
         var card: View = head
         while (card.parent !== content) card = card.parent as? View ?: return
+        // ⚠️ Задержка БОЛЬШЕ длительности анимации складывания (160 мс), и с запасом: пока
+        // TransitionManager ведёт анимацию, ScrollView считает высоту содержимого по СТАРОЙ разметке
+        // и обрезает прокрутку по старому максимуму. На 200 мс это ловилось через раз — раздел
+        // «Внешний вид» оставался в середине экрана, и его тело уходило под нижний край (замер
+        // 21-08). 320 мс попадает после конца анимации при любом порядке кадров.
         scroll.postDelayed({
             // Шапка закреплена ПОВЕРХ прокрутки, поэтому вычитаем её высоту: без этого заголовок
             // раздела уезжает ровно под неё.
             scroll.smoothScrollTo(0, (card.top - (header?.height ?: 0)).coerceAtLeast(0))
-        }, 200)
+        }, 320)
     }
 
     /** Шеврон: 90° — свёрнуто (смотрит вниз), 270° — раскрыто (смотрит вверх). */
@@ -854,6 +877,7 @@ class MayakSettingsActivity : AppCompatActivity() {
             )
             line.text = access.text
             line.visibility = View.VISIBLE
+            refreshIdCard()
         }
     }
 
@@ -938,6 +962,7 @@ class MayakSettingsActivity : AppCompatActivity() {
         if (shown.isNullOrBlank()) {
             row.visibility = View.GONE
             hint.visibility = View.GONE
+            refreshIdCard()
             return
         }
         findViewById<TextView>(R.id.mayak_settings_acctnum).text = shown
@@ -948,6 +973,19 @@ class MayakSettingsActivity : AppCompatActivity() {
         findViewById<View>(R.id.mayak_settings_acctnum_copy).setOnClickListener { copy() }
         row.visibility = View.VISIBLE
         hint.visibility = View.VISIBLE
+        refreshIdCard()
+    }
+
+    /**
+     * Карточка-удостоверение наверху экрана прячется целиком, когда показывать нечего (не вошли —
+     * нет ни номера, ни срока). Пустая карточка-рамка выглядела бы как сбой загрузки.
+     */
+    private fun refreshIdCard() {
+        val card = findViewById<View>(R.id.mayak_settings_idcard) ?: return
+        val num = findViewById<View>(R.id.mayak_settings_acctnum_row)
+        val sub = findViewById<View>(R.id.mayak_settings_subscription)
+        val any = num?.visibility == View.VISIBLE || sub?.visibility == View.VISIBLE
+        card.visibility = if (any) View.VISIBLE else View.GONE
     }
 
     private fun openUrl(url: String) {

@@ -40,10 +40,92 @@
             android:paddingTop="@dimen/mayak_space_2"
             android:paddingBottom="@dimen/mayak_space_5">
 
-            <!-- ===== Аккаунт ===== (раскрыт по умолчанию)
-                 Номер, почта, срок доступа, устройства и кабинет жили ВНЕ карточек, у самого низа
-                 экрана: и отступ был другой (карточка добавляет свои 20dp), и добраться можно было
-                 только прокруткой через все настройки. -->
+            <!-- ===== Карточка-удостоверение (21-08, вечер) =====
+                 Наверху и ВСЕГДА видно ровно то, за чем в настройки приходят чаще всего: номер
+                 аккаунта (им человек называет себя поддержке) и срок доступа. Раньше это лежало
+                 внутри раскрытого по умолчанию раздела «Аккаунт», и он занимал 375dp — больше
+                 половины первого экрана; из-за этого весь список разделов уезжал вниз и его
+                 приходилось прокручивать (замечание владельца 21-08, третье за месяц).
+                 Теперь разделы свёрнуты ВСЕ, а список целиком помещается на один экран. -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/mayak_settings_idcard"
+                style="@style/Mayak.Card.Section"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/mayak_space_2"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingTop="@dimen/mayak_space_3"
+                    android:paddingBottom="@dimen/mayak_space_3"
+                    android:orientation="vertical">
+
+                    <!-- Номер аккаунта (миграция 0110): ГЛАВНОЕ, чем человек называет себя поддержке.
+                         Крупно и МОНОШИРИННО намеренно: номер диктуют голосом, а в пропорциональном
+                         шрифте «1» и «l», «0» и «O» на экране телефона неотличимы.
+                         Скрыт, пока номера нет: не входили / ядро его ещё не отдаёт. -->
+                    <LinearLayout
+                        android:id="@+id/mayak_settings_acctnum_row"
+                        style="@style/Mayak.DetailRow"
+                        android:background="?attr/selectableItemBackground"
+                        android:visibility="gone"
+                        tools:visibility="visible">
+
+                        <LinearLayout style="@style/Mayak.DetailRow.TextCol">
+                            <TextView
+                                style="@style/Mayak.DetailRow.Label"
+                                android:text="@string/mayak_account_number" />
+                            <TextView
+                                android:id="@+id/mayak_settings_acctnum"
+                                style="@style/Mayak.DetailRow.Value.Mono"
+                                android:textSize="26sp"
+                                android:textStyle="bold"
+                                android:letterSpacing="0.04"
+                                tools:text="533-870-197" />
+                        </LinearLayout>
+
+                        <ImageView
+                            android:id="@+id/mayak_settings_acctnum_copy"
+                            style="@style/Mayak.DetailRow.Copy"
+                            android:contentDescription="@string/mayak_account_number_copy" />
+                    </LinearLayout>
+
+                    <!-- Зачем номер нужен — РЯДОМ с номером, а не в справке: иначе человек видит
+                         цифры и не понимает, что с ними делать. -->
+                    <TextView
+                        android:id="@+id/mayak_settings_acctnum_hint"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/mayak_space_1"
+                        android:visibility="gone"
+                        android:textAppearance="@style/Mayak.Tagline"
+                        android:text="@string/mayak_account_number_hint"
+                        tools:visibility="visible" />
+
+                    <!-- Подписка: до какой даты и сколько дней осталось (GET /v1/client/sync). Раньше
+                         это было видно только в веб-кабинете, и человек узнавал о конце доступа по
+                         неудачному коннекту. Пока данных нет — строка скрыта, чтобы не мигать пустотой. -->
+                    <TextView
+                        android:id="@+id/mayak_settings_subscription"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/mayak_space_3"
+                        android:visibility="gone"
+                        android:textColor="@color/mayak_on_surface"
+                        android:textAppearance="@style/Mayak.Tagline"
+                        tools:visibility="visible"
+                        tools:text="Пробный доступ до 24 авг. 2026 г. · осталось 7 дней" />
+
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ===== Аккаунт ===== (свёрнут, как и все разделы)
+                 Номер и срок доступа переехали в карточку-удостоверение выше: они нужны БЕЗ
+                 нажатий. Здесь осталось то, за чем приходят реже: под какой почтой вошли,
+                 устройства, кабинет и удаление аккаунта. -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/mayak_settings_account_card"
                 style="@style/Mayak.Card.Section"
@@ -85,63 +167,6 @@
                             android:textColor="@color/mayak_on_surface"
                             android:textAppearance="@style/Mayak.Tagline" />
 
-                        <!-- Подписка: до какой даты и сколько дней осталось (GET /v1/client/sync). Раньше
-                             это было видно только в веб-кабинете, и человек узнавал о конце доступа по
-                             неудачному коннекту. Пока данных нет — строка скрыта, чтобы не мигать пустотой. -->
-                        <TextView
-                            android:id="@+id/mayak_settings_subscription"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="@dimen/mayak_space_1"
-                            android:visibility="gone"
-                            android:textColor="@color/mayak_on_surface"
-                            android:textAppearance="@style/Mayak.Tagline"
-                            tools:visibility="visible"
-                            tools:text="Пробный доступ до 24 авг. 2026 г. · осталось 7 дней" />
-
-                        <!-- Номер аккаунта (миграция 0110): ГЛАВНОЕ, чем человек называет себя поддержке.
-                             Крупно и МОНОШИРИННО намеренно: номер диктуют голосом, а в пропорциональном
-                             шрифте «1» и «l», «0» и «O» на экране телефона неотличимы.
-                             Скрыт, пока номера нет: не входили / ядро его ещё не отдаёт. -->
-                        <LinearLayout
-                            android:id="@+id/mayak_settings_acctnum_row"
-                            style="@style/Mayak.DetailRow"
-                            android:layout_marginTop="@dimen/mayak_space_2"
-                            android:background="?attr/selectableItemBackground"
-                            android:visibility="gone"
-                            tools:visibility="visible">
-
-                            <LinearLayout style="@style/Mayak.DetailRow.TextCol">
-                                <TextView
-                                    style="@style/Mayak.DetailRow.Label"
-                                    android:text="@string/mayak_account_number" />
-                                <TextView
-                                    android:id="@+id/mayak_settings_acctnum"
-                                    style="@style/Mayak.DetailRow.Value.Mono"
-                                    android:textSize="26sp"
-                                    android:textStyle="bold"
-                                    android:letterSpacing="0.04"
-                                    tools:text="533-870-197" />
-                            </LinearLayout>
-
-                            <ImageView
-                                android:id="@+id/mayak_settings_acctnum_copy"
-                                style="@style/Mayak.DetailRow.Copy"
-                                android:contentDescription="@string/mayak_account_number_copy" />
-                        </LinearLayout>
-
-                        <!-- Зачем номер нужен — РЯДОМ с номером, а не в справке: иначе человек видит
-                             цифры и не понимает, что с ними делать. -->
-                        <TextView
-                            android:id="@+id/mayak_settings_acctnum_hint"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="@dimen/mayak_space_1"
-                            android:visibility="gone"
-                            android:textAppearance="@style/Mayak.Tagline"
-                            android:text="@string/mayak_account_number_hint"
-                            tools:visibility="visible" />
-
                         <!-- Мои устройства: список и отключение ЗДЕСЬ ЖЕ. До 07-08 освободить место
                              можно было только в кабинете (внешний браузер + отдельный вход), и человек,
                              сменивший телефон, упирался в тупик ровно тогда, когда подключение и не работает. -->
@@ -163,10 +188,7 @@
                              необратимого — промах пальцем там стоит аккаунта. -->
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/mayak_settings_delete_account"
-                            style="@style/Mayak.Button.Text"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="@dimen/mayak_space_3"
+                            style="@style/Mayak.SettingRow"
                             android:textColor="@color/mayak_on_bg_muted"
                             android:text="@string/mayak_delete_account" />
 
@@ -869,6 +891,22 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/mayak_space_2"
                 android:text="@string/mayak_logout" />
+
+            <!-- Версия сборки внизу настроек (21-08). Первое, что спрашивает поддержка, — «какая у
+                 вас версия»; до этого её показывал только главный экран мелким шрифтом под списком
+                 стран, а на экране «О приложении» её надо было ещё найти. Место всё равно пустует:
+                 свёрнутый список разделов занимает две трети экрана. -->
+            <TextView
+                android:id="@+id/mayak_settings_version"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="@dimen/mayak_space_4"
+                android:alpha="0.38"
+                android:textSize="11sp"
+                android:textColor="@color/mayak_on_bg"
+                android:importantForAccessibility="no"
+                tools:text="v0.5.49 (211)" />
 
         </LinearLayout>
     </ScrollView>
