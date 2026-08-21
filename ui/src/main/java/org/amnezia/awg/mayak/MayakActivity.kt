@@ -1015,7 +1015,32 @@ class MayakActivity : AppCompatActivity() {
         // backend может быть ещё не собран (сюда мы попадаем только из живого подключения, но
         // подстраховаться дешевле, чем ловить NPE в фоне у человека).
         val b = backend ?: return
-        lifecycleScope.launch { session.connectLog(b, req) }
+        lifecycleScope.launch {
+            session.connectLog(b, req)
+            // 🔴 НЕ ВЫШЛА НИ ОДНА СТУПЕНЬ — снимаем диагностику САМИ, не дожидаясь кнопки.
+            //
+            // Зачем: до этого картина «почему не подключилось» появлялась только если человек сам
+            // нажмёт «Проверить связь» — а он в этот момент занят тем, что у него не работает, и чаще
+            // всего просто закрывает приложение. То есть самые интересные случаи мы не видели вовсе.
+            // Владелец 21-08: «можно ещё больше информации собирать, чтоб была картина со всех
+            // сторон». Снимаем сразу после неудачи, пока обстановка ещё та же: сеть, оператор,
+            // доступность наших адресов.
+            //
+            // Туннель здесь уже опущен (лестница кончилась), поэтому пробы «через туннель» честно
+            // вернут «не проверяли» — и вердикт скажет об этом, а не выдумает.
+            if (successRung == null) {
+                runCatching {
+                    val facts = MayakLinkProbe.collect(
+                        context = this@MayakActivity,
+                        tunnel = tunnel,
+                        tunnelUp = tunnel.isUp(),
+                        viaFallback = GoTunnel.connectedViaFallback,
+                        apiHosts = MayakHostList.effective(this@MayakActivity, store.get(KEY_SERVER)),
+                    )
+                    sendDiagVerdict(d, LinkDiagnosis.verdict(facts), LinkDiagnosis.trace(facts))
+                }
+            }
+        }
     }
 
     /** Ошибка входа: красная подпись под полем пароля + короткая встряска. Раньше текст уходил в серую
