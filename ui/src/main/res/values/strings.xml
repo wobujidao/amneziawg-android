@@ -929,4 +929,11 @@
     <string name="mayak_settings_notify_news_agree">I agree to receive</string>
     <string name="mayak_settings_notify_quiet">Quiet hours (23:00–09:00)</string>
     <string name="mayak_settings_notify_save_err">Could not save. Please try again.</string>
+    <!-- Diagnostics ON THE CURRENT LINE: the check no longer tears the connection down first. -->
+    <string name="mayak_diag_title">Connection check</string>
+    <string name="mayak_diag_running">Checking without disconnecting…</string>
+    <string name="mayak_diag_details">Details: %1$s</string>
+    <string name="mayak_diag_close">Got it</string>
+    <string name="mayak_diag_deep">Check every path</string>
+    <string name="mayak_diag_deep_warning">The full check tries every path to the country and takes about a minute. Your connection will be TURNED OFF for that time.</string>
 </resources>

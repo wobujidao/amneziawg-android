@@ -57,6 +57,8 @@ import org.amnezia.awg.backend.GoBackend
 import org.amnezia.awg.mayak.core.AccessDenial
 import org.amnezia.awg.mayak.core.AppVersionInfo
 import org.amnezia.awg.mayak.core.ConnectLogRequest
+import org.amnezia.awg.mayak.core.LinkDiagnosis
+import org.amnezia.awg.mayak.core.LinkVerdict
 import org.amnezia.awg.mayak.core.Direction
 import org.amnezia.awg.mayak.core.Fallback
 import org.amnezia.awg.mayak.core.FallbackDecision
@@ -2135,12 +2137,54 @@ class MayakActivity : AppCompatActivity() {
     // пользоваться, — поэтому оно и живёт рядом с настоящим подключением, а не отдельным классом:
     // подъём/проба/гашение должны меняться ВМЕСТЕ с ним, иначе проверка начнёт мерить не то.
 
-    /** Объяснить, что сейчас будет, и спросить. Проверка занимает до минуты и рвёт подключение. */
+    /**
+     * Кнопка «Проверить связь». ПЕРВЫМ ДЕЛОМ — диагностика на ТЕКУЩЕЙ линии, ничего не переподключая.
+     *
+     * ⚠️ Замечание владельца 21-08, дословно: «у меня подключение работает, но связи нет. И если я
+     * нажимаю проверить, получается что проверка уже обрывает линию и начинает подключаться вновь. А
+     * нужно было проверять именно на этой линии, не переподключая её».
+     *
+     * Так и было: проверка сразу гасила туннель и шла перебирать ступени — то есть уничтожала ровно
+     * то состояние, которое человек хотел показать. Случай «подключено, а трафика нет» она убивала
+     * раньше, чем успевала измерить, и рапортовала, что ступени в порядке.
+     *
+     * Теперь перебор ступеней — ВТОРОЙ шаг и только по явному согласию: он рвёт связь, и об этом
+     * сказано словами в самой кнопке.
+     */
     private fun offerLinkCheck() {
         val d = selectedDir ?: run { noCountryYet(); return }
+        // Туннель не поднят — диагностировать на текущей линии нечего, сразу предлагаем перебор.
+        if (!tunnel.isUp()) { offerDeepLinkCheck(d); return }
+        setStatus(getString(R.string.mayak_diag_running))
+        lifecycleScope.launch {
+            val facts = MayakLinkProbe.collect(
+                context = this@MayakActivity,
+                tunnel = tunnel,
+                tunnelUp = true,
+                viaFallback = GoTunnel.connectedViaFallback,
+                apiHosts = MayakHostList.effective(this@MayakActivity, store.get(KEY_SERVER)),
+            )
+            val verdict = LinkDiagnosis.verdict(facts)
+            val trace = LinkDiagnosis.trace(facts)
+            setStatus("")
+            com.google.android.material.dialog.MaterialAlertDialogBuilder(this@MayakActivity)
+                .setTitle(R.string.mayak_diag_title)
+                // Вердикт словами — первым; подробности под ним, мелким, для нас и для любопытных.
+                .setMessage(verdict.text + "\n\n" + getString(R.string.mayak_diag_details, trace))
+                .setPositiveButton(R.string.mayak_diag_close, null)
+                .setNegativeButton(R.string.mayak_diag_deep) { _, _ -> offerDeepLinkCheck(d) }
+                .show()
+            // Отчёт нам уходит ВСЕГДА, а не только при поломке: без фона удачных проверок одна
+            // строка ничего не значит (тот же довод, что у журнала подключений).
+            sendDiagVerdict(d, verdict, trace)
+        }
+    }
+
+    /** Второй шаг: перебор всех ступеней. Рвёт связь — поэтому спрашиваем и называем цену. */
+    private fun offerDeepLinkCheck(d: Direction) {
         com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
             .setTitle(R.string.mayak_check_title)
-            .setMessage(getString(R.string.mayak_check_intro, d.name))
+            .setMessage(getString(R.string.mayak_diag_deep_warning) + "\n\n" + getString(R.string.mayak_check_intro, d.name))
             .setPositiveButton(R.string.mayak_check_start) { _, _ -> startLinkCheck(d) }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
@@ -2256,6 +2300,31 @@ class MayakActivity : AppCompatActivity() {
      * (оператор, тип сети, модель, версия, шифрование лога на офлайн-ключ) — а сами ступени кладём в
      * meta, потому что meta в панели видна открытым текстом, в отличие от тела лога.
      */
+    /**
+     * Отправить нам итог диагностики ТЕКУЩЕЙ линии. Тем же диаг-логом, что и перебор ступеней: у него
+     * уже есть весь контекст (оператор, тип сети, модель, версия, шифрование на офлайн-ключ), а
+     * вердикт и след кладём в meta — meta в панели видна открытым текстом, в отличие от тела лога.
+     *
+     * Уходит МОЛЧА и при любом исходе: человеку уже показан вердикт, а сообщать ему про судьбу
+     * отправки статистики незачем. Не доехало — не беда, лог уйдёт со следующим.
+     */
+    private suspend fun sendDiagVerdict(d: Direction, verdict: LinkVerdict, trace: String) {
+        runCatching {
+            val b = backend ?: MayakBackend(hostProvider(), bypassTunnel = OutsideTunnel.opener(this))
+            val req = DiagCollector.collect(
+                this, direction = d.name, directionCode = d.code, deviceId = session.deviceId(),
+                source = "manual", reason = "link-diag",
+                extraMeta = mapOf(
+                    "link_diag" to "1",
+                    "link_diag_verdict" to verdict.code,
+                    "link_diag_trace" to trace,
+                    "link_diag_direction" to d.name,
+                ),
+            )
+            session.sendDiagLog(b, req)
+        }
+    }
+
     private suspend fun sendLinkCheckReport(d: Direction, results: List<RungResult>) {
         val lines = results.joinToString("\n") { r ->
             val verdict = if (r.ok) getString(R.string.mayak_check_ok, "%.1f".format(r.ms / 1000.0))

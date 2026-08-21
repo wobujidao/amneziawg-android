@@ -801,6 +801,13 @@
     <!-- Проверка связи: приложение по очереди пробует ВСЕ пути подключения и присылает нам отчёт.
          Нужна там, где мы сами измерить не можем — у человека на его операторе. -->
     <string name="mayak_settings_check_link">Проверить связь</string>
+    <!-- Диагностика НА ТЕКУЩЕЙ ЛИНИИ (замечание владельца 21-08): проверка больше не рвёт связь первым делом. -->
+    <string name="mayak_diag_title">Проверка связи</string>
+    <string name="mayak_diag_running">Проверяю связь, не отключая…</string>
+    <string name="mayak_diag_details">Подробности: %1$s</string>
+    <string name="mayak_diag_close">Понятно</string>
+    <string name="mayak_diag_deep">Проверить все пути</string>
+    <string name="mayak_diag_deep_warning">Полная проверка перебирает все пути до страны и занимает около минуты. На это время подключение будет ВЫКЛЮЧЕНО.</string>
     <string name="mayak_check_title">Проверка связи</string>
     <string name="mayak_check_intro">Приложение по очереди попробует все пути до страны «%1$s» и пришлёт нам результат. Займёт около минуты; на это время подключение будет выключено.</string>
     <string name="mayak_check_start">Начать проверку</string>
