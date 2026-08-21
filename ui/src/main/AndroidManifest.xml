@@ -86,10 +86,15 @@
         <!-- Экран «Маяк» — точка входа приложения (бета MVP).
              Настройки плитки быстрых настроек ведут СЮДА (QS_TILE_PREFERENCES): раньше этот фильтр
              стоял на апстримном экране amnezia, из-за чего тот был exported и открывался снаружи. -->
+        <!-- adjustResize объявлен ЯВНО (21-08). Система и так выбирала его сама — из-за ScrollView в
+             разметке входа, — и на этом молча держались две вещи: плашка с ошибкой, которая садится
+             НАД клавиатурой, и возможность доскроллить до кнопки. Уберут ScrollView или поставят
+             adjustPan — обе пропадут без единого падения теста. Дешевле написать словом. -->
         <activity
             android:name="org.amnezia.awg.mayak.MayakActivity"
             android:exported="true"
             android:label="@string/app_name"
+            android:windowSoftInputMode="adjustResize"
             android:theme="@style/MayakTheme">
             <intent-filter>
                 <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />

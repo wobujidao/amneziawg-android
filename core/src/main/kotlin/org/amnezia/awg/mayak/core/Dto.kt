@@ -1,6 +1,9 @@
 // DTO клиентского API ядра «Маяк» (SPEC-0004). Имена JSON-полей повторяют Go-структуры
 // internal/clientapi + internal/cprepo/clientcfg + internal/desiredstate (сверено 2026-06-25):
-//   login   POST /v1/client/login     {login,password}            -> {token}
+//   login   POST /v1/auth/login       {login,password}            -> {token}
+//           ⚠️ Именно /v1/auth/login — так шлёт MayakBackend.login(). Строка «/v1/client/login»
+//           стояла здесь до 21-08 и дважды за одну смену увела разбор не туда: тот адрес жив как
+//           легаси, отвечает 200, и curl по нему подтверждает «сервер работает», ничего не проверив.
 //   device  POST /v1/client/devices   {pubkey,label}              -> {device_id}
 //   dirs    GET  /v1/client/directions                            -> [{id,code,name,p2p}]
 //   connect POST /v1/client/connect   {device_id,direction_id}    -> {direction,direct?,relay?}

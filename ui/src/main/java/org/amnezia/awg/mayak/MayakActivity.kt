@@ -17,6 +17,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.SystemClock
 import android.provider.Settings
+import android.graphics.Rect
 import android.view.HapticFeedbackConstants
 import android.view.KeyEvent
 import android.view.LayoutInflater
@@ -1002,9 +1003,28 @@ class MayakActivity : AppCompatActivity() {
             passwordLayout.error = text
             shake(passwordLayout)
             setStatus("")
+            // 🔴 …но и подписи под полем может не быть на экране. На 411×683dp (Android 9) с открытой
+            // клавиатурой видимая область кончается выше поля пароля, и «опечатался в пароле»
+            // выглядело так же немо, как сетевой отказ: ни текста, ни движения (замер 21-08 —
+            // скриншот через 3 с после нажатия неотличим от кадра до него). Поэтому: подпись есть
+            // всегда, а плашка добавляется ТОЛЬКО когда подписи реально не видно. Через post —
+            // раньше разметка ещё не пересчитана и любой замер соврёт.
+            passwordLayout.post {
+                if (!виденНаЭкране(passwordLayout)) показатьПоверхКлавиатуры(text)
+            }
         } else {
             setStatus(text)
         }
+    }
+
+    /** Видно ли вью ЦЕЛИКОМ в области, не занятой клавиатурой. Нужна, чтобы не дублировать сообщение
+     *  плашкой там, где человек и так его читает: на высоком экране подпись под полем видна. */
+    private fun виденНаЭкране(v: View): Boolean {
+        val видимая = Rect()
+        if (!v.getGlobalVisibleRect(видимая)) return false
+        val окно = Rect()
+        window.decorView.getWindowVisibleDisplayFrame(окно)
+        return видимая.bottom <= окно.bottom
     }
 
     /** Короткая плашка поверх содержимого — единственное место, которое видно и с открытой клавиатурой.
