@@ -425,6 +425,11 @@ data class ConnectLogRequest(
     /** Миллисекунды до ПОДТВЕРЖДЁННОГО выхода, а не до рукопожатия: туннель поднимается и там,
      *  где трафик не идёт. */
     @SerialName("duration_ms") val durationMs: Int? = null,
+    /** Из чего сложилось durationMs: рукопожатие с нодой и подтверждение выхода после него.
+     *  Разные диагнозы: первое — сеть и доехавший пир, второе — маршрут и доступность ядра.
+     *  null — фаза не измерена; нулём подменять нельзя, ноль читался бы как «мгновенно». */
+    @SerialName("handshake_ms") val handshakeMs: Int? = null,
+    @SerialName("probe_ms") val probeMs: Int? = null,
     /** Короткий след лестницы для глаз в панели: «прямая ✗ · РФ ✓». */
     val ladder: String = "",
     @SerialName("app_version") val appVersion: String = "",

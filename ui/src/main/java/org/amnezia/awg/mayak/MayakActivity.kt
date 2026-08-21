@@ -1009,6 +1009,10 @@ class MayakActivity : AppCompatActivity() {
             // смешивать их в одной колонке значит получить среднее ни о чём (тот же довод, что в
             // LadderTelemetry.attemptOutcome).
             durationMs = if (successRung != null) tookMs.coerceIn(0L, Int.MAX_VALUE.toLong()).toInt() else null,
+            // Фазы — только при успехе, как и общее время: у провала «сколько заняло рукопожатие»
+            // означает совсем другое и смешивать их в одной колонке нельзя.
+            handshakeMs = if (successRung != null) phaseHandshakeMs else null,
+            probeMs = if (successRung != null) phaseProbeMs else null,
             ladder = след,
             appVersion = BuildConfig.VERSION_NAME,
         )
@@ -1246,6 +1250,19 @@ class MayakActivity : AppCompatActivity() {
             val apps = data.getStringArrayListExtra(MayakPresetEditorActivity.EXTRA_APPS) ?: arrayListOf()
             savePreset(editingPresetId, name, mode, apps)
         }
+
+    /**
+     * Фазы последнего подключения: рукопожатие с нодой и подтверждение выхода (миграция 0171).
+     *
+     * Зачем поля, а не локальные переменные: меряются они внутри попытки ступени, а нужны в строке
+     * журнала подключений, которую собирает совсем другой метод. Одно общее число отвечает
+     * «долго», но не отвечает «где»: рукопожатие — это сеть и доехавший на ноду пир, проба —
+     * маршрут и доступность ядра, и лечатся они по-разному.
+     * null — не измерено (ступень не дошла до этой фазы); нулём подменять нельзя, ноль читался бы
+     * как «мгновенно».
+     */
+    @Volatile private var phaseHandshakeMs: Int? = null
+    @Volatile private var phaseProbeMs: Int? = null
 
     private fun setupPresetSelector() {
         presetBar = findViewById(R.id.mayak_preset_bar)
@@ -2455,6 +2472,8 @@ class MayakActivity : AppCompatActivity() {
             // исход (успех ступени / все ступени мимо): отмена человеком и ошибки ядра (нет конфига,
             // кончился доступ) — не исход лестницы, по ним ступени судить нельзя.
             val ladderStartedAt = SystemClock.elapsedRealtime()
+            phaseHandshakeMs = null
+            phaseProbeMs = null
             val failedRungs = mutableListOf<String>()
             fun noteLadderOutcome(successRung: String?) {
                 val took = SystemClock.elapsedRealtime() - ladderStartedAt
@@ -2780,7 +2799,14 @@ class MayakActivity : AppCompatActivity() {
                 val done = running?.takeIf { it.isCompleted }
                 if (done != null) {
                     val ip = runCatching { done.await() }.getOrNull()
-                    if (ip != null) return ip // UDP работает — запасной канал не нужен
+                    if (ip != null) {
+                        // Время ИМЕННО пробы: от рукопожатия до подтверждённого выхода. Без
+                        // рукопожатия (его не было) фазу не выдумываем — оставляем null.
+                        handshakeAt?.let {
+                            phaseProbeMs = (SystemClock.elapsedRealtime() - started - it).toInt().coerceAtLeast(0)
+                        }
+                        return ip // UDP работает — запасной канал не нужен
+                    }
                     running = null
                     // Провал сразу после подъёма туннеля — норма (система только что сменила
                     // интерфейс и DNS). Повторяем быстро, но НЕ вплотную: без паузы неудачная гонка
@@ -2794,6 +2820,7 @@ class MayakActivity : AppCompatActivity() {
                 val elapsed = SystemClock.elapsedRealtime() - started
                 if (handshake && handshakeAt == null) {
                     handshakeAt = elapsed
+                    phaseHandshakeMs = elapsed.toInt()
                     android.util.Log.i(PROBE_TAG, "рукопожатие за ${elapsed}мс — отсюда ${FallbackDecision.NO_EGRESS_MS}мс на проверку выхода")
                     // ⏱️ ПОЗДНЕЕ рукопожатие обнуляет часы пробы (20-08).
                     //
