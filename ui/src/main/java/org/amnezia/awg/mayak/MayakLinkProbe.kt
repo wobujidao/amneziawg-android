@@ -70,8 +70,8 @@ object MayakLinkProbe {
         //    «домен режут» и «до нас не достучаться», а лечится это по-разному.
         val поИмени = apiHosts.firstOrNull { !it.contains(Regex("""\d+\.\d+\.\d+\.\d+""")) }
         val поIP = apiHosts.firstOrNull { it.contains(Regex("""\d+\.\d+\.\d+\.\d+""")) }
-        val apiByName = поИмени?.let { проба("наш адрес по имени") { httpOk("$it/version.json", снаружи) } } ?: Probe.UNKNOWN
-        val apiByIp = поIP?.let { проба("наш адрес по IP") { httpOk("$it/version.json", снаружи) } } ?: Probe.UNKNOWN
+        val apiByName = поИмени?.let { проба("наш адрес по имени") { httpOk(адрес(it, "/version.json"), снаружи) } } ?: Probe.UNKNOWN
+        val apiByIp = поIP?.let { проба("наш адрес по IP") { httpOk(адрес(it, "/version.json"), снаружи) } } ?: Probe.UNKNOWN
 
         // 2. Интернет ВООБЩЕ. Спрашиваем чужой адрес мимо туннеля — но если хоть один наш ответил,
         //    интернет заведомо есть, и лишний запрос к постороннему сервису не нужен.
@@ -175,8 +175,12 @@ object MayakLinkProbe {
     }
 
     /** GET с кодом 200. `opener` = null → обычное соединение (уйдёт в туннель). */
+    /** Собрать адрес из хоста и пути: у хостов из MayakHostList схема уже есть, у «голых» — нет. */
+    private fun адрес(host: String, path: String = ""): String =
+        (if (host.startsWith("http")) host else "https://$host").trimEnd('/') + path
+
     private fun httpOk(url: String, opener: ((URL) -> HttpURLConnection)?): Boolean {
-        val u = URL(if (url.startsWith("http")) url else "https://$url")
+        val u = URL(адрес(url))
         val conn = opener?.invoke(u) ?: (u.openConnection() as HttpURLConnection)
         return try {
             conn.connectTimeout = PROBE_MS
@@ -228,7 +232,11 @@ object MayakLinkProbe {
      * ломает и сам туннель, поэтому мерить его через туннель — значит зависеть от того, что проверяешь.
      */
     private fun сверитьЧасы(host: String, opener: (URL) -> HttpURLConnection): Probe = try {
-        val conn = opener(URL("https://$host/version.json"))
+        // ⚠️ В host из MayakHostList СХЕМА УЖЕ ЕСТЬ («https://api…»). Первая версия клеила «https://»
+        // ещё раз, URL получался битым, проба падала — и вердикт честно говорил «не проверяли»
+        // вместо часов. Поймано первым же живым отчётом (диаг #70, 21-08): в следе не было ни
+        // «часы ✓», ни «часы ✗». Тот же приём защиты, что в httpOk ниже.
+        val conn = opener(URL(адрес(host, "/version.json")))
         try {
             conn.connectTimeout = PROBE_MS
             conn.readTimeout = PROBE_MS
