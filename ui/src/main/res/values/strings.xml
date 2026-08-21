@@ -935,5 +935,5 @@
     <string name="mayak_diag_details">Details: %1$s</string>
     <string name="mayak_diag_close">Got it</string>
     <string name="mayak_diag_deep">Check every path</string>
-    <string name="mayak_diag_deep_warning">The full check tries every path to the country and takes about a minute. Your connection will be TURNED OFF for that time.</string>
+    <string name="mayak_diag_deep_warning">The app will try every path to “%1$s” in turn and send us the result. It takes about a minute, and your connection will be TURNED OFF for that time.</string>
 </resources>

@@ -2184,7 +2184,9 @@ class MayakActivity : AppCompatActivity() {
     private fun offerDeepLinkCheck(d: Direction) {
         com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
             .setTitle(R.string.mayak_check_title)
-            .setMessage(getString(R.string.mayak_diag_deep_warning) + "\n\n" + getString(R.string.mayak_check_intro, d.name))
+            // ОДИН абзац, а не два: 21-08 проверка на эмуляторе показала, что склейка двух строк
+            // говорила человеку одно и то же дважды («займёт около минуты», «связь будет выключена»).
+            .setMessage(getString(R.string.mayak_diag_deep_warning, d.name))
             .setPositiveButton(R.string.mayak_check_start) { _, _ -> startLinkCheck(d) }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
