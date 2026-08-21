@@ -53,11 +53,23 @@ class HttpEgressProbe(
                     return@withContext null
                 }
                 val body = conn.inputStream.use { it.readBytes().toString(Charsets.UTF_8) }
-                val ip = JSONObject(body).optString("ip").takeIf { it.isNotBlank() }
+                val json = JSONObject(body)
+                val ip = json.optString("ip").takeIf { it.isNotBlank() }
+                // 🔎 ЧЬИМИ ГЛАЗАМИ ОТВЕЧЕНО. Наш /v1/egress-check с 21-08 добавляет к ответу `ours` —
+                // «этот адрес я узнаю как выход своей ноды» — и её имя в `exit`. Это единственный
+                // способ отличить подтверждённый выход от собственного адреса телефона: по цифрам
+                // они неразличимы, и ровно на этом 21-08 проба четыре секунды ходила в никуда.
+                // У чужих участников гонки (ipify) поля нет — тогда и судить не о чем.
+                val verdict = when {
+                    !json.has("ours") -> ""
+                    json.optBoolean("ours") -> " — выход нашей ноды ${json.optString("exit").ifBlank { "?" }}"
+                    else -> " — 🔴 адрес НЕ НАШ: запрос ушёл МИМО туннеля, выход этим не подтверждён"
+                }
                 // 📏 Цифра, по которой можно действовать (урок 20-08): раньше время УСПЕШНОЙ пробы не
                 // мерил никто, и «половина подключения уходит не на туннель» пришлось раскапывать по
                 // косвенным признакам. Теперь в каждом логе видно, кто из гонки победил и за сколько.
-                Log.i(PROBE_TAG, "проба $name OK за ${took(startedAt)}мс: $ip")
+                Log.i(PROBE_TAG, "проба $name OK за ${took(startedAt)}мс: $ip$verdict")
+                lastAnswerWasOurs = if (json.has("ours")) json.optBoolean("ours") else null
                 ip
             } finally {
                 conn.disconnect()
@@ -71,6 +83,19 @@ class HttpEgressProbe(
             null
         }
     }
+
+    /**
+     * Вердикт ЯДРА по последнему успешному ответу: true — адрес узнан как выход нашей ноды,
+     * false — не узнан (значит запрос ушёл мимо туннеля), null — участник гонки чужой и поля не
+     * присылает, либо ответа ещё не было.
+     *
+     * Пока только НАБЛЮДАЕМ: поведение по этому признаку не меняем, пока не видно по живым отчётам,
+     * как часто он срабатывает и не бывает ли ложным (у ноды теоретически может быть один адрес для
+     * туннеля и другой для выхода — на нашем флоте это не так, но проверять надо не рассуждением).
+     */
+    @Volatile
+    var lastAnswerWasOurs: Boolean? = null
+        private set
 
     /** Как эта проба зовётся в логе: метка, если задана (в гонке их несколько), иначе сам адрес. */
     private val name: String get() = if (label.isBlank()) url else "$label ($url)"
