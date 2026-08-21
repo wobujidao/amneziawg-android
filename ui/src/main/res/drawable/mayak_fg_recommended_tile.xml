@@ -6,7 +6,7 @@
      снизу от строки (скриншот владельца 10-08). Передний план рисуется ПОВЕРХ детей, поэтому рамка
      остаётся целой и при этом ничего не сдвигается — выравнивание строки со списком не меняется. -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <corners android:radius="14dp" />
+    <corners android:radius="@dimen/mayak_radius_sm" />
     <stroke android:width="1dp" android:color="#264FC3F7" />
     <solid android:color="@android:color/transparent" />
 </shape>

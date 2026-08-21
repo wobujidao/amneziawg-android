@@ -47,7 +47,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:layout_marginStart="8dp"
+                android:layout_marginStart="@dimen/mayak_space_2"
                 android:text="@string/mayak_preset_editor_title"
                 android:textAppearance="@style/Mayak.Title"
                 android:textSize="24sp" />
@@ -76,7 +76,7 @@
             style="@style/Mayak.TextInput"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="@dimen/mayak_space_3"
             android:hint="@string/mayak_preset_editor_name_hint">
 
             <com.google.android.material.textfield.TextInputEditText
@@ -94,7 +94,7 @@
             style="@style/Mayak.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp">
+            android:layout_marginTop="@dimen/mayak_card_gap">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -111,8 +111,8 @@
                     android:gravity="center_vertical"
                     android:minHeight="56dp"
                     android:orientation="horizontal"
-                    android:paddingTop="8dp"
-                    android:paddingBottom="8dp">
+                    android:paddingTop="@dimen/mayak_row_v"
+                    android:paddingBottom="@dimen/mayak_row_v">
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -147,8 +147,8 @@
                         android:textColor="@color/mayak_on_surface"
                         android:textSize="18sp"
                         android:alpha="0.7"
-                        android:paddingStart="8dp"
-                        android:paddingEnd="4dp" />
+                        android:paddingStart="@dimen/mayak_space_2"
+                        android:paddingEnd="@dimen/mayak_space_1" />
                 </LinearLayout>
 
                 <!-- Тело выбора режима: свёрнуто по умолчанию (visibility=gone). -->
@@ -173,8 +173,8 @@
                     android:gravity="center_vertical"
                     android:minHeight="56dp"
                     android:orientation="horizontal"
-                    android:paddingTop="8dp"
-                    android:paddingBottom="8dp">
+                    android:paddingTop="@dimen/mayak_row_v"
+                    android:paddingBottom="@dimen/mayak_row_v">
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -222,8 +222,8 @@
                     android:gravity="center_vertical"
                     android:minHeight="56dp"
                     android:orientation="horizontal"
-                    android:paddingTop="8dp"
-                    android:paddingBottom="8dp">
+                    android:paddingTop="@dimen/mayak_row_v"
+                    android:paddingBottom="@dimen/mayak_row_v">
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -271,8 +271,8 @@
                     android:gravity="center_vertical"
                     android:minHeight="56dp"
                     android:orientation="horizontal"
-                    android:paddingTop="8dp"
-                    android:paddingBottom="8dp">
+                    android:paddingTop="@dimen/mayak_row_v"
+                    android:paddingBottom="@dimen/mayak_row_v">
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -314,7 +314,7 @@
             android:id="@+id/mayak_preset_counter"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="@dimen/mayak_space_4"
             android:textColor="@color/mayak_on_bg"
             android:textAppearance="@style/Mayak.CardTitle"
             tools:text="Выбрано 3 из 42" />
@@ -325,7 +325,7 @@
             style="@style/Mayak.TextInput"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="@dimen/mayak_space_2"
             android:hint="@string/mayak_preset_editor_search_hint">
 
             <com.google.android.material.textfield.TextInputEditText
@@ -343,7 +343,7 @@
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            android:layout_marginTop="8dp">
+            android:layout_marginTop="@dimen/mayak_space_2">
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/mayak_preset_recycler"
@@ -366,7 +366,7 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
                 android:gravity="center"
-                android:padding="24dp"
+                android:padding="@dimen/mayak_space_6"
                 android:text="@string/mayak_preset_editor_all_hint"
                 android:textColor="@color/mayak_on_bg"
                 android:alpha="0.8"
@@ -380,7 +380,7 @@
             style="@style/Mayak.Button.Primary"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="@dimen/mayak_space_3"
             android:text="@string/mayak_preset_editor_save" />
     </LinearLayout>
 </FrameLayout>

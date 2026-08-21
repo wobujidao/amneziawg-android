@@ -5,9 +5,9 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:paddingStart="24dp"
-    android:paddingEnd="24dp"
-    android:paddingTop="4dp">
+    android:paddingStart="@dimen/mayak_space_6"
+    android:paddingEnd="@dimen/mayak_space_6"
+    android:paddingTop="@dimen/mayak_screen_top">
 
     <LinearLayout
         android:id="@+id/mayak_devices_list"

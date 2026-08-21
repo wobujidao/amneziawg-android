@@ -137,8 +137,8 @@
         <item name="android:colorBackgroundFloating">@android:color/transparent</item>
         <item name="colorBackgroundFloating">@android:color/transparent</item>
         <!-- Радиус угла диалога: Material берёт его отсюда, а не из нашего drawable. -->
-        <item name="android:dialogCornerRadius">28dp</item>
-        <item name="dialogCornerRadius">28dp</item>
+        <item name="android:dialogCornerRadius">@dimen/mayak_radius_lg</item>
+        <item name="dialogCornerRadius">@dimen/mayak_radius_lg</item>
         <item name="colorSurface">@color/mayak_surface</item>
         <item name="colorOnSurface">@color/mayak_on_surface</item>
         <item name="colorOnSurfaceVariant">@color/mayak_on_surface</item>

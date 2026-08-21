@@ -58,6 +58,9 @@
                     android:layout_height="1dp"
                     android:layout_weight="1" />
 
+                <!-- Значок языка 18dp против 24dp у соседней «Темы»: у этой кнопки ЕСТЬ текст,
+                     а 18dp — размер значка при тексте по Material. Разнокалиберно на глаз, но
+                     менять — спорить с системой (ревизия 21-08, C9). -->
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/mayak_language_button"
                     style="@style/Mayak.Button.Text"

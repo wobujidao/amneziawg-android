@@ -16,21 +16,21 @@
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:gravity="center_horizontal|center_vertical"
-        android:paddingStart="32dp"
-        android:paddingEnd="32dp"
-        android:paddingTop="32dp"
-        android:paddingBottom="32dp">
+        android:paddingStart="@dimen/mayak_screen_h"
+        android:paddingEnd="@dimen/mayak_screen_h"
+        android:paddingTop="@dimen/mayak_screen_bottom"
+        android:paddingBottom="@dimen/mayak_screen_bottom">
 
         <ImageView
-            android:layout_width="88dp"
-            android:layout_height="88dp"
+            android:layout_width="96dp"
+            android:layout_height="96dp"
             android:src="@drawable/mayak_logo"
             android:contentDescription="@string/app_name" />
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
+            android:layout_marginTop="@dimen/mayak_space_5"
             android:gravity="center"
             android:text="@string/mayak_outdated_title"
             android:textColor="@color/mayak_on_bg"
@@ -41,23 +41,23 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="@dimen/mayak_space_3"
             android:gravity="center"
             android:lineSpacingMultiplier="1.2"
             android:text="@string/mayak_outdated_why"
-            android:textColor="@color/mayak_on_bg"
-            android:textSize="15sp" />
+            android:textAppearance="@style/Mayak.Tagline"
+            android:textColor="@color/mayak_on_bg" />
 
         <!-- Что аккаунт и настройки целы. Без этой строки экран читается как «меня отключили». -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="@dimen/mayak_space_3"
             android:gravity="center"
             android:lineSpacingMultiplier="1.2"
             android:text="@string/mayak_outdated_data_safe"
-            android:textColor="@color/mayak_on_bg_muted"
-            android:textSize="14sp" />
+            android:textAppearance="@style/Mayak.Tagline"
+            android:textColor="@color/mayak_on_bg_muted" />
 
         <!-- Единственное действие. Текст ставится в коде: канал решает, куда вести (сайт / Play). -->
         <com.google.android.material.button.MaterialButton
@@ -65,7 +65,7 @@
             style="@style/Mayak.Button.Primary"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="28dp"
+            android:layout_marginTop="@dimen/mayak_space_6"
             android:text="@string/mayak_update_now" />
 
         <com.google.android.material.button.MaterialButton
@@ -73,7 +73,7 @@
             style="@style/Mayak.Button.Outlined"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="@dimen/mayak_space_3"
             android:text="@string/mayak_support_write" />
 
         <!-- Справка: скрывается, если адреса сайта нет (MayakHostList.helpUrl == null) — неработающую
@@ -83,7 +83,7 @@
             style="@style/Mayak.Button.Text"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="@dimen/mayak_space_1"
             android:text="@string/mayak_support_help_center" />
 
         <!-- Версии: то, что мы всё равно спросим первым, если человек напишет в поддержку. -->
@@ -91,7 +91,7 @@
             android:id="@+id/mayak_outdated_versions"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="@dimen/mayak_space_4"
             android:gravity="center"
             android:textColor="@color/mayak_on_bg_muted"
             android:textSize="12sp" />

@@ -17,25 +17,25 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:paddingStart="24dp"
-        android:paddingEnd="24dp"
-        android:paddingTop="10dp"
-        android:paddingBottom="24dp">
+        android:paddingStart="@dimen/mayak_space_6"
+        android:paddingEnd="@dimen/mayak_space_6"
+        android:paddingTop="@dimen/mayak_screen_top"
+        android:paddingBottom="@dimen/mayak_space_6">
 
         <View
             android:layout_width="36dp"
             android:layout_height="4dp"
             android:layout_gravity="center_horizontal"
-            android:layout_marginBottom="18dp"
+            android:layout_marginBottom="@dimen/mayak_space_4"
             android:background="@drawable/mayak_sheet_grabber" />
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
+            android:layout_marginBottom="@dimen/mayak_space_4"
             android:text="@string/mayak_onboarding_title"
             android:textColor="@color/mayak_on_surface"
-            android:textSize="22sp"
+            android:textSize="20sp"
             android:textStyle="bold" />
 
         <!-- Карточка 1 -->
@@ -50,12 +50,12 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:layout_marginBottom="16dp"
+            android:layout_marginTop="@dimen/mayak_card_title_gap"
+            android:layout_marginBottom="@dimen/mayak_space_4"
             android:lineSpacingMultiplier="1.15"
             android:text="@string/mayak_onboarding_1_text"
-            android:textColor="@color/mayak_on_bg_muted"
-            android:textSize="14sp" />
+            android:textAppearance="@style/Mayak.Tagline"
+            android:textColor="@color/mayak_on_bg_muted" />
 
         <!-- Карточка 2 -->
         <TextView
@@ -69,12 +69,12 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:layout_marginBottom="16dp"
+            android:layout_marginTop="@dimen/mayak_card_title_gap"
+            android:layout_marginBottom="@dimen/mayak_space_4"
             android:lineSpacingMultiplier="1.15"
             android:text="@string/mayak_onboarding_2_text"
-            android:textColor="@color/mayak_on_bg_muted"
-            android:textSize="14sp" />
+            android:textAppearance="@style/Mayak.Tagline"
+            android:textColor="@color/mayak_on_bg_muted" />
 
         <!-- Карточка 3 -->
         <TextView
@@ -88,12 +88,12 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:layout_marginBottom="22dp"
+            android:layout_marginTop="@dimen/mayak_card_title_gap"
+            android:layout_marginBottom="@dimen/mayak_space_4"
             android:lineSpacingMultiplier="1.15"
             android:text="@string/mayak_onboarding_3_text"
-            android:textColor="@color/mayak_on_bg_muted"
-            android:textSize="14sp" />
+            android:textAppearance="@style/Mayak.Tagline"
+            android:textColor="@color/mayak_on_bg_muted" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/mayak_onboarding_done"

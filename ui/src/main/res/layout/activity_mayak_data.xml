@@ -32,8 +32,8 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/mayak_card_gap"
                 android:text="@string/mayak_data_intro"
-                android:textColor="@color/mayak_on_bg"
-                android:textSize="15sp" />
+                android:textAppearance="@style/Mayak.Tagline"
+                android:textColor="@color/mayak_on_bg" />
 
             <!-- ЗАЧЕМ СИСТЕМНОЕ РАЗРЕШЕНИЕ — ПЕРВЫМ: Google требует, чтобы раскрытие объясняло,
                  зачем приложению VpnService и как он используется (отказ 19-08). -->
@@ -60,8 +60,8 @@
                         android:layout_marginTop="@dimen/mayak_card_title_gap"
                         android:lineSpacingExtra="4dp"
                         android:text="@string/mayak_data_vpn_body"
-                        android:textColor="@color/mayak_on_surface"
-                        android:textSize="15sp" />
+                        android:textAppearance="@style/Mayak.Tagline"
+                        android:textColor="@color/mayak_on_surface" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -89,8 +89,8 @@
                         android:layout_marginTop="@dimen/mayak_card_title_gap"
                         android:lineSpacingExtra="4dp"
                         android:text="@string/mayak_data_collect_body"
-                        android:textColor="@color/mayak_on_surface"
-                        android:textSize="15sp" />
+                        android:textAppearance="@style/Mayak.Tagline"
+                        android:textColor="@color/mayak_on_surface" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -118,8 +118,8 @@
                         android:layout_marginTop="@dimen/mayak_card_title_gap"
                         android:lineSpacingExtra="4dp"
                         android:text="@string/mayak_data_never_body"
-                        android:textColor="@color/mayak_on_surface"
-                        android:textSize="15sp" />
+                        android:textAppearance="@style/Mayak.Tagline"
+                        android:textColor="@color/mayak_on_surface" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -147,8 +147,8 @@
                         android:layout_marginTop="@dimen/mayak_card_title_gap"
                         android:lineSpacingExtra="4dp"
                         android:text="@string/mayak_data_rights_body"
-                        android:textColor="@color/mayak_on_surface"
-                        android:textSize="15sp" />
+                        android:textAppearance="@style/Mayak.Tagline"
+                        android:textColor="@color/mayak_on_surface" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/mayak_data_privacy"
@@ -173,10 +173,10 @@
         android:gravity="start|center_vertical"
         android:background="@color/mayak_bg_grad_top"
         android:elevation="4dp"
-        android:paddingStart="8dp"
-        android:paddingEnd="20dp"
-        android:paddingTop="4dp"
-        android:paddingBottom="8dp">
+        android:paddingStart="@dimen/mayak_space_2"
+        android:paddingEnd="@dimen/mayak_screen_h"
+        android:paddingTop="@dimen/mayak_space_1"
+        android:paddingBottom="@dimen/mayak_space_2">
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/mayak_data_back"
@@ -184,16 +184,16 @@
             android:contentDescription="@string/mayak_back"
             app:icon="@drawable/ic_arrow_back"
             app:iconTint="@color/mayak_on_bg"
-            app:iconSize="24dp"
+            app:iconSize="@dimen/mayak_icon"
             android:text="" />
 
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="@dimen/mayak_space_2"
             android:layout_weight="1"
             android:text="@string/mayak_data_title"
             android:textAppearance="@style/Mayak.Title"
-            android:textSize="20sp" />
+            android:textSize="24sp" />
     </LinearLayout>
 </FrameLayout>

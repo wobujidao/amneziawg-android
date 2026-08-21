@@ -8,23 +8,23 @@
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:background="@color/mayak_bg"
-    android:paddingStart="24dp"
-    android:paddingEnd="24dp"
-    android:paddingTop="10dp"
-    android:paddingBottom="28dp">
+    android:paddingStart="@dimen/mayak_space_6"
+    android:paddingEnd="@dimen/mayak_space_6"
+    android:paddingTop="@dimen/mayak_screen_top"
+    android:paddingBottom="@dimen/mayak_space_6">
 
     <!-- Хваталка листа -->
     <View
         android:layout_width="36dp"
         android:layout_height="4dp"
         android:layout_gravity="center_horizontal"
-        android:layout_marginBottom="16dp"
+        android:layout_marginBottom="@dimen/mayak_space_4"
         android:background="@drawable/mayak_sheet_grabber" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
+        android:layout_marginBottom="@dimen/mayak_card_title_gap"
         android:text="@string/mayak_details_title"
         android:textColor="@color/mayak_on_bg"
         android:textSize="20sp"
@@ -43,9 +43,9 @@
                 android:gravity="center_vertical">
                 <ImageView
                     android:id="@+id/mayak_det_flag"
-                    android:layout_width="22dp"
-                    android:layout_height="22dp"
-                    android:layout_marginEnd="8dp"
+                    android:layout_width="@dimen/mayak_icon"
+                    android:layout_height="@dimen/mayak_icon"
+                    android:layout_marginEnd="@dimen/mayak_space_2"
                     android:importantForAccessibility="no" />
                 <!-- Эмодзи-флаг: тот же приём, что в списке стран. Он собирается из любых двух букв
                      кода, поэтому новая страна показывает флаг ДО того, как заведут вектор. -->
@@ -53,7 +53,7 @@
                     android:id="@+id/mayak_det_flag_emoji"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginEnd="8dp"
+                    android:layout_marginEnd="@dimen/mayak_space_2"
                     android:textSize="18sp"
                     android:visibility="gone"
                     android:importantForAccessibility="no"
