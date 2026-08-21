@@ -1252,6 +1252,31 @@ class MayakActivity : AppCompatActivity() {
         presetNameBtn = findViewById(R.id.mayak_preset_name)
         presetSwitch = findViewById(R.id.mayak_preset_switch)
         presetHint = findViewById(R.id.mayak_preset_hint)
+        // 🎯 Область нажатия тумблера ДОТЯГИВАЕТСЯ до 48dp через TouchDelegate, а не через размеры.
+        //
+        // Почему не minWidth/minHeight: у тумблера стоит `scaleX/scaleY=0.8` (он ужат, чтобы имя
+        // пресета помещалось целиком), а масштаб — это преобразование при ОТРИСОВКЕ: он сжимает и
+        // область нажатия тоже. Замер деревом доступности 21-08: цель была 42×38dp при минимуме
+        // Google 48×48. Увеличивать размеры пришлось бы до 60dp, и они съели бы 18dp у имени
+        // пресета — то есть починка одного испортила бы другое.
+        // TouchDelegate расширяет область нажатия РОДИТЕЛЯ, не трогая ни размер, ни вид.
+        presetSwitch?.let { sw ->
+            val parent = sw.parent as? android.view.ViewGroup ?: return@let
+            // Пересчитываем на КАЖДОЙ раскладке, а не один раз: полоска пресетов бывает скрыта
+            // (настройка «показывать пресеты»), и посчитанный на нулевых размерах прямоугольник
+            // остался бы нулевым навсегда.
+            sw.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+                val need = (48 * resources.displayMetrics.density).toInt()
+                val r = android.graphics.Rect()
+                sw.getHitRect(r) // учитывает scaleX/scaleY — то есть НАРИСОВАННЫЙ размер
+                val padX = ((need - r.width()) / 2).coerceAtLeast(0)
+                val padY = ((need - r.height()) / 2).coerceAtLeast(0)
+                if (padX > 0 || padY > 0) {
+                    r.inset(-padX, -padY)
+                    parent.touchDelegate = android.view.TouchDelegate(r, sw)
+                }
+            }
+        }
         presetNameBtn?.setOnClickListener { showPresetChooser() }
         presetNameBtn?.setOnLongClickListener { confirmDeleteActivePreset(); true }
         presetSwitch?.setOnCheckedChangeListener { _, checked ->

@@ -89,6 +89,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:gravity="center"
+        android:minWidth="@dimen/mayak_touch"
+        android:minHeight="@dimen/mayak_touch"
         android:textColor="@color/mayak_on_bg_muted"
         android:textSize="15sp"
         android:visibility="gone"

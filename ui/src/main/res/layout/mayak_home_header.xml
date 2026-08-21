@@ -83,7 +83,11 @@
                      −2dp — не «на глаз»: MaterialSwitch несёт собственное внутреннее поле, и после
                      сжатия до 0.8 слева от него оставался лишний воздух (scaleX ужимает рисунок, а
                      не занятое место). Отступ гасит ровно этот остаток. Обновится Material —
-                     проверить глазами: значение уедет молча. -->
+                     проверить глазами: значение уедет молча.
+                     ⚠️ minWidth/minHeight 48dp обязательны ИМЕННО ЗДЕСЬ: `scale 0.8` ужимает
+                     рисунок вместе с областью нажатия, и цель становилась 42×38dp — ниже минимума
+                     Google. Замер деревом доступности 21-08: это была последняя цель на главном
+                     экране ниже 48dp. Строка шапки и так 48dp, поэтому экран от правки не вырос. -->
                 <com.google.android.material.materialswitch.MaterialSwitch
                     android:id="@+id/mayak_preset_switch"
                     android:layout_width="wrap_content"
@@ -91,7 +95,9 @@
                     android:layout_marginStart="-2dp"
                     android:scaleX="0.8"
                     android:scaleY="0.8"
-                    android:contentDescription="@string/mayak_preset_switch_desc" />
+                    android:contentDescription="@string/mayak_preset_switch_desc"
+                    android:minWidth="@dimen/mayak_touch"
+                    android:minHeight="@dimen/mayak_touch" />
             </LinearLayout>
         </FrameLayout>
 
