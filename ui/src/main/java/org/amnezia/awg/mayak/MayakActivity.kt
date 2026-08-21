@@ -18,9 +18,11 @@ import android.os.Bundle
 import android.os.SystemClock
 import android.provider.Settings
 import android.view.HapticFeedbackConstants
+import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.animation.AccelerateDecelerateInterpolator
+import android.view.inputmethod.EditorInfo
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -33,6 +35,7 @@ import androidx.core.widget.doAfterTextChanged
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import java.io.IOException
@@ -643,27 +646,43 @@ class MayakActivity : AppCompatActivity() {
         findViewById<TextInputEditText>(R.id.mayak_totp)?.doAfterTextChanged {
             findViewById<TextInputLayout>(R.id.mayak_totp_layout)?.error = null
         }
-        findViewById<MaterialButton>(R.id.mayak_sign_in).setOnClickListener {
+        // Собственно вход — ОДНОЙ функцией, потому что запустить его можно двумя путями: кнопкой и
+        // галочкой на клавиатуре. Второй путь важнее, чем кажется: на коротком экране клавиатура
+        // закрывает кнопку «Войти», человек жмёт туда, где она была, попадает в клавиатуру — и
+        // видит «ничего не произошло» (21-08, поймано на Android 9).
+        val trySignIn = {
             val email = emailField.text?.toString()?.trim().orEmpty()
             val pass = passField.text?.toString().orEmpty()
             loginLayout.error = null
             passwordLayout.error = null
-            if (email.isBlank() || pass.isBlank()) {
-                val target = if (email.isBlank()) loginLayout else passwordLayout
-                target.error = getString(R.string.mayak_err_fill_login)
-                shake(target)
-                return@setOnClickListener
-            }
-            // Поле кода уже показано, но пустое — не шлём заведомо тот же запрос: ядро ответит
-            // «нужен код», экран перерисуется в то же состояние, и кнопка будет выглядеть мёртвой.
             val totpRow = findViewById<TextInputLayout>(R.id.mayak_totp_layout)
-            if (totpRow != null && totpRow.visibility == View.VISIBLE && visibleTotpCode().isEmpty()) {
-                totpRow.error = getString(R.string.mayak_err_totp_empty)
-                shake(totpRow)
-                return@setOnClickListener
+            when {
+                email.isBlank() || pass.isBlank() -> {
+                    val target = if (email.isBlank()) loginLayout else passwordLayout
+                    target.error = getString(R.string.mayak_err_fill_login)
+                    shake(target)
+                }
+                // Поле кода уже показано, но пустое — не шлём заведомо тот же запрос: ядро ответит
+                // «нужен код», экран перерисуется в то же состояние, и кнопка будет выглядеть мёртвой.
+                totpRow != null && totpRow.visibility == View.VISIBLE && visibleTotpCode().isEmpty() -> {
+                    totpRow.error = getString(R.string.mayak_err_totp_empty)
+                    shake(totpRow)
+                }
+                // Код 2FA отправляем, только если поле уже показано (его раскрывает ответ ядра totp_required).
+                else -> doSignIn(email, pass, totpCode = visibleTotpCode())
             }
-            // Код 2FA отправляем, только если поле уже показано (его раскрывает ответ ядра totp_required).
-            doSignIn(email, pass, totpCode = visibleTotpCode())
+        }
+        findViewById<MaterialButton>(R.id.mayak_sign_in).setOnClickListener { trySignIn() }
+        // Галочка (actionDone) на клавиатуре — второй путь к тому же действию. Клавиатуру при этом НЕ
+        // прячем: если вход не удался, человек продолжит править пароль там же, где стоял курсор.
+        passField.setOnEditorActionListener { _, actionId, event ->
+            val enter = event?.keyCode == KeyEvent.KEYCODE_ENTER && event.action == KeyEvent.ACTION_DOWN
+            if (actionId == EditorInfo.IME_ACTION_DONE || enter) {
+                trySignIn()
+                true
+            } else {
+                false
+            }
         }
         findViewById<MaterialButton>(R.id.mayak_forgot_password).setOnClickListener {
             showForgotPasswordDialog(emailField.text?.toString()?.trim().orEmpty())
@@ -972,6 +991,11 @@ class MayakActivity : AppCompatActivity() {
             // Встряхиваем саму строку: без движения серая подпись внизу экрана легко проходит мимо
             // взгляда, а до этого отказ всегда «дёргался» (полем пароля) и его нельзя было не заметить.
             if (::status.isInitialized) shake(status)
+            // 🔴 И ГЛАВНОЕ — плашкой поверх. Строка статуса живёт ПОД карточкой входа, а с открытой
+            // клавиатурой её на экране нет вовсе: человек жал «Войти» и не видел НИЧЕГО — ни ошибки,
+            // ни объяснения (21-08). Плашка при adjustResize садится над клавиатурой, то есть
+            // попадает туда, куда человек в этот момент смотрит.
+            показатьПоверхКлавиатуры(text)
             return@runOnUiThread
         }
         if (passwordLayout != null) {
@@ -981,6 +1005,14 @@ class MayakActivity : AppCompatActivity() {
         } else {
             setStatus(text)
         }
+    }
+
+    /** Короткая плашка поверх содержимого — единственное место, которое видно и с открытой клавиатурой.
+     *  Нужна только для отказов «не про пароль» (нет сети, сервер молчит): у ошибок пароля есть своя
+     *  подпись прямо под полем, и дублировать её плашкой значит сказать человеку одно и то же дважды. */
+    private fun показатьПоверхКлавиатуры(text: String) {
+        val root = findViewById<View>(R.id.mayak_login_content) ?: findViewById(android.R.id.content) ?: return
+        Snackbar.make(root, text, Snackbar.LENGTH_LONG).show()
     }
 
     /** Короткая встряска элемента: движение читается боковым зрением быстрее любого текста. */

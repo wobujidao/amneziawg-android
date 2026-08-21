@@ -144,11 +144,17 @@
                         app:endIconMode="password_toggle"
                         android:hint="@string/mayak_password_hint">
 
+                        <!-- imeOptions=actionDone: с открытой клавиатурой кнопка «Войти» уходит
+                             под неё, и человек жмёт туда, где кнопка была секунду назад, — то есть
+                             в саму клавиатуру. Галочка на клавиатуре даёт вход, не закрывая её
+                             (найдено 21-08: тап «мимо кнопки» дописывал букву в пароль и выглядел
+                             как «нажал и ничего не произошло»). -->
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/mayak_password"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:inputType="textPassword"
+                            android:imeOptions="actionDone"
                             android:maxLines="1" />
                     </com.google.android.material.textfield.TextInputLayout>
 
