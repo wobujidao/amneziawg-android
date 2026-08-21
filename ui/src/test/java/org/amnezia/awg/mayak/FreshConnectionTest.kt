@@ -15,6 +15,7 @@ import java.net.URL
 import javax.net.ssl.HttpsURLConnection
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotSame
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -54,6 +55,21 @@ class FreshConnectionTest {
                 !text.contains("openConnection() as HttpURLConnection"),
             )
         }
+    }
+
+
+    @Test
+    fun `соединение в обход туннеля фабрику не подменяет`() {
+        // Обход держится на сокет-фабрике самой сети (Network.openConnection). Подменишь её здесь —
+        // и обход тихо перестанет быть обходом, а он существует ровно для случая «туннель мёртв».
+        val url = URL("https://example.invalid/version.json")
+        val своё = FreshConnection.open(url) { it.openConnection() as HttpsURLConnection }
+        assertSame(
+            "фабрику соединения, открытого чужим opener'ом, трогать нельзя",
+            HttpsURLConnection.getDefaultSSLSocketFactory(),
+            (своё as HttpsURLConnection).sslSocketFactory,
+        )
+        assertEquals("close", своё.getRequestProperty("Connection"))
     }
 
     private fun найтиФайл(rel: String): String {

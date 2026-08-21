@@ -39,7 +39,17 @@ object FreshConnection {
      * @param opener чем открывать (обход туннеля и т.п.); по умолчанию — обычное соединение.
      */
     fun open(url: URL, opener: ((URL) -> HttpURLConnection)? = null): HttpURLConnection {
-        val conn = opener?.invoke(url) ?: (url.openConnection() as HttpURLConnection)
+        if (opener != null) {
+            // 🔴 СОЕДИНЕНИЕ В ОБХОД ТУННЕЛЯ ФАБРИКУ НЕ ТРОГАЕМ. Его открывает `Network.openConnection`
+            // (OutsideTunnel), и привязка к конкретной сети держится на сокет-фабрике САМОЙ сети —
+            // а такие соединения и так не берутся из общего пула, у каждой Network пул свой. То есть
+            // подменять здесь нечего, а риск сломать обход есть: обход существует ровно затем, чтобы
+            // поддержка и диагностика работали при МЁРТВОМ туннеле, и тихо потерять его нельзя.
+            val conn = opener(url)
+            conn.setRequestProperty("Connection", "close")
+            return conn
+        }
+        val conn = url.openConnection() as HttpURLConnection
         // Своя обёртка на КАЖДЫЙ вызов: именно её отличие от прошлой и разводит пулы.
         (conn as? HttpsURLConnection)?.sslSocketFactory =
             NotShared(HttpsURLConnection.getDefaultSSLSocketFactory())
