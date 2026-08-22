@@ -126,4 +126,49 @@ class LinkDiagnosisTest {
         val след = LinkDiagnosis.trace(LinkFacts(internetOutside = Probe.OK, batteryRestricted = true))
         assertTrue(след.contains("фон ограничен ✗"))
     }
+
+    // 🔴 Веерное ограничение мобильного интернета (22-08). Наши молчат, зарубежный адрес молчит,
+    // а российский из белого списка отвечает — значит интернет ЕСТЬ, и говорить «нет интернета,
+    // проверьте сеть» нельзя: человека отправляют чинить исправную сеть. Владелец 22-08:
+    // «в Москве включили белые списки, работает только Яндекс», и отдельно — включают их ТОЛЬКО
+    // на мобильной связи.
+    @Test
+    fun `белый список важнее вердикта «нет интернета»`() {
+        val v = LinkDiagnosis.verdict(
+            LinkFacts(internetOutside = Probe.FAIL, ruAllowedHost = Probe.OK,
+                apiByName = Probe.FAIL, apiByIp = Probe.FAIL),
+        )
+        assertEquals(LinkDiagnosis.MOBILE_ALLOWLIST, v.code)
+    }
+
+    // Обратная сторона: если из белого списка тоже никто не ответил, интернета и правда нет —
+    // прежний вердикт обязан остаться. Иначе мы заменили одну неправду на другую.
+    @Test
+    fun `без ответа из белого списка это по-прежнему «нет интернета»`() {
+        val v = LinkDiagnosis.verdict(
+            LinkFacts(internetOutside = Probe.FAIL, ruAllowedHost = Probe.FAIL),
+        )
+        assertEquals(LinkDiagnosis.NO_NETWORK, v.code)
+    }
+
+    // Пробу белого списка мы гоняем только когда интернета «нет», поэтому обычный случай приходит
+    // с UNKNOWN — и он тоже обязан читаться как «нет интернета», а не как ограничение.
+    @Test
+    fun `непроверенный белый список не превращается в ограничение сети`() {
+        val v = LinkDiagnosis.verdict(
+            LinkFacts(internetOutside = Probe.FAIL, ruAllowedHost = Probe.UNKNOWN),
+        )
+        assertEquals(LinkDiagnosis.NO_NETWORK, v.code)
+    }
+
+    // Ограничение сети — не повод молчать про чужой VPN: он идёт следующей веткой и не должен
+    // потеряться, когда интернет есть.
+    @Test
+    fun `при живом интернете белый список ни на что не влияет`() {
+        val v = LinkDiagnosis.verdict(
+            LinkFacts(internetOutside = Probe.OK, ruAllowedHost = Probe.OK,
+                otherVpn = Probe.FAIL, throughTunnel = Probe.FAIL),
+        )
+        assertEquals(LinkDiagnosis.OTHER_VPN, v.code)
+    }
 }

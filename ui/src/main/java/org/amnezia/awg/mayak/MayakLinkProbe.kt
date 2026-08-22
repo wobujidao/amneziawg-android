@@ -47,6 +47,11 @@ object MayakLinkProbe {
     private const val BIG_BYTES = 65_536
 
     private const val OUTSIDE_URL = "https://api.ipify.org?format=json"
+    // Адреса, которые остаются доступны при веерном ограничении мобильного интернета: сеть в такие
+    // часы пускает несколько российских сервисов и режет всё остальное. Список назвал владелец
+    // 22-08 («Яндекс и vk.com»). Двух хватает: один может лежать сам по себе, и тогда мы объявили
+    // бы ограничение сети там, где его нет.
+    private val RU_ALLOWED_URLS = listOf("https://ya.ru/", "https://vk.com/")
     private const val BIG_URL = "https://speed.cloudflare.com/__down?bytes=$BIG_BYTES"
     private const val DNS_NAME = "api.ipify.org"
 
@@ -79,6 +84,15 @@ object MayakLinkProbe {
             Probe.OK
         } else {
             проба("интернет мимо туннеля") { httpOk(OUTSIDE_URL, снаружи) }
+        }
+
+        // 2а. Белый список. Спрашиваем ТОЛЬКО когда интернета «нет»: в норме это лишний запрос к
+        //     постороннему сервису, а он нам не нужен ни разу. Если хоть один из адресов ответил —
+        //     интернет у человека есть, и молчание всего остального означает ограничение сети.
+        val ruAllowedHost = if (internetOutside != Probe.FAIL) {
+            Probe.UNKNOWN
+        } else {
+            проба("белый список") { RU_ALLOWED_URLS.any { u -> runCatching { httpOk(u, снаружи) }.getOrDefault(false) } }
         }
 
         // 3. Отвечает ли ВЫХОД. Отдельной пробы не нужно: свежее рукопожатие и есть доказательство —
@@ -145,6 +159,7 @@ object MayakLinkProbe {
             clockOk = clockOk,
             otherVpn = otherVpn,
             udpPasses = udpPasses,
+            ruAllowedHost = ruAllowedHost,
             apiByName = apiByName,
             apiByIp = apiByIp,
             batteryRestricted = фонОграничен(context),
